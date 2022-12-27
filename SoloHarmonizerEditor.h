@@ -1,13 +1,13 @@
 #pragma once
 
-#include "PluginProcessor.h"
+#include "SoloHarmonizerProcessor.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
+class SoloHarmonizerEditor  : public juce::AudioProcessorEditor
 {
 public:
-    explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
-    ~AudioPluginAudioProcessorEditor() override;
+    explicit SoloHarmonizerEditor (SoloHarmonizerProcessor&);
+    ~SoloHarmonizerEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -16,7 +16,7 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    AudioPluginAudioProcessor& processorRef;
+    SoloHarmonizerProcessor& processorRef;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoloHarmonizerEditor)
 };
