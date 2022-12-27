@@ -3,7 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 //==============================================================================
-class SoloHarmonizerProcessor : public juce::AudioProcessor {
+class SoloHarmonizerProcessor : public juce::AudioProcessor,
+                                public juce::FileBrowserListener {
 public:
   //==============================================================================
   SoloHarmonizerProcessor();
@@ -41,7 +42,16 @@ public:
   void getStateInformation(juce::MemoryBlock &destData) override;
   void setStateInformation(const void *data, int sizeInBytes) override;
 
+  // File browser listener
+  void selectionChanged() override {}
+  void fileClicked(const juce::File &, const juce::MouseEvent &) override {}
+  void fileDoubleClicked(const juce::File &file) override;
+  void browserRootChanged(const juce::File &) override {}
+
 private:
+  juce::WildcardFileFilter _fileFilter;
+  juce::FileBrowserComponent _fileBrowserComponent;
+
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)
 };

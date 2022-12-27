@@ -1,17 +1,53 @@
 #include "SoloHarmonizerProcessor.h"
 #include "SoloHarmonizerEditor.h"
 
+namespace {
+juce::MidiFile getMidiFile(const juce::String &filename) {
+  juce::MidiFile midiFile;
+  const juce::File file(filename);
+  const auto stream = file.createInputStream();
+  if (!midiFile.readFrom(*stream)) {
+    jassertfalse;
+  }
+  return midiFile;
+}
+} // namespace
+
 //==============================================================================
 SoloHarmonizerProcessor::SoloHarmonizerProcessor()
     : AudioProcessor(
           BusesProperties()
-#if !JucePlugin_IsMidiEffect
-#if !JucePlugin_IsSynth
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
-#endif
-              .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-#endif
-      ) {
+              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      _fileFilter("*.mid;*.midi", "", ""),
+      _fileBrowserComponent(
+          juce::FileBrowserComponent::FileChooserFlags::openMode |
+              juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
+          juce::File(), &_fileFilter, nullptr) {
+  _fileBrowserComponent.addListener(this);
+  _fileBrowserComponent.setSize(250, 250);
+  const juce::File file("C:/Users/saint/Downloads/test.xml");
+  const auto xml = juce::XmlDocument::parse(file);
+  const auto masterMidi = getMidiFile(xml->getAttributeValue(0));
+  const auto slaveMidi = getMidiFile(xml->getAttributeValue(1));
+  const juce::MidiMessageSequence *masterSequence = masterMidi.getTrack(1);
+  std::vector<double> timestamps;
+  std::vector<std::optional<int>> noteNumbers;
+  std::optional<double> currentNoteoffTimestamp;
+  for (auto it = masterSequence->begin(); it != masterSequence->end(); ++it) {
+    const auto message = (*it)->message;
+    if (!message.isNoteOn()) {
+      continue;
+    }
+    const auto timestamp = message.getTimeStamp();
+    if (currentNoteoffTimestamp && timestamp > currentNoteoffTimestamp) {
+      timestamps.push_back(*currentNoteoffTimestamp);
+      noteNumbers.push_back(std::nullopt);
+      currentNoteoffTimestamp = std::nullopt;
+    }
+    timestamps.push_back(message.getTimeStamp());
+    noteNumbers.push_back(message.getNoteNumber());
+  }
 }
 
 SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
@@ -142,7 +178,9 @@ bool SoloHarmonizerProcessor::hasEditor() const {
 }
 
 juce::AudioProcessorEditor *SoloHarmonizerProcessor::createEditor() {
-  return new SoloHarmonizerEditor(*this);
+  const auto editor = new SoloHarmonizerEditor(*this);
+  editor->addAndMakeVisible(_fileBrowserComponent);
+  return editor;
 }
 
 //==============================================================================
@@ -159,6 +197,14 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
   // block, whose contents will have been created by the getStateInformation()
   // call.
   juce::ignoreUnused(data, sizeInBytes);
+}
+
+void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
+  juce::MidiFile midiFile;
+  const auto stream = file.createInputStream();
+  if (!midiFile.readFrom(*stream)) {
+    jassertfalse;
+  }
 }
 
 //==============================================================================
