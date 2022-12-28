@@ -1,5 +1,8 @@
 #include "SoloHarmonizerProcessor.h"
 #include "SoloHarmonizerEditor.h"
+#include "juce_core/system/juce_PlatformDefs.h"
+#include "rubberband/RubberBandStretcher.h"
+#include <memory>
 
 namespace {
 juce::MidiFile getMidiFile(const juce::String &filename) {
@@ -17,13 +20,14 @@ juce::MidiFile getMidiFile(const juce::String &filename) {
 SoloHarmonizerProcessor::SoloHarmonizerProcessor()
     : AudioProcessor(
           BusesProperties()
-              .withInput("Input", juce::AudioChannelSet::stereo(), true)
-              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+              .withInput("Input", juce::AudioChannelSet::mono(), true)
+              .withOutput("Output", juce::AudioChannelSet::mono(), true)),
       _fileFilter("*.mid;*.midi", "", ""),
       _fileBrowserComponent(
           juce::FileBrowserComponent::FileChooserFlags::openMode |
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
-          juce::File(), &_fileFilter, nullptr) {
+          juce::File(), &_fileFilter, nullptr),
+      _pitchDisplay("Detected Pitch") {
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   const juce::File file("C:/Users/saint/Downloads/test.xml");
@@ -108,9 +112,9 @@ void SoloHarmonizerProcessor::changeProgramName(int index,
 //==============================================================================
 void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
-  // Use this method as the place to do any pre-playback
-  // initialisation that you need..
-  juce::ignoreUnused(sampleRate, samplesPerBlock);
+  _stretcher = std::make_unique<RubberBand::RubberBandStretcher>(sampleRate, 1);
+  _stretcher->setMaxProcessSize(static_cast<size_t>(samplesPerBlock));
+  _stretcher->setPitchScale(2.0);
 }
 
 void SoloHarmonizerProcessor::releaseResources() {
@@ -145,30 +149,17 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
-
   juce::ScopedNoDenormals noDenormals;
   auto totalNumInputChannels = getTotalNumInputChannels();
   auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-  // In case we have more outputs than inputs, this code clears any output
-  // channels that didn't contain input data, (because these aren't
-  // guaranteed to be empty - they may contain garbage).
-  // This is here to avoid people getting screaming feedback
-  // when they first compile a plugin, but obviously you don't need to keep
-  // this code if your algorithm always overwrites all the output channels.
-  for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-    buffer.clear(i, 0, buffer.getNumSamples());
-
-  // This is the place where you'd normally do the guts of your plugin's
-  // audio processing...
-  // Make sure to reset the state if your inner loop is processing
-  // the samples and the outer loop is handling the channels.
-  // Alternatively, you can process the samples with the channels
-  // interleaved by keeping the same state.
-  for (int channel = 0; channel < totalNumInputChannels; ++channel) {
-    auto *channelData = buffer.getWritePointer(channel);
-    juce::ignoreUnused(channelData);
-    // ..do something to the data...
+  jassert(totalNumInputChannels == 1);
+  jassert(totalNumOutputChannels == 1);
+  const auto numSamples = static_cast<size_t>(buffer.getNumSamples());
+  _stretcher->process(buffer.getArrayOfReadPointers(), numSamples, false);
+  if (_stretcher->available() >= buffer.getNumSamples()) {
+    _stretcher->retrieve(buffer.getArrayOfWritePointers(), numSamples);
+  } else {
+    // stuff
   }
 }
 

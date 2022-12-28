@@ -10,11 +10,17 @@
 
 cmake_minimum_required(VERSION 3.15)
 
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
+add_definitions(-DNOMINMAX)
+
 # The top-level CMakeLists.txt file for a project must contain a literal, direct call to the
 # `project()` command. `project()` sets up some helpful variables that describe source/binary
 # directories, and the current project version. This is a standard CMake command.
 
 project(SoloHarmonizer VERSION 0.0.1)
+
+add_subdirectory(LibPyin)
+add_subdirectory(rubberband-wrapper)
 
 # If you've installed JUCE somehow (via a package manager, or directly using the CMake install
 # target), you'll need to tell this project that it depends on the installed copy of JUCE. If you've
@@ -105,6 +111,8 @@ target_link_libraries(SoloHarmonizer
     PRIVATE
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
+        LibPyin
+        rubberband-wrapper
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags

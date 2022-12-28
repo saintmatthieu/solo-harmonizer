@@ -1,6 +1,9 @@
 #pragma once
 
+#include "LibPyin/source/libpyincpp.h"
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <memory>
+#include <rubberband/RubberBandStretcher.h>
 
 //==============================================================================
 class SoloHarmonizerProcessor : public juce::AudioProcessor,
@@ -51,6 +54,9 @@ public:
 private:
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
+  std::unique_ptr<PyinCpp> _pyinCpp;
+  std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
+  juce::Label _pitchDisplay;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)
