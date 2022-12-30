@@ -2,7 +2,9 @@
 #include "SoloHarmonizerEditor.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include "rubberband/RubberBandStretcher.h"
+#include <algorithm>
 #include <memory>
+#include <optional>
 
 namespace {
 juce::MidiFile getMidiFile(const juce::String &filename) {
@@ -27,9 +29,10 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor()
           juce::FileBrowserComponent::FileChooserFlags::openMode |
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
           juce::File(), &_fileFilter, nullptr),
-      _pitchDisplay("Detected Pitch") {
+      _pitchDisplay("Sample diff") {
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
+  _pitchDisplay.setSize(250, 100);
   const juce::File file("C:/Users/saint/Downloads/test.xml");
   const auto xml = juce::XmlDocument::parse(file);
   const auto masterMidi = getMidiFile(xml->getAttributeValue(0));
@@ -52,9 +55,15 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor()
     timestamps.push_back(message.getTimeStamp());
     noteNumbers.push_back(message.getNoteNumber());
   }
+  juce::MessageManager::getInstance()->registerBroadcastListener(this);
 }
 
 SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
+
+void SoloHarmonizerProcessor::actionListenerCallback(
+    const juce::String &message) {
+  _pitchDisplay.setText(message, juce::NotificationType::dontSendNotification);
+}
 
 //==============================================================================
 const juce::String SoloHarmonizerProcessor::getName() const {
@@ -112,9 +121,29 @@ void SoloHarmonizerProcessor::changeProgramName(int index,
 //==============================================================================
 void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
-  _stretcher = std::make_unique<RubberBand::RubberBandStretcher>(sampleRate, 1);
-  _stretcher->setMaxProcessSize(static_cast<size_t>(samplesPerBlock));
-  _stretcher->setPitchScale(2.0);
+  _stretcher = std::make_unique<RubberBand::RubberBandStretcher>(
+      sampleRate, 1,
+      RubberBand::RubberBandStretcher::OptionProcessRealTime |
+          RubberBand::RubberBandStretcher::OptionTransientsCrisp |
+          RubberBand::RubberBandStretcher::OptionDetectorCompound |
+          RubberBand::RubberBandStretcher::OptionPitchHighConsistency |
+          RubberBand::RubberBandStretcher::OptionChannelsTogether |
+          RubberBand::RubberBandStretcher::OptionEngineFaster);
+  jassert(_stretcher->getEngineVersion() ==
+          2 /* version 2, matching OptionEngineFaster */);
+  const auto uSamplesPerBlock = (size_t)samplesPerBlock;
+  const auto toPad = (size_t)_stretcher->getPreferredStartPad();
+  _dummyBuffer = std::make_unique<std::vector<float>>(
+      std::max(uSamplesPerBlock, toPad), 0.f);
+  _stretcher->setMaxProcessSize(uSamplesPerBlock);
+  _stretcher->setPitchScale(1.0);
+  if (toPad > 0u) {
+    auto data = _dummyBuffer->data();
+    _stretcher->process(&data, toPad, false);
+  }
+  _numLeadingSamplesToDrop = _stretcher->getStartDelay();
+  _pyinCpp =
+      std::make_unique<PyinCpp>(static_cast<int>(sampleRate), samplesPerBlock);
 }
 
 void SoloHarmonizerProcessor::releaseResources() {
@@ -154,13 +183,56 @@ void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   auto totalNumOutputChannels = getTotalNumOutputChannels();
   jassert(totalNumInputChannels == 1);
   jassert(totalNumOutputChannels == 1);
-  const auto numSamples = static_cast<size_t>(buffer.getNumSamples());
+  const auto numSamples = (size_t)buffer.getNumSamples();
+
   _stretcher->process(buffer.getArrayOfReadPointers(), numSamples, false);
-  if (_stretcher->available() >= buffer.getNumSamples()) {
-    _stretcher->retrieve(buffer.getArrayOfWritePointers(), numSamples);
-  } else {
-    // stuff
+  auto numAvailableSamples = _stretcher->available();
+
+  auto data = _dummyBuffer->data();
+  while (numAvailableSamples > 0 && _numLeadingSamplesToDrop > 0) {
+    const auto toDropInNextCall =
+        std::min((size_t)numAvailableSamples, _numLeadingSamplesToDrop);
+    _stretcher->retrieve(&data, toDropInNextCall);
+    _numLeadingSamplesToDrop -= toDropInNextCall;
+    numAvailableSamples -= toDropInNextCall;
   }
+
+  const auto pData = buffer.getArrayOfWritePointers();
+  const auto numLeadingSamplesToSilence =
+      (size_t)std::max((int)numSamples - numAvailableSamples, 0);
+  memset(pData[0], 0.f, numLeadingSamplesToSilence);
+  auto repaint = false;
+  if (numAvailableSamples > 0) {
+    const auto offsetPointer = pData[0] + numLeadingSamplesToSilence;
+    const auto numSamplesToRetrieve = numSamples - numLeadingSamplesToSilence;
+    const auto newNumAvailableSamplesMin =
+        _numAvailableSamplesMin == std::nullopt
+            ? numSamplesToRetrieve
+            : std::min(numSamplesToRetrieve, *_numAvailableSamplesMin);
+    if (newNumAvailableSamplesMin != _numAvailableSamplesMin) {
+      repaint = true;
+      _numAvailableSamplesMin = newNumAvailableSamplesMin;
+    }
+    _stretcher->retrieve(&offsetPointer, numSamplesToRetrieve);
+    numAvailableSamples -= numSamplesToRetrieve;
+  }
+  if (_numAvailableSamplesMin != std::nullopt &&
+      numAvailableSamples > _numRemainingSamplesMax) {
+    repaint = true;
+    _numRemainingSamplesMax = numAvailableSamples;
+  }
+  if (repaint) {
+    juce::MessageManager::getInstance()->deliverBroadcastMessage(
+        std::to_string(*_numAvailableSamplesMin) + ", " +
+        std::to_string(*_numRemainingSamplesMax));
+  }
+  // std::vector<float> vector(numSamples);
+  // const auto channel = buffer.getReadPointer(0);
+  // for (auto i = 0u; i < numSamples; ++i) {
+  //   vector[i] = channel[i];
+  // }
+  // _pyinCpp->feed(vector);
+  // const auto pitch = _pyinCpp->getPitches();
 }
 
 //==============================================================================
@@ -170,7 +242,7 @@ bool SoloHarmonizerProcessor::hasEditor() const {
 
 juce::AudioProcessorEditor *SoloHarmonizerProcessor::createEditor() {
   const auto editor = new SoloHarmonizerEditor(*this);
-  editor->addAndMakeVisible(_fileBrowserComponent);
+  editor->addAndMakeVisible(_pitchDisplay);
   return editor;
 }
 

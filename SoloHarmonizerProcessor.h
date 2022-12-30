@@ -7,7 +7,8 @@
 
 //==============================================================================
 class SoloHarmonizerProcessor : public juce::AudioProcessor,
-                                public juce::FileBrowserListener {
+                                public juce::FileBrowserListener,
+                                public juce::ActionListener {
 public:
   //==============================================================================
   SoloHarmonizerProcessor();
@@ -51,12 +52,19 @@ public:
   void fileDoubleClicked(const juce::File &file) override;
   void browserRootChanged(const juce::File &) override {}
 
+  // ActionListener
+  void actionListenerCallback(const juce::String &message) override;
+
 private:
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
   std::unique_ptr<PyinCpp> _pyinCpp;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
   juce::Label _pitchDisplay;
+  size_t _numLeadingSamplesToDrop = 0u;
+  std::unique_ptr<std::vector<float>> _dummyBuffer;
+  std::optional<size_t> _numAvailableSamplesMin;
+  std::optional<size_t> _numRemainingSamplesMax;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)
