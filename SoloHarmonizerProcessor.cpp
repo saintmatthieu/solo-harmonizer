@@ -142,8 +142,9 @@ void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
     _stretcher->process(&data, toPad, false);
   }
   _numLeadingSamplesToDrop = _stretcher->getStartDelay();
-  _pyinCpp =
-      std::make_unique<PyinCpp>(static_cast<int>(sampleRate), samplesPerBlock);
+  // _pyinCpp =
+  //     std::make_unique<PyinCpp>(static_cast<int>(sampleRate),
+  //     samplesPerBlock);
 }
 
 void SoloHarmonizerProcessor::releaseResources() {
@@ -183,49 +184,51 @@ void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   auto totalNumOutputChannels = getTotalNumOutputChannels();
   jassert(totalNumInputChannels == 1);
   jassert(totalNumOutputChannels == 1);
-  const auto numSamples = (size_t)buffer.getNumSamples();
+  _sbsmsWrapper.process(buffer.getWritePointer(0), buffer.getNumSamples());
 
-  _stretcher->process(buffer.getArrayOfReadPointers(), numSamples, false);
-  auto numAvailableSamples = _stretcher->available();
+  // const auto numSamples = (size_t)buffer.getNumSamples();
+  // _stretcher->process(buffer.getArrayOfReadPointers(), numSamples, false);
+  // auto numAvailableSamples = _stretcher->available();
 
-  auto data = _dummyBuffer->data();
-  while (numAvailableSamples > 0 && _numLeadingSamplesToDrop > 0) {
-    const auto toDropInNextCall =
-        std::min((size_t)numAvailableSamples, _numLeadingSamplesToDrop);
-    _stretcher->retrieve(&data, toDropInNextCall);
-    _numLeadingSamplesToDrop -= toDropInNextCall;
-    numAvailableSamples -= toDropInNextCall;
-  }
+  // auto data = _dummyBuffer->data();
+  // while (numAvailableSamples > 0 && _numLeadingSamplesToDrop > 0) {
+  //   const auto toDropInNextCall =
+  //       std::min((size_t)numAvailableSamples, _numLeadingSamplesToDrop);
+  //   _stretcher->retrieve(&data, toDropInNextCall);
+  //   _numLeadingSamplesToDrop -= toDropInNextCall;
+  //   numAvailableSamples -= toDropInNextCall;
+  // }
 
-  const auto pData = buffer.getArrayOfWritePointers();
-  const auto numLeadingSamplesToSilence =
-      (size_t)std::max((int)numSamples - numAvailableSamples, 0);
-  memset(pData[0], 0.f, numLeadingSamplesToSilence);
-  auto repaint = false;
-  if (numAvailableSamples > 0) {
-    const auto offsetPointer = pData[0] + numLeadingSamplesToSilence;
-    const auto numSamplesToRetrieve = numSamples - numLeadingSamplesToSilence;
-    const auto newNumAvailableSamplesMin =
-        _numAvailableSamplesMin == std::nullopt
-            ? numSamplesToRetrieve
-            : std::min(numSamplesToRetrieve, *_numAvailableSamplesMin);
-    if (newNumAvailableSamplesMin != _numAvailableSamplesMin) {
-      repaint = true;
-      _numAvailableSamplesMin = newNumAvailableSamplesMin;
-    }
-    _stretcher->retrieve(&offsetPointer, numSamplesToRetrieve);
-    numAvailableSamples -= numSamplesToRetrieve;
-  }
-  if (_numAvailableSamplesMin != std::nullopt &&
-      numAvailableSamples > _numRemainingSamplesMax) {
-    repaint = true;
-    _numRemainingSamplesMax = numAvailableSamples;
-  }
-  if (repaint) {
-    juce::MessageManager::getInstance()->deliverBroadcastMessage(
-        std::to_string(*_numAvailableSamplesMin) + ", " +
-        std::to_string(*_numRemainingSamplesMax));
-  }
+  // const auto pData = buffer.getArrayOfWritePointers();
+  // const auto numLeadingSamplesToSilence =
+  //     (size_t)std::max((int)numSamples - numAvailableSamples, 0);
+  // memset(pData[0], 0.f, numLeadingSamplesToSilence);
+  // auto repaint = false;
+  // if (numAvailableSamples > 0) {
+  //   const auto offsetPointer = pData[0] + numLeadingSamplesToSilence;
+  //   const auto numSamplesToRetrieve = numSamples -
+  //   numLeadingSamplesToSilence; const auto newNumAvailableSamplesMin =
+  //       _numAvailableSamplesMin == std::nullopt
+  //           ? numSamplesToRetrieve
+  //           : std::min(numSamplesToRetrieve, *_numAvailableSamplesMin);
+  //   if (newNumAvailableSamplesMin != _numAvailableSamplesMin) {
+  //     repaint = true;
+  //     _numAvailableSamplesMin = newNumAvailableSamplesMin;
+  //   }
+  //   _stretcher->retrieve(&offsetPointer, numSamplesToRetrieve);
+  //   numAvailableSamples -= numSamplesToRetrieve;
+  // }
+  // if (_numAvailableSamplesMin != std::nullopt &&
+  //     numAvailableSamples > _numRemainingSamplesMax) {
+  //   repaint = true;
+  //   _numRemainingSamplesMax = numAvailableSamples;
+  // }
+  // if (repaint) {
+  //   juce::MessageManager::getInstance()->deliverBroadcastMessage(
+  //       std::to_string(*_numAvailableSamplesMin) + ", " +
+  //       std::to_string(*_numRemainingSamplesMax));
+  // }
+
   // std::vector<float> vector(numSamples);
   // const auto channel = buffer.getReadPointer(0);
   // for (auto i = 0u; i < numSamples; ++i) {

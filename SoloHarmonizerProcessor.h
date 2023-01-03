@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LibPyin/source/libpyincpp.h"
+#include "SbsmsWrapper.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <memory>
 #include <rubberband/RubberBandStretcher.h>
@@ -58,13 +59,14 @@ public:
 private:
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
-  std::unique_ptr<PyinCpp> _pyinCpp;
+  // std::unique_ptr<PyinCpp> _pyinCpp;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
   juce::Label _pitchDisplay;
   size_t _numLeadingSamplesToDrop = 0u;
   std::unique_ptr<std::vector<float>> _dummyBuffer;
   std::optional<size_t> _numAvailableSamplesMin;
   std::optional<size_t> _numRemainingSamplesMax;
+  SbsmsWrapper _sbsmsWrapper;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)

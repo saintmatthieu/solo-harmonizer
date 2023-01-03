@@ -7,3 +7,12 @@
 [submodule "rubberband"]
 	path = rubberband
 	url = https://github.com/breakfastquay/rubberband.git
+[submodule "libsbsms"]
+	path = libsbsms
+	url = https://github.com/claytonotey/libsbsms.git
+[submodule "Ring-Buffer"]
+	path = Ring-Buffer
+	url = https://github.com/jnk0le/Ring-Buffer.git
+[submodule "googletest"]
+	path = googletest
+	url = https://github.com/google/googletest.git

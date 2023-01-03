@@ -19,8 +19,14 @@ add_definitions(-DNOMINMAX)
 
 project(SoloHarmonizer VERSION 0.0.1)
 
+# candidate(s) for pitch detection
 add_subdirectory(LibPyin)
+
+# candidate(s) for pitch shifting
 add_subdirectory(rubberband-wrapper)
+add_subdirectory(libsbsms)
+
+add_subdirectory(googletest)
 
 # If you've installed JUCE somehow (via a package manager, or directly using the CMake install
 # target), you'll need to tell this project that it depends on the installed copy of JUCE. If you've
@@ -75,6 +81,7 @@ juce_add_plugin(SoloHarmonizer
 
 target_sources(SoloHarmonizer
     PRIVATE
+        SbsmsWrapper.cpp
         SoloHarmonizerEditor.cpp
         SoloHarmonizerProcessor.cpp)
 
@@ -108,12 +115,24 @@ target_compile_definitions(SoloHarmonizer
 # here too. This is a standard CMake command.
 
 target_link_libraries(SoloHarmonizer
-    PRIVATE
+    PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
         LibPyin
         rubberband-wrapper
+        sbsms
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+
+add_executable(SoloHarmonizerTests
+    SbsmsWrapperTests.cpp
+)
+
+target_link_libraries(SoloHarmonizerTests
+    PRIVATE
+    SoloHarmonizer
+    gtest_main
+    gmock
+)
