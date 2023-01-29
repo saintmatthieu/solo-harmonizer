@@ -13,8 +13,11 @@ class SoloHarmonizerProcessor : public juce::AudioProcessor,
                                 public juce::ActionListener {
 public:
   //==============================================================================
-  SoloHarmonizerProcessor();
+  SoloHarmonizerProcessor(
+      std::optional<RubberBand::RubberBandStretcher::Options> opts);
   ~SoloHarmonizerProcessor() override;
+
+  void setSemitoneShift(float value);
 
   //==============================================================================
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
@@ -58,20 +61,14 @@ public:
   void actionListenerCallback(const juce::String &message) override;
 
 private:
+  const std::optional<RubberBand::RubberBandStretcher::Options>
+      _rbStretcherOptions;
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
   // std::unique_ptr<PyinCpp> _pyinCpp;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
   juce::Label _pitchDisplay;
-  size_t _numLeadingSamplesToDrop = 0u;
-  std::unique_ptr<std::vector<float>> _dummyBuffer;
-  std::optional<size_t> _numAvailableSamplesMin;
-  std::optional<size_t> _numRemainingSamplesMax;
-  SbsmsWrapper _sbsmsWrapper;
   std::unique_ptr<PitchShifter> _pitchShifter;
-  float _phaseDelta = 0;
-  float _phase = 0;
-  float _semitoneModulationAmp = 7;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)

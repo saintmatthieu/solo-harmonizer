@@ -7,7 +7,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["scorpion.wav"],
+      "args": ["octave jumps.wav"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [

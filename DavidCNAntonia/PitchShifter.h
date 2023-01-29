@@ -6,24 +6,25 @@
 
 class PitchShifter {
 public:
+  static const RubberBand::RubberBandStretcher::Options defaultOptions =
+      RubberBand::RubberBandStretcher::Option::OptionProcessRealTime +
+      RubberBand::RubberBandStretcher::Option::OptionPitchHighConsistency +
+      RubberBand::RubberBandStretcher::Option::OptionTransientsSmooth +
+      RubberBand::RubberBandStretcher::Option::OptionPhaseIndependent +
+      RubberBand::RubberBandStretcher::Option::OptionFormantPreserved +
+      RubberBand::RubberBandStretcher::Option::OptionChannelsTogether +
+      RubberBand::RubberBandStretcher::Option::OptionWindowShort;
+
   /** Setup the pitch shifter. By default the shifter will be setup so that the
    * dry signal isn't delayed to be given a somewhat similar latency to the wet
    * signal - this is not accurate when enabled! By enabling minLatency some
    * latency can be reduced with the expense of potential tearing during
    * modulation with a change of the pitch parameter.
    */
-  PitchShifter(int numChannels, double sampleRate, int samplesPerBlock) {
+  PitchShifter(int numChannels, double sampleRate, int samplesPerBlock,
+               std::optional<RubberBand::RubberBandStretcher::Options> opts) {
     rubberband = std::make_unique<RubberBand::RubberBandStretcher>(
-        sampleRate, numChannels,
-        RubberBand::RubberBandStretcher::Option::OptionProcessRealTime +
-            RubberBand::RubberBandStretcher::Option::
-                OptionPitchHighConsistency +
-            RubberBand::RubberBandStretcher::Option::OptionTransientsSmooth +
-            RubberBand::RubberBandStretcher::Option::OptionPhaseIndependent +
-            RubberBand::RubberBandStretcher::Option::OptionFormantPreserved +
-            RubberBand::RubberBandStretcher::Option::OptionChannelsTogether +
-            RubberBand::RubberBandStretcher::Option::OptionWindowShort,
-        1.0, 1.0);
+        sampleRate, numChannels, opts ? *opts : defaultOptions, 1.0, 1.0);
 
     initLatency = (int)rubberband->getLatency();
     maxSamples = sampleRate / 1000.0 * 4.0;

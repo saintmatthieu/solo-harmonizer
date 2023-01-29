@@ -19,17 +19,18 @@ juce::MidiFile getMidiFile(const juce::String &filename) {
 } // namespace
 
 //==============================================================================
-SoloHarmonizerProcessor::SoloHarmonizerProcessor()
+SoloHarmonizerProcessor::SoloHarmonizerProcessor(
+    std::optional<RubberBand::RubberBandStretcher::Options> opts)
     : AudioProcessor(
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::mono(), true)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      _fileFilter("*.mid;*.midi", "", ""),
+      _rbStretcherOptions(std::move(opts)), _fileFilter("*.mid;*.midi", "", ""),
       _fileBrowserComponent(
           juce::FileBrowserComponent::FileChooserFlags::openMode |
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
           juce::File(), &_fileFilter, nullptr),
-      _pitchDisplay("Sample diff"), _sbsmsWrapper(std::vector<float>{}) {
+      _pitchDisplay("Sample diff") {
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   _pitchDisplay.setSize(250, 100);
@@ -59,6 +60,10 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor()
 }
 
 SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
+
+void SoloHarmonizerProcessor::setSemitoneShift(float value) {
+  _pitchShifter->setSemitoneShift(value);
+}
 
 void SoloHarmonizerProcessor::actionListenerCallback(
     const juce::String &message) {
@@ -122,11 +127,8 @@ void SoloHarmonizerProcessor::changeProgramName(int index,
 //==============================================================================
 void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
-  const auto blocksPerSecond = sampleRate / samplesPerBlock;
-  const auto radPerSec = 2 * 3.1416f;
-  _phaseDelta = (float)(radPerSec / blocksPerSecond);
-  _pitchShifter =
-      std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock);
+  _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
+                                                 _rbStretcherOptions);
   _pitchShifter->setFormantPreserving(true);
   _pitchShifter->setMixPercentage(100);
 }
@@ -164,9 +166,6 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
-  _phase += _phaseDelta;
-  const auto newShift = std::sinf(_phase) * _semitoneModulationAmp;
-  _pitchShifter->setSemitoneShift(7);
   juce::dsp::AudioBlock<float> block{buffer};
   _pitchShifter->processBuffer(block);
   const auto bp = block.getChannelPointer(0);
@@ -212,5 +211,5 @@ void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  return new SoloHarmonizerProcessor();
+  return new SoloHarmonizerProcessor(std::nullopt);
 }

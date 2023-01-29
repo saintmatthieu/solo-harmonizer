@@ -4,12 +4,15 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 
 namespace testUtils {
-void toWavFile(const float *audio, size_t N) {
+void toWavFile(const float *audio, size_t N,
+               std::optional<std::filesystem::path> pathOpt) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
-  const auto path = "C:/Users/saint/Downloads/test.wav";
+  const auto path =
+      pathOpt ? pathOpt->string() : "C:/Users/saint/Downloads/test.wav";
   if (std::filesystem::exists(path)) {
     std::filesystem::remove(path);
   }
