@@ -1,0 +1,18 @@
+#include <string>
+#include <vector>
+
+namespace testUtils {
+void toWavFile(const float *audio, size_t N);
+std::string getInputFilePath();
+std::vector<float> fromWavFile();
+std::vector<float> makeCosine(size_t T, size_t N);
+float getRms(const std::vector<float> &V);
+template <typename T>
+std::vector<T> getDiff(const std::vector<T> &A, const std::vector<T> &B) {
+  std::vector<T> diff(A.size());
+  for (auto i = 0u; i < A.size(); ++i) {
+    diff[i] = B[i] - A[i];
+  }
+  return diff;
+}
+} // namespace testUtils

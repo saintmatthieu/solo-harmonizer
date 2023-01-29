@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DavidCNAntonia/PitchShifter.h"
 #include "LibPyin/source/libpyincpp.h"
 #include "SbsmsWrapper.h"
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -67,6 +68,10 @@ private:
   std::optional<size_t> _numAvailableSamplesMin;
   std::optional<size_t> _numRemainingSamplesMax;
   SbsmsWrapper _sbsmsWrapper;
+  std::unique_ptr<PitchShifter> _pitchShifter;
+  float _phaseDelta = 0;
+  float _phase = 0;
+  float _semitoneModulationAmp = 7;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)

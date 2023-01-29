@@ -29,7 +29,7 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor()
           juce::FileBrowserComponent::FileChooserFlags::openMode |
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
           juce::File(), &_fileFilter, nullptr),
-      _pitchDisplay("Sample diff") {
+      _pitchDisplay("Sample diff"), _sbsmsWrapper(std::vector<float>{}) {
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   _pitchDisplay.setSize(250, 100);
@@ -62,6 +62,7 @@ SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
 
 void SoloHarmonizerProcessor::actionListenerCallback(
     const juce::String &message) {
+
   _pitchDisplay.setText(message, juce::NotificationType::dontSendNotification);
 }
 
@@ -121,35 +122,19 @@ void SoloHarmonizerProcessor::changeProgramName(int index,
 //==============================================================================
 void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
-  _stretcher = std::make_unique<RubberBand::RubberBandStretcher>(
-      sampleRate, 1,
-      RubberBand::RubberBandStretcher::OptionProcessRealTime |
-          RubberBand::RubberBandStretcher::OptionTransientsCrisp |
-          RubberBand::RubberBandStretcher::OptionDetectorCompound |
-          RubberBand::RubberBandStretcher::OptionPitchHighConsistency |
-          RubberBand::RubberBandStretcher::OptionChannelsTogether |
-          RubberBand::RubberBandStretcher::OptionEngineFaster);
-  jassert(_stretcher->getEngineVersion() ==
-          2 /* version 2, matching OptionEngineFaster */);
-  const auto uSamplesPerBlock = (size_t)samplesPerBlock;
-  const auto toPad = (size_t)_stretcher->getPreferredStartPad();
-  _dummyBuffer = std::make_unique<std::vector<float>>(
-      std::max(uSamplesPerBlock, toPad), 0.f);
-  _stretcher->setMaxProcessSize(uSamplesPerBlock);
-  _stretcher->setPitchScale(1.0);
-  if (toPad > 0u) {
-    auto data = _dummyBuffer->data();
-    _stretcher->process(&data, toPad, false);
-  }
-  _numLeadingSamplesToDrop = _stretcher->getStartDelay();
-  // _pyinCpp =
-  //     std::make_unique<PyinCpp>(static_cast<int>(sampleRate),
-  //     samplesPerBlock);
+  const auto blocksPerSecond = sampleRate / samplesPerBlock;
+  const auto radPerSec = 2 * 3.1416f;
+  _phaseDelta = (float)(radPerSec / blocksPerSecond);
+  _pitchShifter =
+      std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock);
+  _pitchShifter->setFormantPreserving(true);
+  _pitchShifter->setMixPercentage(100);
 }
 
 void SoloHarmonizerProcessor::releaseResources() {
   // When playback stops, you can use this as an opportunity to free up any
   // spare memory, etc.
+  _pitchShifter.reset();
 }
 
 bool SoloHarmonizerProcessor::isBusesLayoutSupported(
@@ -179,63 +164,14 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
-  juce::ScopedNoDenormals noDenormals;
-  auto totalNumInputChannels = getTotalNumInputChannels();
-  auto totalNumOutputChannels = getTotalNumOutputChannels();
-  jassert(totalNumInputChannels == 1);
-  jassert(totalNumOutputChannels == 1);
-  _sbsmsWrapper.process(buffer.getWritePointer(0), buffer.getNumSamples());
-
-  // const auto numSamples = (size_t)buffer.getNumSamples();
-  // _stretcher->process(buffer.getArrayOfReadPointers(), numSamples, false);
-  // auto numAvailableSamples = _stretcher->available();
-
-  // auto data = _dummyBuffer->data();
-  // while (numAvailableSamples > 0 && _numLeadingSamplesToDrop > 0) {
-  //   const auto toDropInNextCall =
-  //       std::min((size_t)numAvailableSamples, _numLeadingSamplesToDrop);
-  //   _stretcher->retrieve(&data, toDropInNextCall);
-  //   _numLeadingSamplesToDrop -= toDropInNextCall;
-  //   numAvailableSamples -= toDropInNextCall;
-  // }
-
-  // const auto pData = buffer.getArrayOfWritePointers();
-  // const auto numLeadingSamplesToSilence =
-  //     (size_t)std::max((int)numSamples - numAvailableSamples, 0);
-  // memset(pData[0], 0.f, numLeadingSamplesToSilence);
-  // auto repaint = false;
-  // if (numAvailableSamples > 0) {
-  //   const auto offsetPointer = pData[0] + numLeadingSamplesToSilence;
-  //   const auto numSamplesToRetrieve = numSamples -
-  //   numLeadingSamplesToSilence; const auto newNumAvailableSamplesMin =
-  //       _numAvailableSamplesMin == std::nullopt
-  //           ? numSamplesToRetrieve
-  //           : std::min(numSamplesToRetrieve, *_numAvailableSamplesMin);
-  //   if (newNumAvailableSamplesMin != _numAvailableSamplesMin) {
-  //     repaint = true;
-  //     _numAvailableSamplesMin = newNumAvailableSamplesMin;
-  //   }
-  //   _stretcher->retrieve(&offsetPointer, numSamplesToRetrieve);
-  //   numAvailableSamples -= numSamplesToRetrieve;
-  // }
-  // if (_numAvailableSamplesMin != std::nullopt &&
-  //     numAvailableSamples > _numRemainingSamplesMax) {
-  //   repaint = true;
-  //   _numRemainingSamplesMax = numAvailableSamples;
-  // }
-  // if (repaint) {
-  //   juce::MessageManager::getInstance()->deliverBroadcastMessage(
-  //       std::to_string(*_numAvailableSamplesMin) + ", " +
-  //       std::to_string(*_numRemainingSamplesMax));
-  // }
-
-  // std::vector<float> vector(numSamples);
-  // const auto channel = buffer.getReadPointer(0);
-  // for (auto i = 0u; i < numSamples; ++i) {
-  //   vector[i] = channel[i];
-  // }
-  // _pyinCpp->feed(vector);
-  // const auto pitch = _pyinCpp->getPitches();
+  _phase += _phaseDelta;
+  const auto newShift = std::sinf(_phase) * _semitoneModulationAmp;
+  _pitchShifter->setSemitoneShift(7);
+  juce::dsp::AudioBlock<float> block{buffer};
+  _pitchShifter->processBuffer(block);
+  const auto bp = block.getChannelPointer(0);
+  auto ap = buffer.getWritePointer(0);
+  memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
 }
 
 //==============================================================================

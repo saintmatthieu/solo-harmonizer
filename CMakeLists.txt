@@ -60,8 +60,8 @@ juce_add_plugin(SoloHarmonizer
     # IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
     # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
     # COPY_PLUGIN_AFTER_BUILD TRUE/FALSE        # Should the plugin be installed to a default location after building?
-    PLUGIN_MANUFACTURER_CODE Smat               # A four-character manufacturer id with at least one upper-case character
-    PLUGIN_CODE Shar                            # A unique four-character plugin id with exactly one upper-case character
+    PLUGIN_MANUFACTURER_CODE DGK_               # A four-character manufacturer id with at least one upper-case character
+    PLUGIN_CODE SHID                            # A unique four-character plugin id with exactly one upper-case character
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
     FORMATS VST3 Standalone                     # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
     PRODUCT_NAME "Solo Harmonizer")        # The name of the final executable, which can differ from the target name
@@ -83,7 +83,9 @@ target_sources(SoloHarmonizer
     PRIVATE
         SbsmsWrapper.cpp
         SoloHarmonizerEditor.cpp
-        SoloHarmonizerProcessor.cpp)
+        SoloHarmonizerProcessor.cpp
+        DavidCNAntonia/PitchShifter.h
+        DavidCNAntonia/RingBuffer.h)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
@@ -118,6 +120,7 @@ target_link_libraries(SoloHarmonizer
     PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
+        juce::juce_dsp
         LibPyin
         rubberband-wrapper
         sbsms
@@ -127,7 +130,9 @@ target_link_libraries(SoloHarmonizer
         juce::juce_recommended_warning_flags)
 
 add_executable(SoloHarmonizerTests
+    testUtils.cpp
     SbsmsWrapperTests.cpp
+    SoloHarmonizerTests.cpp
 )
 
 target_link_libraries(SoloHarmonizerTests

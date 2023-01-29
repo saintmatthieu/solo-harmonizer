@@ -1,15 +1,18 @@
 #pragma once
 
-#include "Ring-Buffer/ringbuffer.hpp"
+#include <fstream>
 #include <sbsms.h>
+#include <vector>
 
 namespace sbsms = _sbsms_;
 
 class SbsmsWrapper : public sbsms::SBSMSInterface {
 public:
-  SbsmsWrapper();
-  void process(float *audio, long n);
+  SbsmsWrapper(std::vector<float> input);
+  void get(float *audio, long n);
   size_t getInputFrameSize();
+  void setPitchShift(float value);
+  float getPitchShift() const;
 
 private:
   // sbsms::SBSMSInterface
@@ -22,8 +25,10 @@ private:
   sbsms::SampleCountType getSamplesToOutput() override;
 
 private:
-  jnk0le::Ringbuffer<float, 1024> _ringBuffer;
+  const std::vector<float> _input;
   sbsms::SBSMSQuality _quality;
   sbsms::SBSMS _sbsms;
-  // sbsms::Resampler _resampler;
+  float _pitchShift = 1.f;
+  size_t _numSamplesRead = 0u;
+  std::ofstream _log;
 };
