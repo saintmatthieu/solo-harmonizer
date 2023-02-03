@@ -1,10 +1,16 @@
 #include "SoloHarmonizerProcessor.h"
 #include "SoloHarmonizerEditor.h"
 #include "juce_core/system/juce_PlatformDefs.h"
+#include "libpyincpp.h"
 #include "rubberband/RubberBandStretcher.h"
 #include <algorithm>
+#include <array>
+#include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
+
 
 namespace {
 juce::MidiFile getMidiFile(const juce::String &filename) {
@@ -15,6 +21,43 @@ juce::MidiFile getMidiFile(const juce::String &filename) {
     jassertfalse;
   }
   return midiFile;
+}
+
+int getCentsFromA4(float hz) {
+  constexpr auto A4 = 440.f;
+  return static_cast<int>(1200 * log2f(hz / A4) + .5f);
+}
+
+float getSemitoneShiftForEMinorThirdHarmonization(float hz) {
+  // Beginning from A
+  constexpr std::array<int, 12> bMinorNaturalMap{
+      0, // A
+      0, // A#
+      0, // B
+      0, // C
+      0, // C#
+      0, // D
+      0, // D#
+      0, // E
+      0, // F
+      0, // F#
+      0, // G
+      0, // G#
+  };
+  constexpr std::array<std::optional<int>, 12> hotelCaliforniaMap{
+      std::nullopt, // A
+      std::nullopt, // A#
+      3,            // B
+      std::nullopt, // C
+      std::nullopt, // C#
+      4,            // D
+      std::nullopt, // D#
+      std::nullopt, // E
+      std::nullopt, // F
+      5,            // F#
+      std::nullopt, // G
+      std::nullopt, // G#
+  };
 }
 } // namespace
 
@@ -31,32 +74,16 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor(
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
           juce::File(), &_fileFilter, nullptr),
       _pitchDisplay("Sample diff") {
+  juce::MessageManager::getInstance();
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   _pitchDisplay.setSize(250, 100);
-  const juce::File file("C:/Users/saint/Downloads/test.xml");
-  const auto xml = juce::XmlDocument::parse(file);
-  const auto masterMidi = getMidiFile(xml->getAttributeValue(0));
-  const auto slaveMidi = getMidiFile(xml->getAttributeValue(1));
-  const juce::MidiMessageSequence *masterSequence = masterMidi.getTrack(1);
-  std::vector<double> timestamps;
-  std::vector<std::optional<int>> noteNumbers;
-  std::optional<double> currentNoteoffTimestamp;
-  for (auto it = masterSequence->begin(); it != masterSequence->end(); ++it) {
-    const auto message = (*it)->message;
-    if (!message.isNoteOn()) {
-      continue;
-    }
-    const auto timestamp = message.getTimeStamp();
-    if (currentNoteoffTimestamp && timestamp > currentNoteoffTimestamp) {
-      timestamps.push_back(*currentNoteoffTimestamp);
-      noteNumbers.push_back(std::nullopt);
-      currentNoteoffTimestamp = std::nullopt;
-    }
-    timestamps.push_back(message.getTimeStamp());
-    noteNumbers.push_back(message.getNoteNumber());
+
+  constexpr auto pitchLogName = "C:/Users/saint/Downloads/pitchLog.txt";
+  if (std::filesystem::exists(pitchLogName)) {
+    std::filesystem::remove(pitchLogName);
   }
-  juce::MessageManager::getInstance()->registerBroadcastListener(this);
+  _pitchLog = std::ofstream{pitchLogName};
 }
 
 SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
@@ -65,40 +92,16 @@ void SoloHarmonizerProcessor::setSemitoneShift(float value) {
   _pitchShifter->setSemitoneShift(value);
 }
 
-void SoloHarmonizerProcessor::actionListenerCallback(
-    const juce::String &message) {
-
-  _pitchDisplay.setText(message, juce::NotificationType::dontSendNotification);
-}
-
 //==============================================================================
 const juce::String SoloHarmonizerProcessor::getName() const {
   return JucePlugin_Name;
 }
 
-bool SoloHarmonizerProcessor::acceptsMidi() const {
-#if JucePlugin_WantsMidiInput
-  return true;
-#else
-  return false;
-#endif
-}
+bool SoloHarmonizerProcessor::acceptsMidi() const { return false; }
 
-bool SoloHarmonizerProcessor::producesMidi() const {
-#if JucePlugin_ProducesMidiOutput
-  return true;
-#else
-  return false;
-#endif
-}
+bool SoloHarmonizerProcessor::producesMidi() const { return false; }
 
-bool SoloHarmonizerProcessor::isMidiEffect() const {
-#if JucePlugin_IsMidiEffect
-  return true;
-#else
-  return false;
-#endif
-}
+bool SoloHarmonizerProcessor::isMidiEffect() const { return false; }
 
 double SoloHarmonizerProcessor::getTailLengthSeconds() const { return 0.0; }
 
@@ -131,6 +134,15 @@ void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                                  _rbStretcherOptions);
   _pitchShifter->setFormantPreserving(true);
   _pitchShifter->setMixPercentage(100);
+
+  // TODO: check that `samplesPerBlock` is appropriate for
+  // `PyinCpp::_DEFAULT_BLOCK_SIZE` (2048) and `PyinCpp::_DEFAULT_STEP_SIZE`
+  // (512).
+  constexpr auto pyinCppDefaultBlockSize = 2048;
+  assert(pyinCppDefaultBlockSize % samplesPerBlock == 0);
+  _pitchEstimator = std::make_unique<PyinCpp>(
+      sampleRate, pyinCppDefaultBlockSize, samplesPerBlock);
+  _pitchEstimator->reserve(samplesPerBlock); // I guess ...
 }
 
 void SoloHarmonizerProcessor::releaseResources() {
@@ -141,10 +153,6 @@ void SoloHarmonizerProcessor::releaseResources() {
 
 bool SoloHarmonizerProcessor::isBusesLayoutSupported(
     const BusesLayout &layouts) const {
-#if JucePlugin_IsMidiEffect
-  juce::ignoreUnused(layouts);
-  return true;
-#else
   // This is the place where you check if the layout is supported.
   // In this template code we only support mono or stereo.
   // Some plugin hosts, such as certain GarageBand versions, will only
@@ -153,24 +161,18 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
       layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
     return false;
 
-    // This checks if the input layout matches the output layout
-#if !JucePlugin_IsSynth
   if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
     return false;
-#endif
 
   return true;
-#endif
 }
 
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
-  juce::dsp::AudioBlock<float> block{buffer};
-  _pitchShifter->processBuffer(block);
-  const auto bp = block.getChannelPointer(0);
-  auto ap = buffer.getWritePointer(0);
-  memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
+  const auto readPtr = buffer.getReadPointer(0);
+  _runPitchEstimate(readPtr, (size_t)buffer.getNumSamples());
+  _runPitchShift(buffer);
 }
 
 //==============================================================================
@@ -206,6 +208,25 @@ void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
   if (!midiFile.readFrom(*stream)) {
     jassertfalse;
   }
+}
+
+void SoloHarmonizerProcessor::_runPitchEstimate(float const *p, size_t s) {
+  const std::vector<float> v{p, p + s};
+  const auto pitches = _pitchEstimator->feed(v);
+  auto separator = ", ";
+  for (const auto &pitch : pitches) {
+    _pitchLog << separator << pitch;
+  }
+  _pitchLog << std::endl;
+}
+
+void SoloHarmonizerProcessor::_runPitchShift(juce::AudioBuffer<float> &buffer) {
+  juce::dsp::AudioBlock<float> block{buffer};
+  _pitchShifter->processBuffer(block);
+  // TODO: check if these additional steps are necessary or not.
+  const auto bp = block.getChannelPointer(0);
+  auto ap = buffer.getWritePointer(0);
+  memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
 }
 
 //==============================================================================

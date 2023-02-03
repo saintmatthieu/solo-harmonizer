@@ -1,0 +1,2 @@
+add_subdirectory(SoloHarmonizer)
+add_subdirectory(HarmoPitchGetter)
