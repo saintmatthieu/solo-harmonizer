@@ -13,4 +13,9 @@ struct HarmoNoteSpan {
   const int beginTick;
   std::optional<PlayedNote> playedNote;
 };
+
+struct Bkpt {
+  const int tick;
+  const std::optional<int> transposeSemitones;
+};
 } // namespace saint
