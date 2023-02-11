@@ -8,10 +8,11 @@ namespace saint {
 class HarmoPitchGetter {
 public:
   HarmoPitchGetter(const std::vector<HarmoNoteSpan> &timeSegments);
-  std::optional<float> intervalInSemitonesAtTick(int tick);
+  std::optional<float> getHarmoPitch(int tick, float pitch);
 
 private:
-  const std::vector<Bkpt> _bkpts;
-  std::vector<Bkpt>::const_iterator _bkptsIt;
+  const std::vector<int> _ticks;
+  const std::vector<std::optional<PlayedNote>> _intervals;
+  size_t _index = 0;
 };
 } // namespace saint

@@ -1,4 +1,7 @@
 #include "HarmoPitchFileReader.h"
+#include "HarmoPitchHelper.h"
+#include "HarmoPitchTypes.h"
+
 #include <filesystem>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_core/juce_core.h>
@@ -21,12 +24,6 @@ juce::MidiFile getMidiFile(const juce::String &filename) {
 }
 
 void quantizeTicks(juce::MidiMessageSequence &seq, int ticksPerCrotchet) {}
-
-struct MidiNoteMsg {
-  const int tick; // quantized
-  const bool isNoteOn;
-  const int noteNumber;
-};
 
 int getQuantizedTimestamp(double ts, double ticksPer32nd) {
   return static_cast<int>(ts / ticksPer32nd + 0.5) * ticksPer32nd;
@@ -87,48 +84,6 @@ std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig) {
                                              midiFile.getTimeFormat());
   const auto harmoSeq = getMidiNoteMessages(*midiFile.getTrack(harmonyTrack),
                                             midiFile.getTimeFormat());
-  std::vector<HarmoNoteSpan> spans;
-  auto playing = false;
-  auto harmoIt = harmoSeq.begin();
-  for (auto playedIt = playedSeq.begin(); playedIt != playedSeq.end();
-       ++playedIt) {
-    const auto &played = *playedIt;
-    if (!played.isNoteOn) {
-      assert(playing); // Looks like this isn't a monophonic track
-      if (playing) {
-        spans.push_back({played.tick, std::nullopt});
-        playing = false;
-      }
-      continue;
-    }
-    playing = true;
-    if (spans.size() > 0u && !spans.back().playedNote &&
-        spans.back().beginTick == played.tick) {
-      // This new NoteOn coincides with the previous NoteOff => let's delete
-      // that NoteOff
-      spans.pop_back();
-    }
-    spans.push_back({played.tick, PlayedNote{played.noteNumber, std::nullopt}});
-    // Look for harmonized note at that tick ...
-    harmoIt = std::find_if(harmoIt, harmoSeq.end(),
-                           [&played](const MidiNoteMsg &harmo) {
-                             return harmo.isNoteOn && harmo.tick >= played.tick;
-                           });
-    if (harmoIt == harmoSeq.end()) {
-      // ... no harmonized note anymore.
-      continue;
-    }
-    const auto &harmonyMsg = (*harmoIt);
-    if (harmonyMsg.tick > played.tick) {
-      // Looks like played and harmony are not homorythmic - TODO issue a
-      // warning ?
-      continue;
-    } else {
-      // Get note value
-      spans.back().playedNote->interval =
-          harmonyMsg.noteNumber - played.noteNumber;
-    }
-  }
-  return spans;
+  return toHarmoNoteSpans(playedSeq, harmoSeq);
 }
 } // namespace saint

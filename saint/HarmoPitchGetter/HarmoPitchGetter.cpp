@@ -1,6 +1,8 @@
 #include "HarmoPitchGetter.h"
+#include "HarmoPitchHelper.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <map>
 #include <optional>
@@ -8,49 +10,39 @@
 namespace saint {
 
 namespace {
-std::vector<Bkpt> toBkpts(const std::vector<HarmoNoteSpan> &spans) {
-  std::vector<Bkpt> bkpts;
-  if (spans.empty()) {
-    return bkpts;
-  }
-  if (spans[0].beginTick > 0) {
-    bkpts.push_back({0, std::nullopt});
-  }
-  std::transform(spans.begin(), spans.end(), std::back_inserter(bkpts),
-                 [](const HarmoNoteSpan &span) -> Bkpt {
-                   return {span.beginTick,
-                           span.playedNote && span.playedNote->interval
-                               ? *span.playedNote->interval
-                               : std::optional<int>{}};
-                 });
-  return bkpts;
+std::vector<int> getTicks(const std::vector<HarmoNoteSpan> &spans) {
+  std::vector<int> ticks;
+  ticks.reserve(spans.size());
+  std::transform(spans.begin(), spans.end(), std::back_inserter(ticks),
+                 [](const HarmoNoteSpan &span) { return span.beginTick; });
+  return ticks;
+}
+
+std::vector<std::optional<PlayedNote>>
+getNotes(const std::vector<HarmoNoteSpan> &spans) {
+  std::vector<std::optional<PlayedNote>> intervals;
+  intervals.reserve(spans.size());
+  std::transform(spans.begin(), spans.end(), std::back_inserter(intervals),
+                 [](const HarmoNoteSpan &span) { return span.playedNote; });
+  return intervals;
 }
 } // namespace
 
 HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans)
-    : _bkpts(toBkpts(spans)), _bkptsIt(_bkpts.begin()) {}
+    : _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
 
-std::optional<float> HarmoPitchGetter::intervalInSemitonesAtTick(int tick) {
-  _bkptsIt = std::lower_bound(
-      _bkptsIt, _bkpts.end(), tick,
-      [](const Bkpt &bkpt, int tick) { return bkpt.tick <= tick; });
-  const auto &end = _bkptsIt;
-  const auto begin = std::prev(_bkptsIt);
-  if (!begin->transposeSemitones) {
+std::optional<float> HarmoPitchGetter::getHarmoPitch(int tick, float pitch) {
+  if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;
-  } else if (end == _bkpts.end() || !end->transposeSemitones) {
-    return static_cast<float>(*begin->transposeSemitones);
-  } else {
-    // Linear interpolation
-    const auto x0 = begin->tick;
-    const auto x1 = end->tick;
-    const auto y0 = *begin->transposeSemitones;
-    const auto y1 = *end->transposeSemitones;
-    const auto xDiff = x1 - x0;
-    const auto yDiff = y1 - y0;
-    const auto offset = tick - x0;
-    return static_cast<float>(offset) * yDiff / xDiff + y0;
   }
+  const auto &interval = _intervals[_index];
+  if (!interval || !interval->interval) {
+    return std::nullopt;
+  }
+  // For now just a linear intra/extrapolation.
+  // Let's try this first and if it's not good enough we'll attempt something
+  // more elaborate.
+  return pitch * std::powf(2, *interval->interval / 12.f);
 }
 
 } // namespace saint

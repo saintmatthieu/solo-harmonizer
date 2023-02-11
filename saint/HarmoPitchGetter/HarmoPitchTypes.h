@@ -10,12 +10,18 @@ struct PlayedNote {
 };
 
 struct HarmoNoteSpan {
-  const int beginTick;
+  int beginTick;
   std::optional<PlayedNote> playedNote;
 };
 
-struct Bkpt {
-  const int tick;
-  const std::optional<int> transposeSemitones;
+bool operator==(const PlayedNote &a, const PlayedNote &b);
+bool operator==(const HarmoNoteSpan &a, const HarmoNoteSpan &b);
+bool operator!=(const PlayedNote &a, const PlayedNote &b);
+bool operator!=(const HarmoNoteSpan &a, const HarmoNoteSpan &b);
+
+struct MidiNoteMsg {
+  const int tick; // quantized
+  const bool isNoteOn;
+  const int noteNumber;
 };
 } // namespace saint

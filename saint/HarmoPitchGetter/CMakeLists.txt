@@ -1,6 +1,8 @@
 add_library(HarmoPitchGetter
   HarmoPitchGetter.cpp
+  HarmoPitchHelper.cpp
   HarmoPitchFileReader.cpp
+  HarmoPitchTypes.cpp
 )
 
 target_link_libraries(HarmoPitchGetter
@@ -11,6 +13,7 @@ target_link_libraries(HarmoPitchGetter
 
 add_executable(HarmoPitchGetterTests
   HarmoPitchGetterTests.cpp
+  HarmoPitchHelperTests.cpp
 )
 
 target_link_libraries(HarmoPitchGetterTests
