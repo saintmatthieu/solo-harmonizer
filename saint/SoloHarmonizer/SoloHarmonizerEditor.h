@@ -27,6 +27,9 @@ private:
   const LoadConfigFile _loadConfigFile;
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
+  juce::TextButton _chooseFileButton;
+  juce::ComboBox _playedTrackComboBox;
+  juce::ComboBox _harmonyTrackComboBox;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };
