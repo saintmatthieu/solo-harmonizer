@@ -92,5 +92,7 @@ add_executable(SoloHarmonizerEditorTestApp
 
 target_link_libraries(SoloHarmonizerEditorTestApp
     PRIVATE
+    SoloHarmonizer
     juce::juce_gui_basics
+    juce::juce_audio_processors
 )

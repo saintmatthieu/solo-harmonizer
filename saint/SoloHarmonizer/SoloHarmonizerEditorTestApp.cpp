@@ -1,3 +1,6 @@
+#include "DummyAudioProcessor.h"
+#include "SoloHarmonizerEditor.h"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 class MainWindowTutorialApplication : public juce::JUCEApplication {
@@ -6,9 +9,12 @@ public:
   public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
-                         DocumentWindow::allButtons) {
+                         DocumentWindow::allButtons),
+          sut(processor, [](const std::filesystem::path &) {}) {
       centreWithSize(300, 200);
       setVisible(true);
+      constexpr auto resizeToFitWhenContentChangesSize = true;
+      setContentNonOwned(&sut, resizeToFitWhenContentChangesSize);
     }
 
     void closeButtonPressed() override {
@@ -16,6 +22,8 @@ public:
     }
 
   private:
+    DummyAudioProcessor processor;
+    SoloHarmonizerEditor sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
 
