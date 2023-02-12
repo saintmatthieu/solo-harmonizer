@@ -2,26 +2,25 @@
 
 #include "DavidCNAntonia/PitchShifter.h"
 #include "HarmoPitchGetter.h"
+
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <libpyincpp.h>
 #include <rubberband/RubberBandStretcher.h>
 
 #include <filesystem>
 #include <memory>
-
-#include "libpyincpp.h"
 
 namespace spdlog {
 class logger;
 }
 
 //==============================================================================
-class SoloHarmonizerProcessor : public juce::AudioProcessor,
-                                public juce::FileBrowserListener {
+class SoloHarmonizerProcessor : public juce::AudioProcessor {
 public:
   //==============================================================================
   SoloHarmonizerProcessor(
       std::optional<RubberBand::RubberBandStretcher::Options> opts);
-  ~SoloHarmonizerProcessor();
+  ~SoloHarmonizerProcessor() override;
 
   // For testing
   void loadConfigFile(const std::filesystem::path &,
@@ -43,7 +42,7 @@ private:
 
   //==============================================================================
   juce::AudioProcessorEditor *createEditor() override;
-  bool hasEditor() const override;
+  bool hasEditor() const override { return true; }
 
   //==============================================================================
   const juce::String getName() const override;
@@ -54,21 +53,15 @@ private:
   double getTailLengthSeconds() const override { return 0.0; }
 
   //==============================================================================
-  int getNumPrograms() override;
-  int getCurrentProgram() override;
-  void setCurrentProgram(int index) override;
-  const juce::String getProgramName(int index) override;
-  void changeProgramName(int index, const juce::String &newName) override;
+  int getNumPrograms() override { return 1; }
+  int getCurrentProgram() override { return 0; }
+  void setCurrentProgram(int) override {}
+  const juce::String getProgramName(int) override {}
+  void changeProgramName(int, const juce::String &) override {}
 
   //==============================================================================
   void getStateInformation(juce::MemoryBlock &destData) override;
   void setStateInformation(const void *data, int sizeInBytes) override;
-
-  // File browser listener
-  void selectionChanged() override {}
-  void fileClicked(const juce::File &, const juce::MouseEvent &) override {}
-  void fileDoubleClicked(const juce::File &file) override;
-  void browserRootChanged(const juce::File &) override {}
 
 private:
   void _updatePitchEstimate(float const *, size_t);
@@ -79,10 +72,7 @@ private:
       _rbStretcherOptions;
   const std::string _loggerName;
   const std::shared_ptr<spdlog::logger> _logger;
-  juce::WildcardFileFilter _fileFilter;
-  juce::FileBrowserComponent _fileBrowserComponent;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
-  juce::Label _pitchDisplay;
   std::unique_ptr<PitchShifter> _pitchShifter;
   std::unique_ptr<PyinCpp> _pitchEstimator;
   std::optional<float> _pitchEstimate = std::nullopt;

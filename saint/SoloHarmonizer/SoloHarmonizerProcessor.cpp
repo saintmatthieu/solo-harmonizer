@@ -33,17 +33,7 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor(
       _loggerName(std::string{"SoloHarmonizerProcessor_"} +
                   std::to_string(instanceCounter++)),
       _logger(spdlog::basic_logger_mt(
-          _loggerName, saint::generateLogFilename(_loggerName).string())),
-      _fileFilter("*.mid;*.midi", "", ""),
-      _fileBrowserComponent(
-          juce::FileBrowserComponent::FileChooserFlags::openMode |
-              juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
-          juce::File(), &_fileFilter, nullptr),
-      _pitchDisplay("Sample diff") {
-  juce::MessageManager::getInstance();
-  _fileBrowserComponent.addListener(this);
-  _fileBrowserComponent.setSize(250, 250);
-  _pitchDisplay.setSize(250, 100);
+          _loggerName, saint::generateLogFilename(_loggerName).string())) {
   _logger->set_level(saint::getLogLevelFromEnv());
   _logger->info("ctor {0}", _loggerName);
 }
@@ -62,31 +52,8 @@ void SoloHarmonizerProcessor::setCustomPlayhead(
   _customPlayhead = std::move(ph);
 }
 
-//==============================================================================
 const juce::String SoloHarmonizerProcessor::getName() const {
   return JucePlugin_Name;
-}
-
-int SoloHarmonizerProcessor::getNumPrograms() {
-  return 1; // NB: some hosts don't cope very well if you tell them there are 0
-            // programs, so this should be at least 1, even if you're not really
-            // implementing programs.
-}
-
-int SoloHarmonizerProcessor::getCurrentProgram() { return 0; }
-
-void SoloHarmonizerProcessor::setCurrentProgram(int index) {
-  juce::ignoreUnused(index);
-}
-
-const juce::String SoloHarmonizerProcessor::getProgramName(int index) {
-  juce::ignoreUnused(index);
-  return {};
-}
-
-void SoloHarmonizerProcessor::changeProgramName(int index,
-                                                const juce::String &newName) {
-  juce::ignoreUnused(index, newName);
 }
 
 //==============================================================================
@@ -143,14 +110,11 @@ void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   _runPitchShift(buffer);
 }
 
-//==============================================================================
-bool SoloHarmonizerProcessor::hasEditor() const {
-  return true; // (change this to false if you choose to not supply an editor)
-}
-
 juce::AudioProcessorEditor *SoloHarmonizerProcessor::createEditor() {
-  const auto editor = new SoloHarmonizerEditor(*this);
-  editor->addAndMakeVisible(_pitchDisplay);
+  const auto editor = new SoloHarmonizerEditor(
+      *this, [this](const std::filesystem::path &path) {
+        loadConfigFile(path, nullptr);
+      });
   return editor;
 }
 
@@ -168,10 +132,6 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
   // block, whose contents will have been created by the getStateInformation()
   // call.
   juce::ignoreUnused(data, sizeInBytes);
-}
-
-void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
-  loadConfigFile(file.getFullPathName().toStdString());
 }
 
 void SoloHarmonizerProcessor::loadConfigFile(const std::filesystem::path &path,

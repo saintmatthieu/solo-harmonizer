@@ -81,7 +81,16 @@ add_executable(SoloHarmonizerTests
 
 target_link_libraries(SoloHarmonizerTests
     PRIVATE
-    SoloHarmonizer
-    gtest_main
-    gmock
+        SoloHarmonizer
+        gtest_main
+        gmock
+)
+
+add_executable(SoloHarmonizerEditorTestApp
+    SoloHarmonizerEditorTestApp.cpp
+)
+
+target_link_libraries(SoloHarmonizerEditorTestApp
+    PRIVATE
+    juce::juce_gui_basics
 )
