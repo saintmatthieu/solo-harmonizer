@@ -1,7 +1,15 @@
 #include "DummyAudioProcessor.h"
+#include "IGuiListener.h"
 #include "SoloHarmonizerEditor.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
+
+class MockGuiListener : public saint::IGuiListener {
+public:
+  void onMidiFileChosen(const std::filesystem::path &) override {}
+  bool isReady() const override { return true; }
+  std::set<int> getMidiTracks() const override { return {1, 2}; }
+};
 
 class MainWindowTutorialApplication : public juce::JUCEApplication {
 public:
@@ -10,11 +18,11 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
-          sut(processor, [](const std::filesystem::path &) {}) {
+          _sut(_processor, _guiListener) {
       centreWithSize(300, 200);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
-      setContentNonOwned(&sut, resizeToFitWhenContentChangesSize);
+      setContentNonOwned(&_sut, resizeToFitWhenContentChangesSize);
     }
 
     void closeButtonPressed() override {
@@ -22,8 +30,9 @@ public:
     }
 
   private:
-    DummyAudioProcessor processor;
-    SoloHarmonizerEditor sut;
+    DummyAudioProcessor _processor;
+    MockGuiListener _guiListener;
+    SoloHarmonizerEditor _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
 
@@ -43,7 +52,7 @@ private:
   std::unique_ptr<MainWindow> mainWindow;
 };
 
-juce::JUCEApplicationBase *juce_CreateApplication() {
+static juce::JUCEApplicationBase *juce_CreateApplication() {
   return new MainWindowTutorialApplication();
 }
 

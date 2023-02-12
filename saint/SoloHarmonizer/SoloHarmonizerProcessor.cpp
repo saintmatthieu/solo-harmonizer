@@ -111,10 +111,7 @@ void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 }
 
 juce::AudioProcessorEditor *SoloHarmonizerProcessor::createEditor() {
-  const auto editor = new SoloHarmonizerEditor(
-      *this, [this](const std::filesystem::path &path) {
-        loadConfigFile(path, nullptr);
-      });
+  const auto editor = new SoloHarmonizerEditor(*this, *this);
   return editor;
 }
 
@@ -134,10 +131,56 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
   juce::ignoreUnused(data, sizeInBytes);
 }
 
-void SoloHarmonizerProcessor::loadConfigFile(const std::filesystem::path &path,
-                                             int *ticksPerCrotchet) {
-  _logger->info("loadConfigFile path={0}", path.string());
-  const auto input = saint::toHarmoPitchGetterInput(path, ticksPerCrotchet);
+void SoloHarmonizerProcessor::onMidiFileChosen(
+    const std::filesystem::path &path) {
+  loadMidiFile(path, nullptr);
+}
+
+bool SoloHarmonizerProcessor::isReady() const {
+  return _config.harmonyTrackNumber.has_value() &&
+         _config.playedTrackNumber.has_value() &&
+         _config.midiFilePath.has_value();
+}
+
+std::set<int> SoloHarmonizerProcessor::getMidiTracks() const {
+  if (!isReady()) {
+    return {};
+  }
+  std::set<int> tracks;
+}
+
+void SoloHarmonizerProcessor::loadMidiFile(const std::filesystem::path &path,
+                                           int *ticksPerCrotchet) {
+  _logger->info("loadMidiFile path={0}", path.string());
+  const auto reload = _config.midiFilePath != path;
+  _config.midiFilePath = path;
+  if (reload) {
+    _reloadIfReady();
+  }
+}
+
+void SoloHarmonizerProcessor::setPlayedTrack(int track) {
+  const auto reload = _config.playedTrackNumber != track;
+  _config.playedTrackNumber = track;
+  if (reload) {
+    _reloadIfReady();
+  }
+}
+
+void SoloHarmonizerProcessor::setHarmonyTrack(int track) {
+  const auto reload = _config.harmonyTrackNumber != track;
+  _config.harmonyTrackNumber = track;
+  if (reload) {
+    _reloadIfReady();
+  }
+}
+
+void SoloHarmonizerProcessor::_reloadIfReady() {
+  if (!isReady()) {
+    return;
+  }
+  auto ticksPerCrotchet = 0;
+  const auto input = saint::toHarmoPitchGetterInput(_config, &ticksPerCrotchet);
   if (input.empty()) {
     _logger->warn("toHarmoPitchGetterInput returned empty vector");
     return;
@@ -145,7 +188,7 @@ void SoloHarmonizerProcessor::loadConfigFile(const std::filesystem::path &path,
     if (!ticksPerCrotchet) {
       _logger->warn("ticksPerCrotchet nullptr");
     } else {
-      _logger->info("ticksPerCrotchet {0}", *ticksPerCrotchet);
+      _logger->info("ticksPerCrotchet {0}", ticksPerCrotchet);
     }
     _logger->info("toHarmoPitchGetterInput call successful");
     _harmoPitchGetter = std::make_unique<saint::HarmoPitchGetter>(input);

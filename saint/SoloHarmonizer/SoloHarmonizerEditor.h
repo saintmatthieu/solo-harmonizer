@@ -1,32 +1,22 @@
 #pragma once
 
+#include "IGuiListener.h"
+
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <filesystem>
 #include <functional>
 
-class SoloHarmonizerEditor : public juce::AudioProcessorEditor,
-                             public juce::FileBrowserListener {
+class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
 public:
-  using LoadConfigFile = std::function<void(const std::filesystem::path &)>;
-
-  explicit SoloHarmonizerEditor(juce::AudioProcessor &,
-                                LoadConfigFile loadConfigFile);
+  explicit SoloHarmonizerEditor(juce::AudioProcessor &, saint::IGuiListener &);
 
   // AudioProcessingEditor
   void paint(juce::Graphics &) override;
   void resized() override;
 
-  // File browser listener
-  void selectionChanged() override {}
-  void fileClicked(const juce::File &, const juce::MouseEvent &) override {}
-  void fileDoubleClicked(const juce::File &file) override;
-  void browserRootChanged(const juce::File &) override {}
-
 private:
-  const LoadConfigFile _loadConfigFile;
-  juce::WildcardFileFilter _fileFilter;
-  juce::FileBrowserComponent _fileBrowserComponent;
+  saint::IGuiListener &_guiListener;
   juce::TextButton _chooseFileButton;
   juce::ComboBox _playedTrackComboBox;
   juce::ComboBox _harmonyTrackComboBox;

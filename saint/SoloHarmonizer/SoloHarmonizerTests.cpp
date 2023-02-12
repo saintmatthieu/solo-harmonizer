@@ -48,8 +48,8 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   auto output = input;
   SoloHarmonizerProcessor sut{std::nullopt};
   auto ticksPerCrotchet = 0;
-  sut.loadConfigFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.xml"),
-                     &ticksPerCrotchet);
+  sut.loadMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.xml"),
+                   &ticksPerCrotchet);
   const auto playhead = std::make_shared<MockAudioPlayhead>(ticksPerCrotchet);
   sut.setCustomPlayhead(playhead);
   sut.prepareToPlay(sampleRate, blockSize);

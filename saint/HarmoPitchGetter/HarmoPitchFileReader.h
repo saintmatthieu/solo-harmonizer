@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../CommonTypes.h"
 #include "HarmoPitchTypes.h"
 
-#include <filesystem>
+#include <vector>
 
 namespace saint {
 std::vector<HarmoNoteSpan>
-toHarmoPitchGetterInput(const std::filesystem::path &xmlConfig,
-                        int *ticksPerCrotchet = nullptr);
+toHarmoPitchGetterInput(const Config &, int *ticksPerCrotchet = nullptr);
 }

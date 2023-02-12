@@ -56,18 +56,16 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
-std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig,
+std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const Config &config,
                                                    int *ticksPerCrotchet) {
 
-  const juce::File file(fs::absolute(xmlConfig).c_str());
-  const auto xml = juce::XmlDocument::parse(file);
-  const auto pathAttribute = xml->getStringAttribute("path").toStdString();
-  const auto midiFilePath = fs::absolute(pathAttribute);
-  if (!fs::exists(midiFilePath)) {
+  if (!config.harmonyTrackNumber.has_value() ||
+      !config.playedTrackNumber.has_value() ||
+      !config.midiFilePath.has_value() || !fs::exists(*config.midiFilePath)) {
     // TODO report error
     return {};
   }
-  const auto midiFile = getMidiFile(midiFilePath.string());
+  const auto midiFile = getMidiFile(config.midiFilePath->string());
   const auto ticksPerCrotchetShort = midiFile.getTimeFormat();
   if (ticksPerCrotchetShort <= 0) {
     // TODO: report that SMPTE format is not supported yet
@@ -76,18 +74,10 @@ std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig,
     *ticksPerCrotchet = ticksPerCrotchetShort;
   }
 
-  // The following shoud be looped over each child element.
-  const auto harmoEl = xml->getChildElement(0); // For now just using the first.
-  if (!harmoEl->hasAttribute("playedTrack") ||
-      !harmoEl->hasAttribute("harmonyTrack")) {
-    return {};
-  }
-  const auto playedTrack = harmoEl->getIntAttribute("playedTrack");
-  const auto harmonyTrack = harmoEl->getIntAttribute("harmonyTrack");
-  const auto playedSeq = getMidiNoteMessages(*midiFile.getTrack(playedTrack),
-                                             midiFile.getTimeFormat());
-  const auto harmoSeq = getMidiNoteMessages(*midiFile.getTrack(harmonyTrack),
-                                            midiFile.getTimeFormat());
+  const auto playedSeq = getMidiNoteMessages(
+      *midiFile.getTrack(*config.playedTrackNumber), midiFile.getTimeFormat());
+  const auto harmoSeq = getMidiNoteMessages(
+      *midiFile.getTrack(*config.harmonyTrackNumber), midiFile.getTimeFormat());
   return toHarmoNoteSpans(playedSeq, harmoSeq);
 }
 } // namespace saint

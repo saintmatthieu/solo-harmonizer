@@ -3,19 +3,13 @@
 
 //==============================================================================
 SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
-                                           LoadConfigFile loadConfigFile)
-    : AudioProcessorEditor(&p), _loadConfigFile(std::move(loadConfigFile)),
-      _fileFilter("*.xml", "", ""),
-      _fileBrowserComponent(
-          juce::FileBrowserComponent::FileChooserFlags::openMode |
-              juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
-          juce::File(), &_fileFilter, nullptr),
+                                           saint::IGuiListener &guiListener)
+    : AudioProcessorEditor(&p), _guiListener(guiListener),
       _chooseFileButton("Choose MIDI file ...") {
+
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
   setSize(400, 300);
-  _fileBrowserComponent.addListener(this);
-  _fileBrowserComponent.setSize(250, 250);
 
   _playedTrackComboBox.setTooltip("MIDI track you'll be playing");
   _harmonyTrackComboBox.setTooltip("Harmonization MIDI track");
@@ -25,11 +19,13 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
   _chooseFileButton.setTooltip(
       "MIDI file of the song whose solo you'd like to play "
       "with it harmonization !");
-  _chooseFileButton.onClick = []() {
+  _chooseFileButton.onClick = [this]() {
     juce::FileChooser fileChooser("Choose MIDI file ...", juce::File(),
                                   "*.mid;*.midi");
     if (fileChooser.browseForFileToOpen()) {
-      const auto result = fileChooser.getResult();
+      const std::filesystem::path path =
+          fileChooser.getResult().getFullPathName().toStdString();
+      _guiListener.onMidiFileChosen(path);
     }
   };
   addAndMakeVisible(_chooseFileButton);
@@ -60,8 +56,4 @@ void SoloHarmonizerEditor::resized() {
                        GridItem(_harmonyTrackComboBox).withRow({2})});
 
   grid.performLayout(getLocalBounds());
-}
-
-void SoloHarmonizerEditor::fileDoubleClicked(const juce::File &file) {
-  _loadConfigFile(file.getFullPathName().toStdString());
 }
