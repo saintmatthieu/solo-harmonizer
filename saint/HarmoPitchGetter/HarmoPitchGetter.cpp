@@ -31,7 +31,7 @@ getNotes(const std::vector<HarmoNoteSpan> &spans) {
 HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans)
     : _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
 
-std::optional<float> HarmoPitchGetter::getHarmoPitch(int tick, float pitch) {
+std::optional<float> HarmoPitchGetter::getHarmoInterval(int tick, float pitch) {
   if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;
   }
@@ -42,7 +42,15 @@ std::optional<float> HarmoPitchGetter::getHarmoPitch(int tick, float pitch) {
   // For now just a linear intra/extrapolation.
   // Let's try this first and if it's not good enough we'll attempt something
   // more elaborate.
-  return pitch * std::powf(2, *interval->interval / 12.f);
+  return *interval->interval;
+}
+
+std::optional<float> HarmoPitchGetter::getHarmoPitch(int tick, float pitch) {
+  const auto interval = getHarmoInterval(tick, pitch);
+  if (!interval) {
+    return interval;
+  }
+  return pitch * std::powf(2, *interval / 12.f);
 }
 
 } // namespace saint

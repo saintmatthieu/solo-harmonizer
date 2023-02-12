@@ -56,7 +56,9 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
-std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig) {
+std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig,
+                                                   int *ticksPerCrotchet) {
+
   const juce::File file(fs::absolute(xmlConfig).c_str());
   const auto xml = juce::XmlDocument::parse(file);
   const auto pathAttribute = xml->getStringAttribute("path").toStdString();
@@ -66,10 +68,12 @@ std::vector<HarmoNoteSpan> toHarmoPitchGetterInput(const fs::path &xmlConfig) {
     return {};
   }
   const auto midiFile = getMidiFile(midiFilePath.string());
-  const auto ticksPerSecond = midiFile.getTimeFormat();
-  if (ticksPerSecond <= 0) {
+  const auto ticksPerCrotchetShort = midiFile.getTimeFormat();
+  if (ticksPerCrotchetShort <= 0) {
     // TODO: report that SMPTE format is not supported yet
     return {};
+  } else if (ticksPerCrotchet != nullptr) {
+    *ticksPerCrotchet = ticksPerCrotchetShort;
   }
 
   // The following shoud be looped over each child element.

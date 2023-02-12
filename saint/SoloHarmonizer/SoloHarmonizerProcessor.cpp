@@ -1,7 +1,9 @@
 #include "SoloHarmonizerProcessor.h"
+#include "HarmoPitchFileReader.h"
+#include "HarmoPitchGetter.h"
 #include "SoloHarmonizerEditor.h"
+#include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
-#include "libpyincpp.h"
 #include "rubberband/RubberBandStretcher.h"
 #include <algorithm>
 #include <array>
@@ -10,56 +12,6 @@
 #include <fstream>
 #include <memory>
 #include <optional>
-
-
-namespace {
-juce::MidiFile getMidiFile(const juce::String &filename) {
-  juce::MidiFile midiFile;
-  const juce::File file(filename);
-  const auto stream = file.createInputStream();
-  if (!midiFile.readFrom(*stream)) {
-    jassertfalse;
-  }
-  return midiFile;
-}
-
-int getCentsFromA4(float hz) {
-  constexpr auto A4 = 440.f;
-  return static_cast<int>(1200 * log2f(hz / A4) + .5f);
-}
-
-float getSemitoneShiftForEMinorThirdHarmonization(float hz) {
-  // Beginning from A
-  constexpr std::array<int, 12> bMinorNaturalMap{
-      0, // A
-      0, // A#
-      0, // B
-      0, // C
-      0, // C#
-      0, // D
-      0, // D#
-      0, // E
-      0, // F
-      0, // F#
-      0, // G
-      0, // G#
-  };
-  constexpr std::array<std::optional<int>, 12> hotelCaliforniaMap{
-      std::nullopt, // A
-      std::nullopt, // A#
-      3,            // B
-      std::nullopt, // C
-      std::nullopt, // C#
-      4,            // D
-      std::nullopt, // D#
-      std::nullopt, // E
-      std::nullopt, // F
-      5,            // F#
-      std::nullopt, // G
-      std::nullopt, // G#
-  };
-}
-} // namespace
 
 //==============================================================================
 SoloHarmonizerProcessor::SoloHarmonizerProcessor(
@@ -78,32 +30,21 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor(
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   _pitchDisplay.setSize(250, 100);
-
-  constexpr auto pitchLogName = "C:/Users/saint/Downloads/pitchLog.txt";
-  if (std::filesystem::exists(pitchLogName)) {
-    std::filesystem::remove(pitchLogName);
-  }
-  _pitchLog = std::ofstream{pitchLogName};
 }
-
-SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {}
 
 void SoloHarmonizerProcessor::setSemitoneShift(float value) {
   _pitchShifter->setSemitoneShift(value);
+}
+
+void SoloHarmonizerProcessor::setCustomPlayhead(
+    std::weak_ptr<juce::AudioPlayHead> ph) {
+  _customPlayhead = std::move(ph);
 }
 
 //==============================================================================
 const juce::String SoloHarmonizerProcessor::getName() const {
   return JucePlugin_Name;
 }
-
-bool SoloHarmonizerProcessor::acceptsMidi() const { return false; }
-
-bool SoloHarmonizerProcessor::producesMidi() const { return false; }
-
-bool SoloHarmonizerProcessor::isMidiEffect() const { return false; }
-
-double SoloHarmonizerProcessor::getTailLengthSeconds() const { return 0.0; }
 
 int SoloHarmonizerProcessor::getNumPrograms() {
   return 1; // NB: some hosts don't cope very well if you tell them there are 0
@@ -132,9 +73,6 @@ void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
   _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
                                                  _rbStretcherOptions);
-  _pitchShifter->setFormantPreserving(true);
-  _pitchShifter->setMixPercentage(100);
-
   // TODO: check that `samplesPerBlock` is appropriate for
   // `PyinCpp::_DEFAULT_BLOCK_SIZE` (2048) and `PyinCpp::_DEFAULT_STEP_SIZE`
   // (512).
@@ -148,6 +86,7 @@ void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
 void SoloHarmonizerProcessor::releaseResources() {
   // When playback stops, you can use this as an opportunity to free up any
   // spare memory, etc.
+  _pitchEstimator.reset();
   _pitchShifter.reset();
 }
 
@@ -157,8 +96,7 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
   // In this template code we only support mono or stereo.
   // Some plugin hosts, such as certain GarageBand versions, will only
   // load plugins that support stereo bus layouts.
-  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-      layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono())
     return false;
 
   if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
@@ -170,8 +108,11 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
+  if (!_harmoPitchGetter) {
+    return;
+  }
   const auto readPtr = buffer.getReadPointer(0);
-  _runPitchEstimate(readPtr, (size_t)buffer.getNumSamples());
+  _updatePitchEstimate(readPtr, (size_t)buffer.getNumSamples());
   _runPitchShift(buffer);
 }
 
@@ -203,30 +144,57 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
 }
 
 void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
-  juce::MidiFile midiFile;
-  const auto stream = file.createInputStream();
-  if (!midiFile.readFrom(*stream)) {
-    jassertfalse;
-  }
+  loadConfigFile(file.getFullPathName().toStdString());
 }
 
-void SoloHarmonizerProcessor::_runPitchEstimate(float const *p, size_t s) {
+void SoloHarmonizerProcessor::loadConfigFile(const std::filesystem::path &path,
+                                             int *ticksPerCrotchet) {
+  const auto input = saint::toHarmoPitchGetterInput(path, ticksPerCrotchet);
+  _harmoPitchGetter = std::make_unique<saint::HarmoPitchGetter>(input);
+}
+
+void SoloHarmonizerProcessor::_updatePitchEstimate(float const *p, size_t s) {
   const std::vector<float> v{p, p + s};
   const auto pitches = _pitchEstimator->feed(v);
-  auto separator = ", ";
-  for (const auto &pitch : pitches) {
-    _pitchLog << separator << pitch;
+  if (pitches.empty() || pitches[0] < 20 || pitches[0] > 4000) {
+    _pitchEstimate.reset();
+  } else {
+    // Still don't know why there may be more than one pitches.
+    _pitchEstimate.emplace(pitches[0]);
   }
-  _pitchLog << std::endl;
 }
 
 void SoloHarmonizerProcessor::_runPitchShift(juce::AudioBuffer<float> &buffer) {
+  const auto pitchShift = _getHarmonySemitones();
   juce::dsp::AudioBlock<float> block{buffer};
+  _pitchShifter->setMixPercentage(pitchShift ? 50 : 0);
+  if (pitchShift) {
+    _pitchShifter->setSemitoneShift(*pitchShift);
+  }
   _pitchShifter->processBuffer(block);
   // TODO: check if these additional steps are necessary or not.
   const auto bp = block.getChannelPointer(0);
   auto ap = buffer.getWritePointer(0);
   memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
+}
+
+std::optional<float> SoloHarmonizerProcessor::_getHarmonySemitones() {
+  const juce::AudioPlayHead *playhead =
+      !_customPlayhead.expired() ? _customPlayhead.lock().get() : getPlayHead();
+  if (!_harmoPitchGetter || !playhead || !_pitchEstimate) {
+    return std::nullopt;
+  }
+  const auto position = playhead->getPosition();
+  if (!position) {
+    return std::nullopt;
+  }
+  const auto ppq = position->getPpqPosition();
+  if (!ppq) {
+    return std::nullopt;
+  }
+  // Don't know why it's a double and not an int ...
+  const auto tick = static_cast<int>(*ppq + 0.5);
+  return _harmoPitchGetter->getHarmoInterval(tick, *_pitchEstimate);
 }
 
 //==============================================================================

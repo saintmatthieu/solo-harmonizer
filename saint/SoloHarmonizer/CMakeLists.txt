@@ -67,6 +67,7 @@ target_link_libraries(SoloHarmonizer
 
 target_include_directories(SoloHarmonizer
   PUBLIC
+    ${CMAKE_SOURCE_DIR}/saint/HarmoPitchGetter
     ${CMAKE_SOURCE_DIR}/LibPyin/source
 )
 

@@ -1,13 +1,14 @@
 #pragma once
 
 #include "DavidCNAntonia/PitchShifter.h"
+#include "HarmoPitchGetter.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <rubberband/RubberBandStretcher.h>
 
-#include <fstream>
+#include <filesystem>
 #include <memory>
 
-class PyinCpp;
+#include "libpyincpp.h"
 
 //==============================================================================
 class SoloHarmonizerProcessor : public juce::AudioProcessor,
@@ -16,9 +17,14 @@ public:
   //==============================================================================
   SoloHarmonizerProcessor(
       std::optional<RubberBand::RubberBandStretcher::Options> opts);
-  ~SoloHarmonizerProcessor() override;
 
+  // For testing
+  void loadConfigFile(const std::filesystem::path &,
+                      int *ticksPerCrotchet = nullptr);
   void setSemitoneShift(float value);
+  void setCustomPlayhead(std::weak_ptr<juce::AudioPlayHead>);
+
+  // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
 
@@ -37,10 +43,10 @@ private:
   //==============================================================================
   const juce::String getName() const override;
 
-  bool acceptsMidi() const override;
-  bool producesMidi() const override;
-  bool isMidiEffect() const override;
-  double getTailLengthSeconds() const override;
+  bool acceptsMidi() const override { return false; }
+  bool producesMidi() const override { return false; }
+  bool isMidiEffect() const override { return false; }
+  double getTailLengthSeconds() const override { return 0.0; }
 
   //==============================================================================
   int getNumPrograms() override;
@@ -60,8 +66,9 @@ private:
   void browserRootChanged(const juce::File &) override {}
 
 private:
-  void _runPitchEstimate(float const *, size_t);
+  void _updatePitchEstimate(float const *, size_t);
   void _runPitchShift(juce::AudioBuffer<float> &buffer);
+  std::optional<float> _getHarmonySemitones();
 
   const std::optional<RubberBand::RubberBandStretcher::Options>
       _rbStretcherOptions;
@@ -71,7 +78,12 @@ private:
   juce::Label _pitchDisplay;
   std::unique_ptr<PitchShifter> _pitchShifter;
   std::unique_ptr<PyinCpp> _pitchEstimator;
-  std::ofstream _pitchLog;
+  std::optional<float> _pitchEstimate = std::nullopt;
+  std::unique_ptr<saint::HarmoPitchGetter> _harmoPitchGetter;
+  std::weak_ptr<juce::AudioPlayHead> _customPlayhead;
+
+  // For testing
+  std::optional<int> _ticksPerCrotchet = std::nullopt;
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)

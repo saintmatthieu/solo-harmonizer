@@ -8,6 +8,7 @@ namespace saint {
 class HarmoPitchGetter {
 public:
   HarmoPitchGetter(const std::vector<HarmoNoteSpan> &timeSegments);
+  std::optional<float> getHarmoInterval(int tick, float pitch);
   std::optional<float> getHarmoPitch(int tick, float pitch);
 
 private:

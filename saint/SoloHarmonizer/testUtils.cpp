@@ -34,10 +34,10 @@ std::string getInputFilePath() {
   return path.string();
 }
 
-std::vector<float> fromWavFile() {
+std::vector<float> fromWavFile(std::optional<std::filesystem::path> pathOpt) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatReader> reader;
-  const auto path = getInputFilePath();
+  const auto path = pathOpt ? pathOpt->string() : getInputFilePath();
   reader.reset(format.createReaderFor(
       new juce::FileInputStream(juce::File(path)), true));
   std::vector<float> audio((size_t)reader->lengthInSamples);

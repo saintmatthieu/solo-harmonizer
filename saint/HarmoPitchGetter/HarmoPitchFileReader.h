@@ -6,5 +6,6 @@
 
 namespace saint {
 std::vector<HarmoNoteSpan>
-toHarmoPitchGetterInput(const std::filesystem::path &xmlConfig);
+toHarmoPitchGetterInput(const std::filesystem::path &xmlConfig,
+                        int *ticksPerCrotchet = nullptr);
 }

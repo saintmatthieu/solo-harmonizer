@@ -4,12 +4,18 @@
 #include <vector>
 
 namespace testUtils {
+std::vector<float>
+fromWavFile(std::optional<std::filesystem::path> path = std::nullopt);
+
 void toWavFile(const float *audio, size_t N,
                std::optional<std::filesystem::path> pathOpt = std::nullopt);
+
 std::string getInputFilePath();
-std::vector<float> fromWavFile();
+
 std::vector<float> makeCosine(size_t T, size_t N);
+
 float getRms(const std::vector<float> &V);
+
 template <typename T>
 std::vector<T> getDiff(const std::vector<T> &A, const std::vector<T> &B) {
   std::vector<T> diff(A.size());
