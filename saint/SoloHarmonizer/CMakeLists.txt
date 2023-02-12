@@ -18,6 +18,7 @@ juce_add_plugin(SoloHarmonizer
 target_sources(SoloHarmonizer
     PRIVATE
         SoloHarmonizerEditor.cpp
+        SoloHarmonizerHelper.cpp
         SoloHarmonizerProcessor.cpp
         DavidCNAntonia/PitchShifter.h
         DavidCNAntonia/RingBuffer.h)
@@ -60,6 +61,7 @@ target_link_libraries(SoloHarmonizer
         juce::juce_dsp
         LibPyin
         rubberband-wrapper
+        spdlog
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -69,6 +71,7 @@ target_include_directories(SoloHarmonizer
   PUBLIC
     ${CMAKE_SOURCE_DIR}/saint/HarmoPitchGetter
     ${CMAKE_SOURCE_DIR}/LibPyin/source
+    ${CMAKE_SOURCE_DIR}/spdlog/include
 )
 
 add_executable(SoloHarmonizerTests

@@ -10,6 +10,10 @@
 
 #include "libpyincpp.h"
 
+namespace spdlog {
+class logger;
+}
+
 //==============================================================================
 class SoloHarmonizerProcessor : public juce::AudioProcessor,
                                 public juce::FileBrowserListener {
@@ -17,6 +21,7 @@ public:
   //==============================================================================
   SoloHarmonizerProcessor(
       std::optional<RubberBand::RubberBandStretcher::Options> opts);
+  ~SoloHarmonizerProcessor();
 
   // For testing
   void loadConfigFile(const std::filesystem::path &,
@@ -72,6 +77,8 @@ private:
 
   const std::optional<RubberBand::RubberBandStretcher::Options>
       _rbStretcherOptions;
+  const std::string _loggerName;
+  const std::shared_ptr<spdlog::logger> _logger;
   juce::WildcardFileFilter _fileFilter;
   juce::FileBrowserComponent _fileBrowserComponent;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
@@ -81,6 +88,8 @@ private:
   std::optional<float> _pitchEstimate = std::nullopt;
   std::unique_ptr<saint::HarmoPitchGetter> _harmoPitchGetter;
   std::weak_ptr<juce::AudioPlayHead> _customPlayhead;
+  bool _getPositionLogged = false;
+  bool _getPpqPositionLogged = false;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;

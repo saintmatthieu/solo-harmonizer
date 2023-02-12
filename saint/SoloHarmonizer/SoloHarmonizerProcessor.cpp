@@ -2,9 +2,13 @@
 #include "HarmoPitchFileReader.h"
 #include "HarmoPitchGetter.h"
 #include "SoloHarmonizerEditor.h"
+#include "SoloHarmonizerHelper.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include "rubberband/RubberBandStretcher.h"
+#include "spdlog/common.h"
+#include "spdlog/logger.h"
+#include "spdlog/sinks/basic_file_sink.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -12,6 +16,11 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <string>
+
+namespace {
+static std::atomic<int> instanceCounter = 0;
+}
 
 //==============================================================================
 SoloHarmonizerProcessor::SoloHarmonizerProcessor(
@@ -20,7 +29,12 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor(
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::mono(), true)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      _rbStretcherOptions(std::move(opts)), _fileFilter("*.mid;*.midi", "", ""),
+      _rbStretcherOptions(std::move(opts)),
+      _loggerName(std::string{"SoloHarmonizerProcessor_"} +
+                  std::to_string(instanceCounter++)),
+      _logger(spdlog::basic_logger_mt(
+          _loggerName, saint::generateLogFilename(_loggerName).string())),
+      _fileFilter("*.mid;*.midi", "", ""),
       _fileBrowserComponent(
           juce::FileBrowserComponent::FileChooserFlags::openMode |
               juce::FileBrowserComponent::FileChooserFlags::canSelectFiles,
@@ -30,6 +44,12 @@ SoloHarmonizerProcessor::SoloHarmonizerProcessor(
   _fileBrowserComponent.addListener(this);
   _fileBrowserComponent.setSize(250, 250);
   _pitchDisplay.setSize(250, 100);
+  _logger->set_level(saint::getLogLevelFromEnv());
+  _logger->info("ctor {0}", _loggerName);
+}
+
+SoloHarmonizerProcessor::~SoloHarmonizerProcessor() {
+  _logger->info("dtor {0}", _loggerName);
 }
 
 void SoloHarmonizerProcessor::setSemitoneShift(float value) {
@@ -38,6 +58,7 @@ void SoloHarmonizerProcessor::setSemitoneShift(float value) {
 
 void SoloHarmonizerProcessor::setCustomPlayhead(
     std::weak_ptr<juce::AudioPlayHead> ph) {
+  _logger->info("setting custom playhead");
   _customPlayhead = std::move(ph);
 }
 
@@ -73,13 +94,15 @@ void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
   _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
                                                  _rbStretcherOptions);
-  // TODO: check that `samplesPerBlock` is appropriate for
-  // `PyinCpp::_DEFAULT_BLOCK_SIZE` (2048) and `PyinCpp::_DEFAULT_STEP_SIZE`
-  // (512).
   constexpr auto pyinCppDefaultBlockSize = 2048;
-  assert(pyinCppDefaultBlockSize % samplesPerBlock == 0);
+  const auto pyinCppStepSize =
+      std::max(samplesPerBlock, pyinCppDefaultBlockSize);
+  _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1} "
+                "pyinCppStepSize={2} _harmoPitchGetter={3} _pitchEstimate={4}",
+                sampleRate, samplesPerBlock, pyinCppStepSize,
+                _harmoPitchGetter != nullptr, _pitchEstimate != std::nullopt);
   _pitchEstimator = std::make_unique<PyinCpp>(
-      sampleRate, pyinCppDefaultBlockSize, samplesPerBlock);
+      sampleRate, pyinCppDefaultBlockSize, pyinCppStepSize);
   _pitchEstimator->reserve(samplesPerBlock); // I guess ...
 }
 
@@ -88,6 +111,9 @@ void SoloHarmonizerProcessor::releaseResources() {
   // spare memory, etc.
   _pitchEstimator.reset();
   _pitchShifter.reset();
+  _pitchEstimate.reset();
+  _logger->info("releaseResources");
+  _logger->flush();
 }
 
 bool SoloHarmonizerProcessor::isBusesLayoutSupported(
@@ -107,6 +133,7 @@ bool SoloHarmonizerProcessor::isBusesLayoutSupported(
 
 void SoloHarmonizerProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                            juce::MidiBuffer &midiMessages) {
+  _logger->trace("processBlock");
   juce::ignoreUnused(midiMessages);
   if (!_harmoPitchGetter) {
     return;
@@ -149,16 +176,34 @@ void SoloHarmonizerProcessor::fileDoubleClicked(const juce::File &file) {
 
 void SoloHarmonizerProcessor::loadConfigFile(const std::filesystem::path &path,
                                              int *ticksPerCrotchet) {
+  _logger->info("loadConfigFile path={0}", path.string());
   const auto input = saint::toHarmoPitchGetterInput(path, ticksPerCrotchet);
-  _harmoPitchGetter = std::make_unique<saint::HarmoPitchGetter>(input);
+  if (input.empty()) {
+    _logger->warn("toHarmoPitchGetterInput returned empty vector");
+    return;
+  } else {
+    if (!ticksPerCrotchet) {
+      _logger->warn("ticksPerCrotchet nullptr");
+    } else {
+      _logger->info("ticksPerCrotchet {0}", *ticksPerCrotchet);
+    }
+    _logger->info("toHarmoPitchGetterInput call successful");
+    _harmoPitchGetter = std::make_unique<saint::HarmoPitchGetter>(input);
+  }
 }
 
 void SoloHarmonizerProcessor::_updatePitchEstimate(float const *p, size_t s) {
   const std::vector<float> v{p, p + s};
   const auto pitches = _pitchEstimator->feed(v);
   if (pitches.empty() || pitches[0] < 20 || pitches[0] > 4000) {
+    if (_pitchEstimate) {
+      _logger->debug("_pitchEstimate == nullopt");
+    }
     _pitchEstimate.reset();
   } else {
+    if (!_pitchEstimate) {
+      _logger->debug("_pitchEstimate != nullopt");
+    }
     // Still don't know why there may be more than one pitches.
     _pitchEstimate.emplace(pitches[0]);
   }
@@ -166,6 +211,8 @@ void SoloHarmonizerProcessor::_updatePitchEstimate(float const *p, size_t s) {
 
 void SoloHarmonizerProcessor::_runPitchShift(juce::AudioBuffer<float> &buffer) {
   const auto pitchShift = _getHarmonySemitones();
+  _logger->debug("_getHarmonySemitones() returned {0}",
+                 pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
   _pitchShifter->setMixPercentage(pitchShift ? 50 : 0);
   if (pitchShift) {
@@ -185,11 +232,20 @@ std::optional<float> SoloHarmonizerProcessor::_getHarmonySemitones() {
     return std::nullopt;
   }
   const auto position = playhead->getPosition();
+  if (!_getPositionLogged) {
+    _logger->debug("1st getPosition call was {0}",
+                   position ? "successful" : "not successful");
+    _getPositionLogged = true;
+  }
   if (!position) {
     return std::nullopt;
   }
   const auto ppq = position->getPpqPosition();
   if (!ppq) {
+    if (!_getPpqPositionLogged) {
+      _logger->warn("could not get PPQ position ??");
+      _getPpqPositionLogged = true;
+    }
     return std::nullopt;
   }
   // Don't know why it's a double and not an int ...
