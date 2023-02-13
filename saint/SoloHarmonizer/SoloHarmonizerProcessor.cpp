@@ -1,6 +1,6 @@
 #include "SoloHarmonizerProcessor.h"
-#include "HarmoPitchFileReader.h"
 #include "HarmoPitchGetter.h"
+#include "HarmoPitchHelper.h"
 #include "SoloHarmonizerEditor.h"
 #include "SoloHarmonizerHelper.h"
 #include "juce_audio_basics/juce_audio_basics.h"
@@ -18,11 +18,47 @@
 #include <optional>
 #include <string>
 
+namespace saint {
 namespace {
 static std::atomic<int> instanceCounter = 0;
+
+std::optional<juce::MidiFile> getMidiFile(const juce::String &filename) {
+  juce::MidiFile midiFile;
+  const juce::File file(filename);
+  const auto stream = file.createInputStream();
+  if (!midiFile.readFrom(*stream)) {
+    return std::nullopt;
+  }
+  return midiFile;
 }
 
-//==============================================================================
+std::vector<MidiNoteMsg>
+getMidiNoteMessages(const juce::MidiMessageSequence &seq,
+                    int ticksPerCrotchet) {
+  const auto ticksPer32nd = ticksPerCrotchet / 8;
+  std::vector<MidiNoteMsg> msgs;
+  MidiNoteMsg *lastMsg = nullptr;
+  for (auto it = seq.begin(); it != seq.end(); ++it) {
+    const auto msg = (*it)->message;
+    if (!msg.isNoteOnOrOff()) {
+      continue;
+    }
+    const auto tick =
+        static_cast<int>(msg.getTimeStamp() / ticksPer32nd + 0.5) *
+        ticksPer32nd;
+    if (msg.isNoteOn() && lastMsg && !lastMsg->isNoteOn &&
+        lastMsg->tick == tick) {
+      // This new NoteOn coincides with the previous NoteOff => let's delete
+      // that NoteOff
+      msgs.pop_back();
+    }
+    msgs.push_back({tick, msg.isNoteOn(), msg.getNoteNumber()});
+    lastMsg = &msgs.back();
+  }
+  return msgs;
+}
+} // namespace
+
 SoloHarmonizerProcessor::SoloHarmonizerProcessor(
     std::optional<RubberBand::RubberBandStretcher::Options> opts)
     : AudioProcessor(
@@ -56,7 +92,6 @@ const juce::String SoloHarmonizerProcessor::getName() const {
   return JucePlugin_Name;
 }
 
-//==============================================================================
 void SoloHarmonizerProcessor::prepareToPlay(double sampleRate,
                                             int samplesPerBlock) {
   _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
@@ -115,7 +150,6 @@ juce::AudioProcessorEditor *SoloHarmonizerProcessor::createEditor() {
   return editor;
 }
 
-//==============================================================================
 void SoloHarmonizerProcessor::getStateInformation(juce::MemoryBlock &destData) {
   // You should use this method to store your parameters in the memory block.
   // You could do that either as raw data, or use the XML or ValueTree classes
@@ -131,56 +165,70 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
   juce::ignoreUnused(data, sizeInBytes);
 }
 
-void SoloHarmonizerProcessor::onMidiFileChosen(
-    const std::filesystem::path &path) {
-  loadMidiFile(path, nullptr);
-}
-
-bool SoloHarmonizerProcessor::isReady() const {
-  return _config.harmonyTrackNumber.has_value() &&
-         _config.playedTrackNumber.has_value() &&
-         _config.midiFilePath.has_value();
-}
-
-std::set<int> SoloHarmonizerProcessor::getMidiTracks() const {
-  if (!isReady()) {
+std::vector<TrackInfo>
+SoloHarmonizerProcessor::onMidiFileChosen(const std::filesystem::path &path) {
+  _logger->info("loadMidiFile path={0}", path.string());
+  _midiFile = getMidiFile(path.string());
+  _reloadIfReady();
+  if (!_midiFile) {
     return {};
   }
-  std::set<int> tracks;
+  std::vector<TrackInfo> tracks((size_t)_midiFile->getNumTracks());
+  for (auto i = 0; i < _midiFile->getNumTracks(); ++i) {
+    const auto track = _midiFile->getTrack(i);
+    const auto pHolder =
+        std::find_if(track->begin(), track->end(), [](auto it) {
+          const juce::MidiMessage &msg = it->message;
+          return msg.isProgramChange();
+        });
+    const auto ui = static_cast<size_t>(i);
+    if (pHolder == track->end()) {
+      tracks[ui] = {""};
+    } else {
+      const juce::MidiMessage &msg = (*pHolder)->message;
+      const auto instrumentName =
+          juce::MidiMessage::getGMInstrumentName(msg.getProgramChangeNumber());
+      tracks[ui] = {std::string{instrumentName}};
+    }
+  }
+  return tracks;
 }
 
-void SoloHarmonizerProcessor::loadMidiFile(const std::filesystem::path &path,
-                                           int *ticksPerCrotchet) {
-  _logger->info("loadMidiFile path={0}", path.string());
-  const auto reload = _config.midiFilePath != path;
-  _config.midiFilePath = path;
-  if (reload) {
-    _reloadIfReady();
-  }
-}
+void SoloHarmonizerProcessor::onTrackSelected(TrackType, int) {}
 
 void SoloHarmonizerProcessor::setPlayedTrack(int track) {
-  const auto reload = _config.playedTrackNumber != track;
-  _config.playedTrackNumber = track;
+  const auto reload = _playedTrackNumber != track;
+  _playedTrackNumber = track;
   if (reload) {
     _reloadIfReady();
   }
 }
 
 void SoloHarmonizerProcessor::setHarmonyTrack(int track) {
-  const auto reload = _config.harmonyTrackNumber != track;
-  _config.harmonyTrackNumber = track;
+  const auto reload = _harmonyTrackNumber != track;
+  _harmonyTrackNumber = track;
   if (reload) {
     _reloadIfReady();
   }
 }
 
 void SoloHarmonizerProcessor::_reloadIfReady() {
-  if (!isReady()) {
+  if (!_midiFile.has_value() || !_playedTrackNumber.has_value() ||
+      !_harmonyTrackNumber.has_value()) {
     return;
   }
-  auto ticksPerCrotchet = 0;
-  const auto input = saint::toHarmoPitchGetterInput(_config, &ticksPerCrotchet);
+  const auto ticksPerCrotchet = static_cast<int>(_midiFile->getTimeFormat());
+  if (ticksPerCrotchet <= 0) {
+    _logger->error("MIDI file uses (yet) unsupported SMPTE format");
+    _midiFile.reset();
+    return;
+  }
+
+  const auto playedSeq = getMidiNoteMessages(
+      *_midiFile->getTrack(*_playedTrackNumber), ticksPerCrotchet);
+  const auto harmoSeq = getMidiNoteMessages(
+      *_midiFile->getTrack(*_harmonyTrackNumber), ticksPerCrotchet);
+  const auto input = toHarmoNoteSpans(playedSeq, harmoSeq);
   if (input.empty()) {
     _logger->warn("toHarmoPitchGetterInput returned empty vector");
     return;
@@ -256,8 +304,8 @@ std::optional<float> SoloHarmonizerProcessor::_getHarmonySemitones() {
   return _harmoPitchGetter->getHarmoInterval(tick, *_pitchEstimate);
 }
 
-//==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
   return new SoloHarmonizerProcessor(std::nullopt);
 }
+} // namespace saint

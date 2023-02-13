@@ -1,14 +1,17 @@
 #include "DummyAudioProcessor.h"
 #include "IGuiListener.h"
 #include "SoloHarmonizerEditor.h"
+#include "SoloHarmonizerProcessor.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
 class MockGuiListener : public saint::IGuiListener {
 public:
-  void onMidiFileChosen(const std::filesystem::path &) override {}
-  bool isReady() const override { return true; }
-  std::set<int> getMidiTracks() const override { return {1, 2}; }
+  std::vector<saint::TrackInfo>
+  onMidiFileChosen(const std::filesystem::path &) override {
+    return {{"Lead Guitar 1"}, {"Lead Guitar 2"}};
+  }
+  void onTrackSelected(saint::TrackType, int) override {}
 };
 
 class MainWindowTutorialApplication : public juce::JUCEApplication {
@@ -18,7 +21,7 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
-          _sut(_processor, _guiListener) {
+          _processor(std::nullopt), _sut(_processor, _processor) {
       centreWithSize(300, 200);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
@@ -30,9 +33,8 @@ public:
     }
 
   private:
-    DummyAudioProcessor _processor;
-    MockGuiListener _guiListener;
-    SoloHarmonizerEditor _sut;
+    saint::SoloHarmonizerProcessor _processor;
+    saint::SoloHarmonizerEditor _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
 

@@ -1,7 +1,6 @@
 add_library(HarmoPitchGetter
   HarmoPitchGetter.cpp
   HarmoPitchHelper.cpp
-  HarmoPitchFileReader.cpp
   HarmoPitchTypes.cpp
 )
 

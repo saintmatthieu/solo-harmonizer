@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../CommonTypes.h"
 #include "DavidCNAntonia/PitchShifter.h"
 #include "HarmoPitchGetter.h"
 #include "IGuiListener.h"
@@ -16,16 +15,14 @@ namespace spdlog {
 class logger;
 }
 
+namespace saint {
 class SoloHarmonizerProcessor : public juce::AudioProcessor,
-                                public saint::IGuiListener {
+                                public IGuiListener {
 public:
   SoloHarmonizerProcessor(
       std::optional<RubberBand::RubberBandStretcher::Options> opts);
   ~SoloHarmonizerProcessor() override;
 
-  // For testing
-  void loadMidiFile(const std::filesystem::path &,
-                    int *ticksPerCrotchet = nullptr);
   void setPlayedTrack(int);
   void setHarmonyTrack(int);
   void setSemitoneShift(float value);
@@ -39,9 +36,9 @@ private:
   void releaseResources() override;
   bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
 
-  void onMidiFileChosen(const std::filesystem::path &) override;
-  bool isReady() const override;
-  std::set<int> getMidiTracks() const override;
+  std::vector<TrackInfo>
+  onMidiFileChosen(const std::filesystem::path &) override;
+  void onTrackSelected(TrackType, int trackNumber) override;
 
   using AudioProcessor::processBlock;
 
@@ -78,14 +75,17 @@ private:
   std::unique_ptr<PitchShifter> _pitchShifter;
   std::unique_ptr<PyinCpp> _pitchEstimator;
   std::optional<float> _pitchEstimate = std::nullopt;
-  std::unique_ptr<saint::HarmoPitchGetter> _harmoPitchGetter;
+  std::unique_ptr<HarmoPitchGetter> _harmoPitchGetter;
   std::weak_ptr<juce::AudioPlayHead> _customPlayhead;
   bool _getPositionLogged = false;
   bool _getPpqPositionLogged = false;
-  saint::Config _config;
+  std::optional<juce::MidiFile> _midiFile;
+  std::optional<int> _playedTrackNumber;
+  std::optional<int> _harmonyTrackNumber;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)
 };
+} // namespace saint

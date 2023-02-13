@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+namespace saint {
 class DummyAudioProcessor : public juce::AudioProcessor {
 private:
   void prepareToPlay(double, int) override {}
@@ -25,3 +26,4 @@ private:
   void getStateInformation(juce::MemoryBlock &) override {}
   void setStateInformation(const void *, int) override {}
 };
+} // namespace saint
