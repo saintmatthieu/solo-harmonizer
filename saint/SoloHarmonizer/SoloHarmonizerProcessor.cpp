@@ -165,6 +165,24 @@ void SoloHarmonizerProcessor::setStateInformation(const void *data,
   juce::ignoreUnused(data, sizeInBytes);
 }
 
+namespace {
+std::string getTrackName(
+    const juce::MidiMessageSequence &track,
+    const std::function<bool(const juce::MidiMessage &)> &pred,
+    const std::function<std::string(const juce::MidiMessage &)> &nameGetter) {
+  const auto pHolder =
+      std::find_if(track.begin(), track.end(), [&pred](auto it) {
+        const juce::MidiMessage &msg = it->message;
+        return pred(msg);
+      });
+  if (pHolder == track.end()) {
+    return "";
+  }
+  const juce::MidiMessage &msg = (*pHolder)->message;
+  return nameGetter(msg);
+}
+} // namespace
+
 std::vector<TrackInfo>
 SoloHarmonizerProcessor::onMidiFileChosen(const std::filesystem::path &path) {
   _logger->info("loadMidiFile path={0}", path.string());
@@ -173,40 +191,41 @@ SoloHarmonizerProcessor::onMidiFileChosen(const std::filesystem::path &path) {
   if (!_midiFile) {
     return {};
   }
-  std::vector<TrackInfo> tracks((size_t)_midiFile->getNumTracks());
+  std::vector<TrackInfo> tracks;
   for (auto i = 0; i < _midiFile->getNumTracks(); ++i) {
     const auto track = _midiFile->getTrack(i);
-    const auto pHolder =
-        std::find_if(track->begin(), track->end(), [](auto it) {
-          const juce::MidiMessage &msg = it->message;
-          return msg.isProgramChange();
-        });
-    const auto ui = static_cast<size_t>(i);
-    if (pHolder == track->end()) {
-      tracks[ui] = {""};
-    } else {
-      const juce::MidiMessage &msg = (*pHolder)->message;
-      const auto instrumentName =
-          juce::MidiMessage::getGMInstrumentName(msg.getProgramChangeNumber());
-      tracks[ui] = {std::string{instrumentName}};
+    if (std::all_of(track->begin(), track->end(), [](auto it) {
+          const auto &msg = it->message;
+          return !msg.isNoteOnOrOff();
+        })) {
+      continue;
     }
+    auto trackName = getTrackName(
+        *track,
+        [](const juce::MidiMessage &msg) { return msg.isTrackNameEvent(); },
+        [](const juce::MidiMessage &msg) {
+          return msg.getTextFromTextMetaEvent().toStdString();
+        });
+    if (trackName.empty()) {
+      trackName = getTrackName(
+          *track,
+          [](const juce::MidiMessage &msg) { return msg.isProgramChange(); },
+          [](const juce::MidiMessage &msg) {
+            return std::string{juce::MidiMessage::getGMInstrumentName(
+                msg.getProgramChangeNumber())};
+          });
+    }
+    tracks.push_back({trackName});
   }
   return tracks;
 }
 
-void SoloHarmonizerProcessor::onTrackSelected(TrackType, int) {}
-
-void SoloHarmonizerProcessor::setPlayedTrack(int track) {
-  const auto reload = _playedTrackNumber != track;
-  _playedTrackNumber = track;
-  if (reload) {
-    _reloadIfReady();
-  }
-}
-
-void SoloHarmonizerProcessor::setHarmonyTrack(int track) {
-  const auto reload = _harmonyTrackNumber != track;
-  _harmonyTrackNumber = track;
+void SoloHarmonizerProcessor::onTrackSelected(TrackType trackType,
+                                              int newTrackNumber) {
+  auto &trackNumber =
+      trackType == TrackType::played ? _playedTrackNumber : _harmonyTrackNumber;
+  const auto reload = newTrackNumber != trackNumber;
+  trackNumber = newTrackNumber;
   if (reload) {
     _reloadIfReady();
   }

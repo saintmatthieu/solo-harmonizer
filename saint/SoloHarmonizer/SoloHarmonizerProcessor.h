@@ -23,8 +23,6 @@ public:
       std::optional<RubberBand::RubberBandStretcher::Options> opts);
   ~SoloHarmonizerProcessor() override;
 
-  void setPlayedTrack(int);
-  void setHarmonyTrack(int);
   void setSemitoneShift(float value);
   void setCustomPlayhead(std::weak_ptr<juce::AudioPlayHead>);
 
