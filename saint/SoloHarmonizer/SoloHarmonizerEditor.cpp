@@ -9,12 +9,21 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
                                            saint::IGuiListener &guiListener)
     : AudioProcessorEditor(&p), _guiListener(guiListener),
       _chooseFileButton(chooseFileButtonTxt),
+      _useHostPlayheadToggle("use host playhead"),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
 
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
   setSize(400, 300);
+
+  _useHostPlayheadToggle.setToggleState(
+      _guiListener.getUseHostPlayhead(),
+      juce::NotificationType::dontSendNotification);
+  _useHostPlayheadToggle.onClick = [this]() {
+    _guiListener.setUseHostPlayhead(_useHostPlayheadToggle.getToggleState());
+  };
+  addAndMakeVisible(_useHostPlayheadToggle);
 
   _comboBoxes[(int)TrackType::played].setTextWhenNothingSelected(
       "set play track");
@@ -84,11 +93,12 @@ void SoloHarmonizerEditor::resized() {
   grid.rowGap = 20_px;
   grid.columnGap = 20_px;
   using Track = Grid::TrackInfo;
-  grid.templateRows = {Track(1_fr), Track(1_fr)};
+  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr)};
   grid.templateColumns = {Track(1_fr), Track(1_fr)};
   grid.autoColumns = Track(1_fr);
   grid.autoRows = Track(1_fr);
-  grid.items.addArray({GridItem(_chooseFileButton).withColumn({1, 3}),
+  grid.items.addArray({GridItem(_useHostPlayheadToggle).withColumn({1, 3}),
+                       GridItem(_chooseFileButton).withColumn({1, 3}),
                        GridItem(_comboBoxes[0]), GridItem(_comboBoxes[1])});
   grid.performLayout(getLocalBounds());
 }

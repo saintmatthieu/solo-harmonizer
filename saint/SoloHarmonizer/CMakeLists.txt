@@ -17,9 +17,11 @@ juce_add_plugin(SoloHarmonizer
 
 target_sources(SoloHarmonizer
     PRIVATE
+        Tickers/BuiltinTicker.cpp
+        Tickers/HostTicker.cpp
         SoloHarmonizerEditor.cpp
         SoloHarmonizerHelper.cpp
-        SoloHarmonizerProcessor.cpp
+        SoloHarmonizer.cpp
         DavidCNAntonia/PitchShifter.h
         DavidCNAntonia/RingBuffer.h)
 

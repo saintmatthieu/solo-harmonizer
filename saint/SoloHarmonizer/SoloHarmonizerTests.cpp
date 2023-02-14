@@ -1,4 +1,4 @@
-#include "SoloHarmonizerProcessor.h"
+#include "SoloHarmonizer.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "testUtils.h"
 
@@ -46,7 +46,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   const auto input = testUtils::fromWavFile(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   auto output = input;
-  SoloHarmonizerProcessor sut{std::nullopt};
+  SoloHarmonizer sut{std::nullopt};
   auto ticksPerCrotchet = 0;
   sut.loadMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.xml"),
                    &ticksPerCrotchet);
@@ -100,7 +100,7 @@ TEST(SoloHamonizerTest, Benchmarking) {
     const auto &filenameSuffix = entry.first;
     const auto &opts = entry.second;
     auto output = input;
-    SoloHarmonizerProcessor sut{baseOpts + opts};
+    SoloHarmonizer sut{baseOpts + opts};
     sut.prepareToPlay(sampleRate, blockSize);
     juce::MidiBuffer mbuff;
     juce::AudioBuffer<float> abuff{1, blockSize};

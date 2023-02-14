@@ -1,7 +1,7 @@
 #include "DummyAudioProcessor.h"
 #include "IGuiListener.h"
+#include "SoloHarmonizer.h"
 #include "SoloHarmonizerEditor.h"
-#include "SoloHarmonizerProcessor.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -33,7 +33,7 @@ public:
     }
 
   private:
-    saint::SoloHarmonizerProcessor _processor;
+    saint::SoloHarmonizer _processor;
     saint::SoloHarmonizerEditor _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
@@ -45,7 +45,7 @@ public:
   const juce::String getApplicationVersion() override { return "0.0.0"; }
 
   void initialise(const juce::String &commandLineParameters) override {
-    mainWindow.reset(new MainWindow("HelloWorldDemo"));
+    mainWindow.reset(new MainWindow("SaintHarmonizer"));
   }
 
   void shutdown() override { mainWindow.reset(); }

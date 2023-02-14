@@ -18,6 +18,8 @@ public:
   virtual std::vector<TrackInfo>
   onMidiFileChosen(const std::filesystem::path &) = 0;
   virtual void onTrackSelected(TrackType, int trackNumber) = 0;
+  virtual bool getUseHostPlayhead() const = 0;
+  virtual void setUseHostPlayhead(bool) = 0;
   virtual ~IGuiListener() = default;
 };
 } // namespace saint

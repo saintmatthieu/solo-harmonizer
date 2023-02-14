@@ -23,6 +23,7 @@ private:
   juce::TextButton _chooseFileButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
   std::vector<TrackInfo> _trackNames;
+  juce::ToggleButton _useHostPlayheadToggle;
 
   const juce::Colour _chooseFileButtonDefaultColour;
 

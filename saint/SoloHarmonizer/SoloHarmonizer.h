@@ -3,6 +3,8 @@
 #include "DavidCNAntonia/PitchShifter.h"
 #include "HarmoPitchGetter.h"
 #include "IGuiListener.h"
+#include "SoloHarmonizerTypes.h"
+#include "Tickers/ITicker.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <libpyincpp.h>
@@ -16,12 +18,10 @@ class logger;
 }
 
 namespace saint {
-class SoloHarmonizerProcessor : public juce::AudioProcessor,
-                                public IGuiListener {
+class SoloHarmonizer : public juce::AudioProcessor, public IGuiListener {
 public:
-  SoloHarmonizerProcessor(
-      std::optional<RubberBand::RubberBandStretcher::Options> opts);
-  ~SoloHarmonizerProcessor() override;
+  SoloHarmonizer(std::optional<RubberBand::RubberBandStretcher::Options> opts);
+  ~SoloHarmonizer() override;
 
   void setSemitoneShift(float value);
   void setCustomPlayhead(std::weak_ptr<juce::AudioPlayHead>);
@@ -34,9 +34,12 @@ private:
   void releaseResources() override;
   bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
 
+  // IGuiListener
   std::vector<TrackInfo>
   onMidiFileChosen(const std::filesystem::path &) override;
   void onTrackSelected(TrackType, int trackNumber) override;
+  bool getUseHostPlayhead() const override;
+  void setUseHostPlayhead(bool) override;
 
   using AudioProcessor::processBlock;
 
@@ -80,10 +83,13 @@ private:
   std::optional<juce::MidiFile> _midiFile;
   std::optional<int> _playedTrackNumber;
   std::optional<int> _harmonyTrackNumber;
+  std::unique_ptr<ITicker> _ticker;
+  AudioConfig _audioConfig;
+  bool _useHostPlayhead = false;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerProcessor)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizer)
 };
 } // namespace saint
