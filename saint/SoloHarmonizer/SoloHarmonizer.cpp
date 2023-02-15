@@ -82,11 +82,6 @@ void SoloHarmonizer::setSemitoneShift(float value) {
   _pitchShifter->setSemitoneShift(value);
 }
 
-void SoloHarmonizer::setCustomPlayhead(std::weak_ptr<juce::AudioPlayHead> ph) {
-  _logger->info("setting custom playhead");
-  _customPlayhead = std::move(ph);
-}
-
 const juce::String SoloHarmonizer::getName() const { return JucePlugin_Name; }
 
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
@@ -104,7 +99,6 @@ void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _pitchEstimator = std::make_unique<PyinCpp>(
       sampleRate, pyinCppDefaultBlockSize, pyinCppStepSize);
   _pitchEstimator->reserve(samplesPerBlock); // I guess ...
-
   _ticker.reset(_useHostPlayhead
                     ? static_cast<ITicker *>(
                           new HostTicker([this]() { return getPlayHead(); }))
@@ -145,6 +139,9 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
   const auto readPtr = buffer.getReadPointer(0);
   _updatePitchEstimate(readPtr, (size_t)buffer.getNumSamples());
   _runPitchShift(buffer);
+  // must be called after processing
+  // TODO: how to remove this trap ?
+  _ticker->incrementBlockCount();
 }
 
 juce::AudioProcessorEditor *SoloHarmonizer::createEditor() {
@@ -306,7 +303,7 @@ void SoloHarmonizer::_updatePitchEstimate(float const *p, size_t s) {
 
 void SoloHarmonizer::_runPitchShift(juce::AudioBuffer<float> &buffer) {
   const auto tick = _ticker->getTick();
-  if (!tick) {
+  if (!tick || !_pitchEstimate) {
     return;
   }
   const auto pitchShift =

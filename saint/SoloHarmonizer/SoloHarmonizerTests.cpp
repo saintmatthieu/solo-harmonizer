@@ -16,29 +16,7 @@ constexpr auto blockSize = 512;
 constexpr auto sampleRate = 44100;
 const fs::path basePath{"C:/Users/saint/Downloads"};
 
-class MockAudioPlayhead : public juce::AudioPlayHead {
-public:
-  MockAudioPlayhead(int ticksPerCrotchet)
-      : _ticksPerSample(static_cast<double>(ticksPerCrotchet) *
-                        _crotchetsPerSecond / sampleRate) {
-    _positionInfo.setPpqPosition(0.0);
-  }
-
-  void advance() {
-    _samplePosition += blockSize;
-    _positionInfo.setPpqPosition(_samplePosition * _ticksPerSample);
-  }
-
-  juce::Optional<PositionInfo> getPosition() const { return _positionInfo; }
-
-private:
-  static constexpr int _crotchetsPerSecond =
-      2; // Les Petits Poissons was recorded at 120bpm.
-  const double _ticksPerSample;
-  PositionInfo _positionInfo;
-  int _samplePosition = 0;
-};
-
+namespace saint {
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   juce::MessageManager::getInstance();
   juce::MessageManagerLock lock;
@@ -47,11 +25,10 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   auto output = input;
   SoloHarmonizer sut{std::nullopt};
-  auto ticksPerCrotchet = 0;
-  sut.loadMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.xml"),
-                   &ticksPerCrotchet);
-  const auto playhead = std::make_shared<MockAudioPlayhead>(ticksPerCrotchet);
-  sut.setCustomPlayhead(playhead);
+  const std::vector<TrackInfo> tracks = sut.onMidiFileChosen(
+      fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
+  sut.onTrackSelected(TrackType::played, 1);
+  sut.onTrackSelected(TrackType::harmony, 2);
   sut.prepareToPlay(sampleRate, blockSize);
   juce::MidiBuffer mbuff;
   juce::AudioBuffer<float> abuff{1, blockSize};
@@ -60,7 +37,6 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
     auto p = abuff.getWritePointer(0);
     std::copy(input.data() + offset, input.data() + offset + blockSize, p);
     sut.processBlock(abuff, mbuff);
-    playhead->advance();
     std::copy(p, p + blockSize, output.data() + offset);
   }
   testUtils::toWavFile(
@@ -133,3 +109,4 @@ TEST(SoloHamonizerTest, Benchmarking) {
         fs::path{basePath}.append(baseFilename + filenameSuffix + ".wav"));
   }
 }
+} // namespace saint

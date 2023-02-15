@@ -24,15 +24,10 @@ public:
   ~SoloHarmonizer() override;
 
   void setSemitoneShift(float value);
-  void setCustomPlayhead(std::weak_ptr<juce::AudioPlayHead>);
 
   // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
-
-private:
-  void releaseResources() override;
-  bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
 
   // IGuiListener
   std::vector<TrackInfo>
@@ -40,6 +35,10 @@ private:
   void onTrackSelected(TrackType, int trackNumber) override;
   bool getUseHostPlayhead() const override;
   void setUseHostPlayhead(bool) override;
+
+private:
+  void releaseResources() override;
+  bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
 
   using AudioProcessor::processBlock;
 
@@ -77,7 +76,6 @@ private:
   std::unique_ptr<PyinCpp> _pitchEstimator;
   std::optional<float> _pitchEstimate = std::nullopt;
   std::unique_ptr<HarmoPitchGetter> _harmoPitchGetter;
-  std::weak_ptr<juce::AudioPlayHead> _customPlayhead;
   bool _getPositionLogged = false;
   bool _getPpqPositionLogged = false;
   std::optional<juce::MidiFile> _midiFile;
