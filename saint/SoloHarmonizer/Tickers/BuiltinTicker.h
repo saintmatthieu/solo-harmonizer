@@ -7,11 +7,11 @@ namespace saint {
 class BuiltinTicker : public ITicker {
 public:
   BuiltinTicker(const AudioConfig &config);
-  void incrementBlockCount() override;
+  void incrementSampleCount(int numSamples) override;
   std::optional<int> getTick() const override;
 
 private:
-  const double _ticksPerBlock;
-  int _blockCount = 0;
+  const double _ticksPerSample;
+  int _sampleCount = 0;
 };
 } // namespace saint

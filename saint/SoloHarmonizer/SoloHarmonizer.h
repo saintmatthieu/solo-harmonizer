@@ -55,16 +55,14 @@ private:
   int getNumPrograms() override { return 1; }
   int getCurrentProgram() override { return 0; }
   void setCurrentProgram(int) override {}
-  const juce::String getProgramName(int) override {}
+  const juce::String getProgramName(int) override { return ""; }
   void changeProgramName(int, const juce::String &) override {}
 
   void getStateInformation(juce::MemoryBlock &destData) override;
   void setStateInformation(const void *data, int sizeInBytes) override;
 
 private:
-  void _updatePitchEstimate(float const *, size_t);
   void _runPitchShift(juce::AudioBuffer<float> &buffer);
-  std::optional<float> _getHarmonySemitones();
   void _reloadIfReady();
 
   const std::optional<RubberBand::RubberBandStretcher::Options>
@@ -73,11 +71,7 @@ private:
   const std::shared_ptr<spdlog::logger> _logger;
   std::unique_ptr<RubberBand::RubberBandStretcher> _stretcher;
   std::unique_ptr<PitchShifter> _pitchShifter;
-  std::unique_ptr<PyinCpp> _pitchEstimator;
-  std::optional<float> _pitchEstimate = std::nullopt;
   std::unique_ptr<HarmoPitchGetter> _harmoPitchGetter;
-  bool _getPositionLogged = false;
-  bool _getPpqPositionLogged = false;
   std::optional<juce::MidiFile> _midiFile;
   std::optional<int> _playedTrackNumber;
   std::optional<int> _harmonyTrackNumber;

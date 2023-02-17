@@ -89,16 +89,9 @@ void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _audioConfig.samplesPerSecond = sampleRate;
   _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
                                                  _rbStretcherOptions);
-  constexpr auto pyinCppDefaultBlockSize = 2048;
-  const auto pyinCppStepSize =
-      std::max(samplesPerBlock, pyinCppDefaultBlockSize);
-  _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1} "
-                "pyinCppStepSize={2} _harmoPitchGetter={3} _pitchEstimate={4}",
-                sampleRate, samplesPerBlock, pyinCppStepSize,
-                _harmoPitchGetter != nullptr, _pitchEstimate != std::nullopt);
-  _pitchEstimator = std::make_unique<PyinCpp>(
-      sampleRate, pyinCppDefaultBlockSize, pyinCppStepSize);
-  _pitchEstimator->reserve(samplesPerBlock); // I guess ...
+  _logger->info(
+      "prepareToPlay sampleRate={0} samplesPerBlock={1} _harmoPitchGetter={2}",
+      sampleRate, samplesPerBlock, _harmoPitchGetter != nullptr);
   _ticker.reset(_useHostPlayhead
                     ? static_cast<ITicker *>(
                           new HostTicker([this]() { return getPlayHead(); }))
@@ -108,9 +101,7 @@ void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
 void SoloHarmonizer::releaseResources() {
   // When playback stops, you can use this as an opportunity to free up any
   // spare memory, etc.
-  _pitchEstimator.reset();
   _pitchShifter.reset();
-  _pitchEstimate.reset();
   _logger->info("releaseResources");
   _logger->flush();
 }
@@ -136,12 +127,10 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
   if (!_harmoPitchGetter) {
     return;
   }
-  const auto readPtr = buffer.getReadPointer(0);
-  _updatePitchEstimate(readPtr, (size_t)buffer.getNumSamples());
   _runPitchShift(buffer);
   // must be called after processing
   // TODO: how to remove this trap ?
-  _ticker->incrementBlockCount();
+  _ticker->incrementSampleCount(buffer.getNumSamples());
 }
 
 juce::AudioProcessorEditor *SoloHarmonizer::createEditor() {
@@ -284,30 +273,12 @@ void SoloHarmonizer::_reloadIfReady() {
   }
 }
 
-void SoloHarmonizer::_updatePitchEstimate(float const *p, size_t s) {
-  const std::vector<float> v{p, p + s};
-  const auto pitches = _pitchEstimator->feed(v);
-  if (pitches.empty() || pitches[0] < 20 || pitches[0] > 4000) {
-    if (_pitchEstimate) {
-      _logger->debug("_pitchEstimate == nullopt");
-    }
-    _pitchEstimate.reset();
-  } else {
-    if (!_pitchEstimate) {
-      _logger->debug("_pitchEstimate != nullopt");
-    }
-    // Still don't know why there may be more than one pitches.
-    _pitchEstimate.emplace(pitches[0]);
-  }
-}
-
 void SoloHarmonizer::_runPitchShift(juce::AudioBuffer<float> &buffer) {
   const auto tick = _ticker->getTick();
-  if (!tick || !_pitchEstimate) {
+  if (!tick) {
     return;
   }
-  const auto pitchShift =
-      _harmoPitchGetter->getHarmoInterval(*tick, *_pitchEstimate);
+  const auto pitchShift = _harmoPitchGetter->getHarmoInterval(*tick);
   _logger->debug("_harmoPitchGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
