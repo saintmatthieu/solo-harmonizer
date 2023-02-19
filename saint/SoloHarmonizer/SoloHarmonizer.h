@@ -3,7 +3,6 @@
 #include "DavidCNAntonia/PitchShifter.h"
 #include "Intervaller/EditorsFactoryView.h"
 #include "Intervaller/ProcessorsFactoryView.h"
-#include "SoloHarmonizerTypes.h"
 #include "Tickers/ITicker.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -65,7 +64,7 @@ private:
   const std::shared_ptr<ProcessorsFactoryView> _processorsFactoryView;
   const std::string _loggerName;
   const std::shared_ptr<spdlog::logger> _logger;
-  std::unique_ptr<PitchShifter> _pitchShifter;
+  std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
   std::unique_ptr<ITicker> _ticker;
   std::unique_ptr<Intervaller> _intervaller;
   bool _useHostPlayhead = false;

@@ -17,6 +17,8 @@ juce_add_plugin(SoloHarmonizer
 
 target_sources(SoloHarmonizer
     PRIVATE
+        DavidCNAntonia/PitchShifter.cpp
+        DavidCNAntonia/RingBuffer.cpp
         Intervaller/IntervallerFactory.cpp
         Intervaller/IntervallerImpl.cpp
         Tickers/BuiltinTicker.cpp

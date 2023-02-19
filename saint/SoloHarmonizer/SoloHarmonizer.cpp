@@ -58,8 +58,8 @@ const juce::String SoloHarmonizer::getName() const { return JucePlugin_Name; }
 
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _intervaller = _processorsFactoryView->prepareToPlay();
-  _pitchShifter = std::make_unique<PitchShifter>(1, sampleRate, samplesPerBlock,
-                                                 _rbStretcherOptions);
+  _pitchShifter = std::make_unique<DavidCNAntonia::PitchShifter>(
+      1, sampleRate, samplesPerBlock, _rbStretcherOptions);
   _logger->info(
       "prepareToPlay sampleRate={0} samplesPerBlock={1} _intervaller={2}",
       sampleRate, samplesPerBlock, _intervaller != nullptr);
@@ -69,10 +69,10 @@ void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
     config.samplesPerSecond = sampleRate;
     config.crotchetsPerSecond = _intervaller->getCrotchetsPerSecond();
     config.ticksPerCrotchet = _intervaller->getTicksPerCrotchet();
-    _ticker.reset(_useHostPlayhead
-      ? static_cast<ITicker*>(
-        new HostTicker([this]() { return getPlayHead(); }))
-      : static_cast<ITicker*>(new BuiltinTicker(std::move(config))));
+    _ticker.reset(_useHostPlayhead ? static_cast<ITicker *>(new HostTicker(
+                                         [this]() { return getPlayHead(); }))
+                                   : static_cast<ITicker *>(
+                                         new BuiltinTicker(std::move(config))));
   }
 }
 
