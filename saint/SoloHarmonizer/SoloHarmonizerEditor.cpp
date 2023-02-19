@@ -24,16 +24,10 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
   };
   addAndMakeVisible(_useHostPlayheadToggle);
 
-  auto &playedComboBox = _comboBoxes[(int)TrackType::played];
-  auto &harmonyComboBox = _comboBoxes[(int)TrackType::harmony];
-  playedComboBox.setTextWhenNothingSelected("set play track");
-  harmonyComboBox.setTextWhenNothingSelected("set harmonization track");
-  if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
-    playedComboBox.setSelectedId(*playedTrack);
-  }
-  if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
-    playedComboBox.setSelectedId(*harmonyTrack);
-  }
+  _comboBoxes[playedTrackTypeIndex].setTextWhenNothingSelected(
+      "set play track");
+  _comboBoxes[harmonyTrackTypeIndex].setTextWhenNothingSelected(
+      "set harmonization track");
   for (auto i = 0u; i < numTrackTypes; ++i) {
     const auto trackType = static_cast<TrackType>(i);
     auto &box = _comboBoxes[i];
@@ -65,6 +59,7 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
     }
   };
   addAndMakeVisible(_chooseFileButton);
+  _updateWidgets();
 }
 
 void SoloHarmonizerEditor::_updateWidgets() {
@@ -87,6 +82,13 @@ void SoloHarmonizerEditor::_updateWidgets() {
                             : std::to_string(i + 1) + " : " + trackNames[i];
       box.addItem(name, (int)i + 1);
     }
+  }
+
+  if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
+    _comboBoxes[playedTrackTypeIndex].setSelectedId(*playedTrack);
+  }
+  if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
+    _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
 }
 

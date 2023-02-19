@@ -1,19 +1,8 @@
-#include "DummyAudioProcessor.h"
-#include "IGuiListener.h"
 #include "Intervaller/IntervallerFactory.h"
 #include "SoloHarmonizer.h"
 #include "SoloHarmonizerEditor.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
-
-class MockGuiListener : public saint::IGuiListener {
-public:
-  std::vector<saint::TrackInfo>
-  onMidiFileChosen(const std::filesystem::path &) override {
-    return {{"Lead Guitar 1"}, {"Lead Guitar 2"}};
-  }
-  void onTrackSelected(saint::TrackType, int) override {}
-};
 
 class MainWindowTutorialApplication : public juce::JUCEApplication {
 public:
@@ -22,13 +11,29 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
+          _openEditorButton("Open Editor"),
           _intervallerFactory(std::make_shared<saint::IntervallerFactory>()),
-          _harmonizer(std::nullopt, _intervallerFactory, _intervallerFactory),
-          _sut(_harmonizer, *_intervallerFactory) {
-      centreWithSize(300, 200);
+          _harmonizer(std::nullopt, _intervallerFactory, _intervallerFactory) {
+      centreWithSize(400, 300);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
-      setContentNonOwned(&_sut, resizeToFitWhenContentChangesSize);
+      _openEditorButton.setSize(400, 100);
+      _openEditorButton.onClick = [this]() {
+        if (!_sut) {
+          _sut = std::make_unique<saint::SoloHarmonizerEditor>(
+              _harmonizer, *_intervallerFactory);
+          _sut->setTopLeftPosition(0, 100);
+          _openEditorButton.setButtonText("Close Editor");
+          _rootComponent.addAndMakeVisible(_sut.get());
+        } else {
+          _rootComponent.removeChildComponent(_sut.get());
+          _sut.reset();
+          _openEditorButton.setButtonText("Open Editor");
+        }
+      };
+      _rootComponent.setSize(400, 400);
+      _rootComponent.addAndMakeVisible(&_openEditorButton);
+      setContentNonOwned(&_rootComponent, resizeToFitWhenContentChangesSize);
     }
 
     void closeButtonPressed() override {
@@ -36,9 +41,11 @@ public:
     }
 
   private:
+    juce::Component _rootComponent;
+    juce::TextButton _openEditorButton;
     const std::shared_ptr<saint::IntervallerFactory> _intervallerFactory;
     saint::SoloHarmonizer _harmonizer;
-    saint::SoloHarmonizerEditor _sut;
+    std::unique_ptr<saint::SoloHarmonizerEditor> _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
 
