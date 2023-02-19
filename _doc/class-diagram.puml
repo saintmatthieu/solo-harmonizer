@@ -1,6 +1,10 @@
 @startuml
 
 hide fields
+hide Host methods
+hide saint.SoloHarmonizer methods
+hide saint.SoloHarmonizerEditor methods
+hide saint.IntervallerFactory methods
 
 class Host
 
@@ -9,6 +13,8 @@ class SoloHarmonizer
 class SoloHarmonizerEditor
 
 abstract class EditorsFactoryView {
+  setUseHostPlayhead(bool)
+  getUseHostPlayhead(): bool
   setMidiFile(path)
   getMidiFile(): optional<path>
   getMidiFileTrackNames(): std::vector<std::string>

@@ -66,13 +66,14 @@ void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   if (_intervaller) {
     AudioConfig config;
     config.samplesPerBlock = samplesPerBlock;
-    config.samplesPerSecond = sampleRate;
+    config.samplesPerSecond = static_cast<int>(sampleRate);
     config.crotchetsPerSecond = _intervaller->getCrotchetsPerSecond();
     config.ticksPerCrotchet = _intervaller->getTicksPerCrotchet();
-    _ticker.reset(_useHostPlayhead ? static_cast<ITicker *>(new HostTicker(
-                                         [this]() { return getPlayHead(); }))
-                                   : static_cast<ITicker *>(
-                                         new BuiltinTicker(std::move(config))));
+    _ticker.reset(
+        _processorsFactoryView->useHostPlayhead()
+            ? static_cast<ITicker *>(
+                  new HostTicker([this]() { return getPlayHead(); }))
+            : static_cast<ITicker *>(new BuiltinTicker(std::move(config))));
   }
 }
 
@@ -113,7 +114,7 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
   _logger->debug("_harmoPitchGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
-  _pitchShifter->setMixPercentage(pitchShift ? 50 : 0);
+  _pitchShifter->setMixPercentage(pitchShift ? 50.f : 0.f);
   if (pitchShift) {
     _pitchShifter->setSemitoneShift(*pitchShift);
   }

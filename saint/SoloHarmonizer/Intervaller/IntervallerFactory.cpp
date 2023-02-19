@@ -110,6 +110,12 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
+void IntervallerFactory::setUseHostPlayhead(bool useHostPlayhead) {
+  _useHostPlayhead = useHostPlayhead;
+}
+
+bool IntervallerFactory::getUseHostPlayhead() const { return _useHostPlayhead; }
+
 void IntervallerFactory::setMidiFile(std::filesystem::path path) {
   _juceMidiFile = getJuceMidiFile(path.string());
   _midiFilePath = std::move(path);
@@ -172,6 +178,10 @@ std::unique_ptr<Intervaller> IntervallerFactory::prepareToPlay() const {
   }
 
   return nullptr;
+}
+
+bool IntervallerFactory::useHostPlayhead() const {
+  return getUseHostPlayhead();
 }
 
 void IntervallerFactory::_prepareHarmoPitchGetterInputIfAllParametersSet() {

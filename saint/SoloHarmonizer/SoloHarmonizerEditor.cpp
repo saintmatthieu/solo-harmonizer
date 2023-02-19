@@ -1,4 +1,5 @@
 #include "SoloHarmonizerEditor.h"
+#include "SoloHarmonizerTypes.h"
 
 namespace saint {
 namespace {
@@ -17,10 +18,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
   // editor's size to whatever you need it to be.
   setSize(400, 300);
 
-  _useHostPlayheadToggle.setToggleState(
-      false, juce::NotificationType::dontSendNotification);
-  _useHostPlayheadToggle.onClick = []() {
-    // Plug this back (maybe)
+  _useHostPlayheadToggle.onClick = [this]() {
+    _intervallerFactoryView.setUseHostPlayhead(
+        _useHostPlayheadToggle.getToggleState());
   };
   addAndMakeVisible(_useHostPlayheadToggle);
 
@@ -31,7 +31,7 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
   for (auto i = 0u; i < numTrackTypes; ++i) {
     const auto trackType = static_cast<TrackType>(i);
     auto &box = _comboBoxes[i];
-    box.setTextWhenNoChoicesAvailable("no MIDI tracks to choose from");
+    box.setTextWhenNoChoicesAvailable("Choose MIDI file first ...");
     box.setJustificationType(juce::Justification::centred |
                              juce::Justification::horizontallyCentred);
     box.onChange = [&box, trackType, this]() {
@@ -83,13 +83,15 @@ void SoloHarmonizerEditor::_updateWidgets() {
       box.addItem(name, (int)i + 1);
     }
   }
-
   if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
     _comboBoxes[playedTrackTypeIndex].setSelectedId(*playedTrack);
   }
   if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
     _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
+  _useHostPlayheadToggle.setToggleState(
+      _intervallerFactoryView.getUseHostPlayhead(),
+      juce::NotificationType::dontSendNotification);
 }
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {

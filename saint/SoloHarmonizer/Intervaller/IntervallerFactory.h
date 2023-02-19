@@ -11,6 +11,8 @@ class IntervallerFactory : public EditorsFactoryView,
                            public ProcessorsFactoryView {
 public:
   // EditorsFactoryView
+  void setUseHostPlayhead(bool) override;
+  bool getUseHostPlayhead() const override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
   std::vector<std::string> getMidiFileTrackNames() const override;
@@ -23,6 +25,7 @@ public:
   const std::vector<uint8_t> &getState() const override;
   void setState(std::vector<uint8_t>) override;
   std::unique_ptr<Intervaller> prepareToPlay() const override;
+  bool useHostPlayhead() const override;
 
 private:
   void _prepareHarmoPitchGetterInputIfAllParametersSet();
@@ -35,5 +38,6 @@ private:
   std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
   std::vector<uint8_t> _state;
+  bool _useHostPlayhead = true;
 };
 } // namespace saint

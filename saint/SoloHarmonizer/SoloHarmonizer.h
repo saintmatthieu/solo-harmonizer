@@ -67,7 +67,6 @@ private:
   std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
   std::unique_ptr<ITicker> _ticker;
   std::unique_ptr<Intervaller> _intervaller;
-  bool _useHostPlayhead = false;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;
