@@ -1,0 +1,42 @@
+@startuml
+
+hide fields
+
+class Host
+
+namespace saint {
+class SoloHarmonizer
+class SoloHarmonizerEditor
+
+abstract class EditorsFactoryView {
+  setMidiFile(path)
+  getMidiFile(): optional<path>
+  getMidiFileTrackNames(): std::vector<std::string>
+  setPlayedTrack(int)
+  getPlayedTrack(): optional<int>
+  setHarmonyTrack(int)
+  getHarmonyTrack(): optional<int>
+}
+
+abstract class ProcessorsFactoryView {
+  getState(): const std::vector<uint8_t>&
+  setState(std::vector<uint8_t>)
+  prepareToPlay(): std::unique_ptr<Invervaller>
+}
+
+class IntervallerFactory
+
+SoloHarmonizerEditor -o SoloHarmonizer
+SoloHarmonizer *-- ProcessorsFactoryView
+SoloHarmonizer *-- EditorsFactoryView
+SoloHarmonizerEditor o-- EditorsFactoryView
+
+EditorsFactoryView --|> IntervallerFactory
+ProcessorsFactoryView --|> IntervallerFactory
+
+
+}
+
+Host *-- saint.SoloHarmonizerEditor
+
+@enduml

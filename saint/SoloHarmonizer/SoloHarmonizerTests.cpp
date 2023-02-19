@@ -1,3 +1,4 @@
+#include "Intervaller/IntervallerFactory.h"
 #include "SoloHarmonizer.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "testUtils.h"
@@ -24,11 +25,11 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   const auto input = testUtils::fromWavFile(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   auto output = input;
-  SoloHarmonizer sut{std::nullopt};
-  const std::vector<TrackInfo> tracks = sut.onMidiFileChosen(
-      fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
-  sut.onTrackSelected(TrackType::played, 1);
-  sut.onTrackSelected(TrackType::harmony, 2);
+  const auto factory = std::make_shared<IntervallerFactory>();
+  factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
+  factory->setPlayedTrack(1);
+  factory->setHarmonyTrack(2);
+  SoloHarmonizer sut{std::nullopt, factory, factory};
   sut.prepareToPlay(sampleRate, blockSize);
   juce::MidiBuffer mbuff;
   juce::AudioBuffer<float> abuff{1, blockSize};
@@ -76,7 +77,8 @@ TEST(SoloHamonizerTest, Benchmarking) {
     const auto &filenameSuffix = entry.first;
     const auto &opts = entry.second;
     auto output = input;
-    SoloHarmonizer sut{baseOpts + opts};
+    const auto factory = std::make_shared<IntervallerFactory>();
+    SoloHarmonizer sut{baseOpts + opts, factory, factory};
     sut.prepareToPlay(sampleRate, blockSize);
     juce::MidiBuffer mbuff;
     juce::AudioBuffer<float> abuff{1, blockSize};

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IGuiListener.h"
+#include "Intervaller/EditorsFactoryView.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -10,19 +11,18 @@
 namespace saint {
 class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
 public:
-  explicit SoloHarmonizerEditor(juce::AudioProcessor &, IGuiListener &);
+  SoloHarmonizerEditor(juce::AudioProcessor &, EditorsFactoryView &);
 
   // AudioProcessingEditor
   void paint(juce::Graphics &) override;
   void resized() override;
 
 private:
-  void _updateButtons();
+  void _updateWidgets();
 
-  IGuiListener &_guiListener;
+  EditorsFactoryView &_intervallerFactoryView;
   juce::TextButton _chooseFileButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
-  std::vector<TrackInfo> _trackNames;
   juce::ToggleButton _useHostPlayheadToggle;
 
   const juce::Colour _chooseFileButtonDefaultColour;

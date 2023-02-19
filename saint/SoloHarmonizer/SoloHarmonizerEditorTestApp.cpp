@@ -1,5 +1,6 @@
 #include "DummyAudioProcessor.h"
 #include "IGuiListener.h"
+#include "Intervaller/IntervallerFactory.h"
 #include "SoloHarmonizer.h"
 #include "SoloHarmonizerEditor.h"
 
@@ -21,7 +22,9 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
-          _processor(std::nullopt), _sut(_processor, _processor) {
+          _intervallerFactory(std::make_shared<saint::IntervallerFactory>()),
+          _harmonizer(std::nullopt, _intervallerFactory, _intervallerFactory),
+          _sut(_harmonizer, *_intervallerFactory) {
       centreWithSize(300, 200);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
@@ -33,7 +36,8 @@ public:
     }
 
   private:
-    saint::SoloHarmonizer _processor;
+    const std::shared_ptr<saint::IntervallerFactory> _intervallerFactory;
+    saint::SoloHarmonizer _harmonizer;
     saint::SoloHarmonizerEditor _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };

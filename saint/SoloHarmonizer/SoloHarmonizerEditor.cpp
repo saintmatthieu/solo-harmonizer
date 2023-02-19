@@ -5,9 +5,9 @@ namespace {
 constexpr auto chooseFileButtonTxt = "Choose MIDI file ...";
 }
 
-SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
-                                           saint::IGuiListener &guiListener)
-    : AudioProcessorEditor(&p), _guiListener(guiListener),
+SoloHarmonizerEditor::SoloHarmonizerEditor(
+    juce::AudioProcessor &p, EditorsFactoryView &intervallerFactory)
+    : AudioProcessorEditor(&p), _intervallerFactoryView(intervallerFactory),
       _chooseFileButton(chooseFileButtonTxt),
       _useHostPlayheadToggle("use host playhead"),
       _chooseFileButtonDefaultColour(
@@ -18,27 +18,35 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
   setSize(400, 300);
 
   _useHostPlayheadToggle.setToggleState(
-      _guiListener.getUseHostPlayhead(),
-      juce::NotificationType::dontSendNotification);
-  _useHostPlayheadToggle.onClick = [this]() {
-    _guiListener.setUseHostPlayhead(_useHostPlayheadToggle.getToggleState());
+      false, juce::NotificationType::dontSendNotification);
+  _useHostPlayheadToggle.onClick = []() {
+    // Plug this back (maybe)
   };
   addAndMakeVisible(_useHostPlayheadToggle);
 
-  _comboBoxes[(int)TrackType::played].setTextWhenNothingSelected(
-      "set play track");
-  _comboBoxes[(int)TrackType::harmony].setTextWhenNothingSelected(
-      "set harmonization track");
+  auto &playedComboBox = _comboBoxes[(int)TrackType::played];
+  auto &harmonyComboBox = _comboBoxes[(int)TrackType::harmony];
+  playedComboBox.setTextWhenNothingSelected("set play track");
+  harmonyComboBox.setTextWhenNothingSelected("set harmonization track");
+  if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
+    playedComboBox.setSelectedId(*playedTrack);
+  }
+  if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
+    playedComboBox.setSelectedId(*harmonyTrack);
+  }
   for (auto i = 0u; i < numTrackTypes; ++i) {
+    const auto trackType = static_cast<TrackType>(i);
     auto &box = _comboBoxes[i];
     box.setTextWhenNoChoicesAvailable("no MIDI tracks to choose from");
-    box.setTooltip("setTooltip");
     box.setJustificationType(juce::Justification::centred |
                              juce::Justification::horizontallyCentred);
-    box.onChange = [&box, i, this]() {
+    box.onChange = [&box, trackType, this]() {
       const auto selectedTrack = box.getSelectedId();
-      const auto trackType = static_cast<TrackType>(i);
-      _guiListener.onTrackSelected(trackType, selectedTrack);
+      if (trackType == TrackType::played) {
+        _intervallerFactoryView.setPlayedTrack(selectedTrack);
+      } else {
+        _intervallerFactoryView.setHarmonyTrack(selectedTrack);
+      }
     };
     addAndMakeVisible(box);
   }
@@ -52,16 +60,19 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(juce::AudioProcessor &p,
     if (fileChooser.browseForFileToOpen()) {
       const std::filesystem::path path =
           fileChooser.getResult().getFullPathName().toStdString();
-      _trackNames = _guiListener.onMidiFileChosen(path);
-      _chooseFileButton.setButtonText(path.filename().string());
-      _updateButtons();
+      _intervallerFactoryView.setMidiFile(path);
+      _updateWidgets();
     }
   };
   addAndMakeVisible(_chooseFileButton);
 }
 
-void SoloHarmonizerEditor::_updateButtons() {
-  if (!_trackNames.empty()) {
+void SoloHarmonizerEditor::_updateWidgets() {
+  const auto midiFilePath = _intervallerFactoryView.getMidiFile();
+  const auto trackNames = _intervallerFactoryView.getMidiFileTrackNames();
+  _chooseFileButton.setButtonText(
+      midiFilePath ? midiFilePath->filename().string() : chooseFileButtonTxt);
+  if (!trackNames.empty()) {
     _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
                                 juce::Colours::darkgreen);
   } else {
@@ -70,11 +81,10 @@ void SoloHarmonizerEditor::_updateButtons() {
   }
   for (auto &box : _comboBoxes) {
     box.clear();
-    for (auto i = 0u; i < _trackNames.size(); ++i) {
-      const auto name =
-          _trackNames[i].name.empty()
-              ? std::string{"Track "} + std::to_string(i + 1)
-              : std::to_string(i + 1) + " : " + _trackNames[i].name;
+    for (auto i = 0u; i < trackNames.size(); ++i) {
+      const auto name = trackNames[i].empty()
+                            ? std::string{"Track "} + std::to_string(i + 1)
+                            : std::to_string(i + 1) + " : " + trackNames[i];
       box.addItem(name, (int)i + 1);
     }
   }
