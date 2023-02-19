@@ -3,7 +3,7 @@
 #include "DavidCNAntonia/PitchShifter.h"
 #include "Intervaller/EditorsFactoryView.h"
 #include "Intervaller/ProcessorsFactoryView.h"
-#include "Tickers/ITicker.h"
+#include "Playheads/IPlayhead.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <libpyincpp.h>
@@ -65,8 +65,7 @@ private:
   const std::string _loggerName;
   const std::shared_ptr<spdlog::logger> _logger;
   std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
-  std::unique_ptr<ITicker> _ticker;
-  std::unique_ptr<Intervaller> _intervaller;
+  const std::unique_ptr<IPlayhead> _playhead;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;

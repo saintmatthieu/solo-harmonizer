@@ -2,16 +2,17 @@
 #include "HarmoPitchTypes.h"
 #include "Intervaller/Intervaller.h"
 #include "Intervaller/IntervallerFactory.h"
+#include "Playheads/BuiltinPlayhead.h"
+#include "Playheads/HostPlayhead.h"
 #include "SoloHarmonizerEditor.h"
 #include "SoloHarmonizerHelper.h"
-#include "Tickers/BuiltinTicker.h"
-#include "Tickers/HostTicker.h"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_core/system/juce_PlatformDefs.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "spdlog/common.h"
 #include "spdlog/logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
+
 
 #include "SoloHarmonizerEditor.h"
 
@@ -43,7 +44,9 @@ SoloHarmonizer::SoloHarmonizer(
       _loggerName(std::string{"SoloHarmonizer_"} +
                   std::to_string(instanceCounter++)),
       _logger(spdlog::basic_logger_mt(
-          _loggerName, saint::generateLogFilename(_loggerName).string())) {
+          _loggerName, saint::generateLogFilename(_loggerName).string())),
+      _playhead(
+          std::make_unique<HostPlayhead>([this]() { return getPlayHead(); })) {
   _logger->set_level(saint::getLogLevelFromEnv());
   _logger->info("ctor {0}", _loggerName);
 }
@@ -57,24 +60,10 @@ void SoloHarmonizer::setSemitoneShift(float value) {
 const juce::String SoloHarmonizer::getName() const { return JucePlugin_Name; }
 
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
-  _intervaller = _processorsFactoryView->prepareToPlay();
   _pitchShifter = std::make_unique<DavidCNAntonia::PitchShifter>(
       1, sampleRate, samplesPerBlock, _rbStretcherOptions);
-  _logger->info(
-      "prepareToPlay sampleRate={0} samplesPerBlock={1} _intervaller={2}",
-      sampleRate, samplesPerBlock, _intervaller != nullptr);
-  if (_intervaller) {
-    AudioConfig config;
-    config.samplesPerBlock = samplesPerBlock;
-    config.samplesPerSecond = static_cast<int>(sampleRate);
-    config.crotchetsPerSecond = _intervaller->getCrotchetsPerSecond();
-    config.ticksPerCrotchet = _intervaller->getTicksPerCrotchet();
-    _ticker.reset(
-        _processorsFactoryView->useHostPlayhead()
-            ? static_cast<ITicker *>(
-                  new HostTicker([this]() { return getPlayHead(); }))
-            : static_cast<ITicker *>(new BuiltinTicker(std::move(config))));
-  }
+  _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
+                samplesPerBlock);
 }
 
 void SoloHarmonizer::releaseResources() {
@@ -101,16 +90,21 @@ bool SoloHarmonizer::isBusesLayoutSupported(const BusesLayout &layouts) const {
 
 void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
                                   juce::MidiBuffer &midiMessages) {
-  _logger->trace("processBlock");
   juce::ignoreUnused(midiMessages);
-  if (!_intervaller) {
+  _logger->trace("processBlock");
+  if (!_processorsFactoryView->hasIntervaller()) {
     return;
   }
-  const auto tick = _ticker->getTick();
+  const auto intervaller = _processorsFactoryView->getIntervaller();
+  if (!intervaller) {
+    return;
+  }
+  const auto tick = _playhead->getTimeInCrotchets();
   if (!tick) {
+    // TODO logging
     return;
   }
-  const auto pitchShift = _intervaller->getSemitoneInterval(*tick);
+  const auto pitchShift = intervaller->getSemitoneInterval(*tick);
   _logger->debug("_harmoPitchGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
@@ -125,7 +119,7 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
   memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
   // must be called after processing
   // TODO: how to remove this trap ?
-  _ticker->incrementSampleCount(buffer.getNumSamples());
+  _playhead->incrementSampleCount(buffer.getNumSamples());
 }
 
 juce::AudioProcessorEditor *SoloHarmonizer::createEditor() {

@@ -5,7 +5,7 @@
 
 namespace saint {
 bool setIntervalIndex(const std::vector<int> &intervals, size_t *pCurrentIndex,
-                      int tick) {
+                      double tick) {
   if (intervals.size() == 0u || pCurrentIndex == nullptr ||
       tick < intervals[0] || tick > intervals[intervals.size() - 1]) {
     return false;

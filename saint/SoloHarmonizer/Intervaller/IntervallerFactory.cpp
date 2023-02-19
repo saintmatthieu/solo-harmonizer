@@ -167,17 +167,12 @@ const std::vector<uint8_t> &IntervallerFactory::getState() const {
 
 void IntervallerFactory::setState(std::vector<uint8_t>) {}
 
-std::unique_ptr<Intervaller> IntervallerFactory::prepareToPlay() const {
-  if (_harmoPitchGetterInput.empty() || !_ticksPerCrotchet ||
-      !_crotchetsPerSecond) {
-    return nullptr;
-  } else {
-    return std::make_unique<IntervallerImpl>(
-        *_ticksPerCrotchet, *_crotchetsPerSecond,
-        std::make_unique<saint::HarmoPitchGetter>(_harmoPitchGetterInput));
-  }
+bool IntervallerFactory::hasIntervaller() const {
+  return _intervaller.use_count() > 0;
+}
 
-  return nullptr;
+std::shared_ptr<Intervaller> IntervallerFactory::getIntervaller() const {
+  return _intervaller;
 }
 
 bool IntervallerFactory::useHostPlayhead() const {
@@ -195,6 +190,11 @@ void IntervallerFactory::_prepareHarmoPitchGetterInputIfAllParametersSet() {
   _harmoPitchGetterInput = toHarmoNoteSpans(playedSeq, harmoSeq);
   if (_harmoPitchGetterInput.empty()) {
     // _logger->warn("toHarmoPitchGetterInput returned empty vector");
+  } else {
+    // TODO: No need to wrap HarmoPitchGetter
+    _intervaller = std::make_shared<IntervallerImpl>(
+        std::make_unique<saint::HarmoPitchGetter>(_harmoPitchGetterInput),
+        *_ticksPerCrotchet);
   }
 }
 

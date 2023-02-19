@@ -9,15 +9,11 @@ class HarmoPitchGetter;
 
 class IntervallerImpl : public Intervaller {
 public:
-  IntervallerImpl(int ticksPerCrotchet, float crotchetsPerSecond,
-                  std::unique_ptr<HarmoPitchGetter>);
-  std::optional<float> getSemitoneInterval(int tick) override;
-  int getTicksPerCrotchet() const override;
-  float getCrotchetsPerSecond() const override;
+  IntervallerImpl(std::unique_ptr<HarmoPitchGetter>, int ticksPerCrotchet);
+  std::optional<float> getSemitoneInterval(double timeInCrotchets) override;
 
 private:
-  const int _ticksPerCrotchet;
-  const float _crotchetsPerSecond;
   const std::unique_ptr<HarmoPitchGetter> _harmoPitchGetter;
+  const int _ticksPerCrotchet;
 };
 } // namespace saint

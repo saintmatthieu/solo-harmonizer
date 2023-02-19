@@ -4,19 +4,13 @@
 
 namespace saint {
 IntervallerImpl::IntervallerImpl(
-    int ticksPerCrotchet, float crotchetsPerSecond,
-    std::unique_ptr<HarmoPitchGetter> harmoPitchGetter)
-    : _ticksPerCrotchet(ticksPerCrotchet),
-      _crotchetsPerSecond(crotchetsPerSecond),
-      _harmoPitchGetter(std::move(harmoPitchGetter)) {}
+    std::unique_ptr<HarmoPitchGetter> harmoPitchGetter, int ticksPerCrotchet)
+    : _harmoPitchGetter(std::move(harmoPitchGetter)),
+      _ticksPerCrotchet(ticksPerCrotchet) {}
 
-std::optional<float> IntervallerImpl::getSemitoneInterval(int tick) {
-  return _harmoPitchGetter->getHarmoInterval(tick);
-}
-
-int IntervallerImpl::getTicksPerCrotchet() const { return _ticksPerCrotchet; }
-
-float IntervallerImpl::getCrotchetsPerSecond() const {
-  return _crotchetsPerSecond;
+std::optional<float>
+IntervallerImpl::getSemitoneInterval(double timeInCrotchets) {
+  return _harmoPitchGetter->getHarmoInterval(_ticksPerCrotchet *
+                                             timeInCrotchets);
 }
 } // namespace saint

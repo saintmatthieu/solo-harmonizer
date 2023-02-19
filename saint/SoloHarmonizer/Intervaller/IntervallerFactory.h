@@ -24,7 +24,8 @@ public:
   // ProcessorsFactoryView
   const std::vector<uint8_t> &getState() const override;
   void setState(std::vector<uint8_t>) override;
-  std::unique_ptr<Intervaller> prepareToPlay() const override;
+  bool hasIntervaller() const override;
+  std::shared_ptr<Intervaller> getIntervaller() const override;
   bool useHostPlayhead() const override;
 
 private:
@@ -38,6 +39,7 @@ private:
   std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
   std::vector<uint8_t> _state;
+  std::shared_ptr<Intervaller> _intervaller;
   bool _useHostPlayhead = true;
 };
 } // namespace saint

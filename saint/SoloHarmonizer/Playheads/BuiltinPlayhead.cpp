@@ -1,17 +1,17 @@
-#include "BuiltinTicker.h"
+#include "BuiltinPlayhead.h"
 
 namespace saint {
-BuiltinTicker::BuiltinTicker(const AudioConfig &config)
+BuiltinPlayhead::BuiltinPlayhead(const AudioConfig &config)
     : _ticksPerSample(
           static_cast<double>(config.ticksPerCrotchet) *
           (config.crotchetsPerSecond == 0 ? 120 : config.crotchetsPerSecond) /
           config.samplesPerSecond) {}
 
-void BuiltinTicker::incrementSampleCount(int numSamples) {
+void BuiltinPlayhead::incrementSampleCount(int numSamples) {
   _sampleCount += numSamples;
 }
 
-std::optional<int> BuiltinTicker::getTick() const {
-  return static_cast<int>(_ticksPerSample * _sampleCount + 0.5);
+std::optional<double> BuiltinPlayhead::getTimeInCrotchets() const {
+  return _ticksPerSample * _sampleCount;
 }
 } // namespace saint

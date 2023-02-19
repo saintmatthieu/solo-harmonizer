@@ -46,3 +46,9 @@ ProcessorsFactoryView --|> IntervallerFactory
 Host *-- saint.SoloHarmonizerEditor
 
 @enduml
+
+ctor: MainThread
+createEditor: MainThread
+prepareToPlay: MainThread
+getStateInformation: MainThread
+processBlock: some AudioCalc

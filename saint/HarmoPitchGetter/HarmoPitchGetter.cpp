@@ -31,7 +31,7 @@ getNotes(const std::vector<HarmoNoteSpan> &spans) {
 HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans)
     : _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
 
-std::optional<float> HarmoPitchGetter::getHarmoInterval(int tick) {
+std::optional<float> HarmoPitchGetter::getHarmoInterval(double tick) {
   if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;
   }

@@ -21,8 +21,8 @@ target_sources(SoloHarmonizer
         DavidCNAntonia/RingBuffer.cpp
         Intervaller/IntervallerFactory.cpp
         Intervaller/IntervallerImpl.cpp
-        Tickers/BuiltinTicker.cpp
-        Tickers/HostTicker.cpp
+        Playheads/BuiltinPlayhead.cpp
+        Playheads/HostPlayhead.cpp
         SoloHarmonizerEditor.cpp
         SoloHarmonizerHelper.cpp
         SoloHarmonizer.cpp

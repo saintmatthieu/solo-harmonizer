@@ -1,7 +1,7 @@
-#include "HostTicker.h"
+#include "HostPlayhead.h"
 
 namespace saint {
-std::optional<int> HostTicker::getTick() const {
+std::optional<double> HostPlayhead::getTimeInCrotchets() const {
   const juce::AudioPlayHead *playhead = _getPlayHead();
   if (!playhead) {
     // TODO log
@@ -16,7 +16,6 @@ std::optional<int> HostTicker::getTick() const {
     // TODO log
     return std::nullopt;
   }
-  // TODO is it wrong to round to int ?..
-  return static_cast<int>(*ppq + 0.5);
+  return *ppq;
 }
 } // namespace saint

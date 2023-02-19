@@ -3,10 +3,10 @@
 #include <optional>
 
 namespace saint {
-class ITicker {
+class IPlayhead {
 public:
   virtual void incrementSampleCount(int) {}
-  virtual std::optional<int> getTick() const = 0;
-  virtual ~ITicker() = default;
+  virtual std::optional<double> getTimeInCrotchets() const = 0;
+  virtual ~IPlayhead() = default;
 };
 } // namespace saint
