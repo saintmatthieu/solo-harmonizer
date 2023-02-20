@@ -56,6 +56,7 @@ target_compile_definitions(SoloHarmonizer
 target_link_libraries(SoloHarmonizer
     PUBLIC
         HarmoPitchGetter
+        OnsetDetector
     PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
@@ -71,6 +72,7 @@ target_link_libraries(SoloHarmonizer
 target_include_directories(SoloHarmonizer
   PUBLIC
     ${CMAKE_SOURCE_DIR}/saint/HarmoPitchGetter
+    ${CMAKE_SOURCE_DIR}/saint/OnsetDetector
     ${CMAKE_SOURCE_DIR}/LibPyin/source
     ${CMAKE_SOURCE_DIR}/spdlog/include
     ${CMAKE_SOURCE_DIR}/_thirdParty

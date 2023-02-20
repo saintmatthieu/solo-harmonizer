@@ -1,10 +1,11 @@
 #pragma once
 
-#include "DavidCNAntonia/PitchShifter.h"
 #include "Factory/EditorsFactoryView.h"
 #include "Factory/ProcessorsFactoryView.h"
+#include "OnsetDetector.h"
 #include "Playheads/IPlayhead.h"
 
+#include "DavidCNAntonia/PitchShifter.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <libpyincpp.h>
 
@@ -64,8 +65,9 @@ private:
   const std::shared_ptr<ProcessorsFactoryView> _processorsFactoryView;
   const std::string _loggerName;
   const std::shared_ptr<spdlog::logger> _logger;
-  std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
   const std::unique_ptr<IPlayhead> _playhead;
+  std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
+  std::unique_ptr<OnsetDetector> _onsetDetector;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;

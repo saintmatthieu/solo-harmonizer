@@ -60,6 +60,8 @@ const juce::String SoloHarmonizer::getName() const { return JucePlugin_Name; }
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _pitchShifter = std::make_unique<DavidCNAntonia::PitchShifter>(
       1, sampleRate, samplesPerBlock, _rbStretcherOptions);
+  _onsetDetector = std::make_unique<OnsetDetector>(static_cast<int>(sampleRate),
+                                                   samplesPerBlock);
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }
