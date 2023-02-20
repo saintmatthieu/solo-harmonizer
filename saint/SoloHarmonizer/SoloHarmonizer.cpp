@@ -1,7 +1,6 @@
 #include "SoloHarmonizer.h"
+#include "Factory/HarmoPitchGetterFactory.h"
 #include "HarmoPitchTypes.h"
-#include "Intervaller/Intervaller.h"
-#include "Intervaller/IntervallerFactory.h"
 #include "Playheads/BuiltinPlayhead.h"
 #include "Playheads/HostPlayhead.h"
 #include "SoloHarmonizerEditor.h"
@@ -12,7 +11,6 @@
 #include "spdlog/common.h"
 #include "spdlog/logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
-
 
 #include "SoloHarmonizerEditor.h"
 
@@ -92,11 +90,11 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
                                   juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
   _logger->trace("processBlock");
-  if (!_processorsFactoryView->hasIntervaller()) {
+  if (!_processorsFactoryView->hasHarmoPitchGetter()) {
     return;
   }
-  const auto intervaller = _processorsFactoryView->getIntervaller();
-  if (!intervaller) {
+  const auto harmoPitchGetter = _processorsFactoryView->getHarmoPitchGetter();
+  if (!harmoPitchGetter) {
     return;
   }
   const auto tick = _playhead->getTimeInCrotchets();
@@ -104,7 +102,7 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
     // TODO logging
     return;
   }
-  const auto pitchShift = intervaller->getSemitoneInterval(*tick);
+  const auto pitchShift = harmoPitchGetter->getHarmoInterval(*tick);
   _logger->debug("_harmoPitchGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
@@ -140,7 +138,8 @@ void SoloHarmonizer::setStateInformation(const void *data, int sizeInBytes) {
 
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  const auto intervallerFactory = std::make_shared<saint::IntervallerFactory>();
-  return new saint::SoloHarmonizer(std::nullopt, intervallerFactory,
-                                   intervallerFactory);
+  const auto harmoPitchGetterFactory =
+      std::make_shared<saint::HarmoPitchGetterFactory>();
+  return new saint::SoloHarmonizer(std::nullopt, harmoPitchGetterFactory,
+                                   harmoPitchGetterFactory);
 }

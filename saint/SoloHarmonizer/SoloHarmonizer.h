@@ -1,8 +1,8 @@
 #pragma once
 
 #include "DavidCNAntonia/PitchShifter.h"
-#include "Intervaller/EditorsFactoryView.h"
-#include "Intervaller/ProcessorsFactoryView.h"
+#include "Factory/EditorsFactoryView.h"
+#include "Factory/ProcessorsFactoryView.h"
 #include "Playheads/IPlayhead.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -16,7 +16,7 @@ class logger;
 }
 
 namespace saint {
-class Intervaller;
+class HarmoPitchGetter;
 
 class SoloHarmonizer : public juce::AudioProcessor {
 public:

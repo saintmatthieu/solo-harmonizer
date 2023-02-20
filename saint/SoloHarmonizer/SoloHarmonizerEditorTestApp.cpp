@@ -1,4 +1,4 @@
-#include "Intervaller/IntervallerFactory.h"
+#include "Factory/HarmoPitchGetterFactory.h"
 #include "SoloHarmonizer.h"
 #include "SoloHarmonizerEditor.h"
 
@@ -12,7 +12,8 @@ public:
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
           _openEditorButton("Open Editor"),
-          _intervallerFactory(std::make_shared<saint::IntervallerFactory>()),
+          _intervallerFactory(
+              std::make_shared<saint::HarmoPitchGetterFactory>()),
           _harmonizer(std::nullopt, _intervallerFactory, _intervallerFactory) {
       centreWithSize(400, 300);
       setVisible(true);
@@ -43,7 +44,7 @@ public:
   private:
     juce::Component _rootComponent;
     juce::TextButton _openEditorButton;
-    const std::shared_ptr<saint::IntervallerFactory> _intervallerFactory;
+    const std::shared_ptr<saint::HarmoPitchGetterFactory> _intervallerFactory;
     saint::SoloHarmonizer _harmonizer;
     std::unique_ptr<saint::SoloHarmonizerEditor> _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)

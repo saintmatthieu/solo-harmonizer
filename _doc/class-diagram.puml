@@ -4,7 +4,7 @@ hide fields
 hide Host methods
 hide saint.SoloHarmonizer methods
 hide saint.SoloHarmonizerEditor methods
-hide saint.IntervallerFactory methods
+hide saint.HarmoPitchGetterFactory methods
 
 class Host
 
@@ -30,15 +30,15 @@ abstract class ProcessorsFactoryView {
   prepareToPlay(): std::unique_ptr<Invervaller>
 }
 
-class IntervallerFactory
+class HarmoPitchGetterFactory
 
 SoloHarmonizerEditor -o SoloHarmonizer
 SoloHarmonizer *-- ProcessorsFactoryView
 SoloHarmonizer *-- EditorsFactoryView
 SoloHarmonizerEditor o-- EditorsFactoryView
 
-EditorsFactoryView --|> IntervallerFactory
-ProcessorsFactoryView --|> IntervallerFactory
+EditorsFactoryView --|> HarmoPitchGetterFactory
+ProcessorsFactoryView --|> HarmoPitchGetterFactory
 
 
 }

@@ -19,8 +19,7 @@ target_sources(SoloHarmonizer
     PRIVATE
         DavidCNAntonia/PitchShifter.cpp
         DavidCNAntonia/RingBuffer.cpp
-        Intervaller/IntervallerFactory.cpp
-        Intervaller/IntervallerImpl.cpp
+        Factory/HarmoPitchGetterFactory.cpp
         Playheads/BuiltinPlayhead.cpp
         Playheads/HostPlayhead.cpp
         SoloHarmonizerEditor.cpp

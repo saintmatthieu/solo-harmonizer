@@ -28,10 +28,14 @@ getNotes(const std::vector<HarmoNoteSpan> &spans) {
 }
 } // namespace
 
-HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans)
-    : _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
+HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans,
+                                   double ticksPerCrotchet)
+    : _ticksPerCrotchet(ticksPerCrotchet), _ticks(getTicks(spans)),
+      _intervals(getNotes(spans)) {}
 
-std::optional<float> HarmoPitchGetter::getHarmoInterval(double tick) {
+std::optional<float>
+HarmoPitchGetter::getHarmoInterval(double timeInCrotchets) {
+  const auto tick = timeInCrotchets * _ticksPerCrotchet;
   if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;
   }

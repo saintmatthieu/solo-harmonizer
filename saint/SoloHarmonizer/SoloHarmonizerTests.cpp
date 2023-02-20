@@ -1,4 +1,4 @@
-#include "Intervaller/IntervallerFactory.h"
+#include "Factory/HarmoPitchGetterFactory.h"
 #include "SoloHarmonizer.h"
 #include "rubberband/RubberBandStretcher.h"
 #include "testUtils.h"
@@ -25,7 +25,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   const auto input = testUtils::fromWavFile(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   auto output = input;
-  const auto factory = std::make_shared<IntervallerFactory>();
+  const auto factory = std::make_shared<HarmoPitchGetterFactory>();
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);
@@ -77,7 +77,7 @@ TEST(SoloHamonizerTest, Benchmarking) {
     const auto &filenameSuffix = entry.first;
     const auto &opts = entry.second;
     auto output = input;
-    const auto factory = std::make_shared<IntervallerFactory>();
+    const auto factory = std::make_shared<HarmoPitchGetterFactory>();
     SoloHarmonizer sut{baseOpts + opts, factory, factory};
     sut.prepareToPlay(sampleRate, blockSize);
     juce::MidiBuffer mbuff;
