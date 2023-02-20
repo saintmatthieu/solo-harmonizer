@@ -17,16 +17,12 @@ juce_add_plugin(SoloHarmonizer
 
 target_sources(SoloHarmonizer
     PRIVATE
-        DavidCNAntonia/PitchShifter.cpp
-        DavidCNAntonia/RingBuffer.cpp
         Factory/HarmoPitchGetterFactory.cpp
         Playheads/BuiltinPlayhead.cpp
         Playheads/HostPlayhead.cpp
         SoloHarmonizerEditor.cpp
         SoloHarmonizerHelper.cpp
-        SoloHarmonizer.cpp
-        DavidCNAntonia/PitchShifter.h
-        DavidCNAntonia/RingBuffer.h)
+        SoloHarmonizer.cpp)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
@@ -65,8 +61,8 @@ target_link_libraries(SoloHarmonizer
         juce::juce_audio_utils
         juce::juce_dsp
         LibPyin
-        rubberband-wrapper
         spdlog
+        DavidCNAntonia
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -77,6 +73,7 @@ target_include_directories(SoloHarmonizer
     ${CMAKE_SOURCE_DIR}/saint/HarmoPitchGetter
     ${CMAKE_SOURCE_DIR}/LibPyin/source
     ${CMAKE_SOURCE_DIR}/spdlog/include
+    ${CMAKE_SOURCE_DIR}/_thirdParty
 )
 
 add_executable(SoloHarmonizerTests

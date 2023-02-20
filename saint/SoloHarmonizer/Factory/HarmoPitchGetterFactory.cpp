@@ -1,7 +1,8 @@
-#include "HarmoPitchGetter.h"
 #include "HarmoPitchGetterFactory.h"
+#include "HarmoPitchGetter.h"
 #include "HarmoPitchHelper.h"
 #include "HarmoPitchTypes.h"
+
 
 namespace saint {
 
@@ -129,7 +130,7 @@ void HarmoPitchGetterFactory::setMidiFile(std::filesystem::path path) {
   _crotchetsPerSecond = _juceMidiFile ? getCrotchetsPerSecond(*_juceMidiFile)
                                       : std::optional<float>{};
 
-  _prepareHarmoPitchGetterInputIfAllParametersSet();
+  _createHarmoPitchGetterIfAllParametersSet();
 }
 
 std::optional<std::filesystem::path>
@@ -145,7 +146,7 @@ HarmoPitchGetterFactory::getMidiFileTrackNames() const {
 void HarmoPitchGetterFactory::setPlayedTrack(int track) {
   if (_playedTrack != track) {
     _playedTrack = track;
-    _prepareHarmoPitchGetterInputIfAllParametersSet();
+    _createHarmoPitchGetterIfAllParametersSet();
   }
 }
 
@@ -156,7 +157,7 @@ std::optional<int> HarmoPitchGetterFactory::getPlayedTrack() const {
 void HarmoPitchGetterFactory::setHarmonyTrack(int track) {
   if (_harmonyTrack != track) {
     _harmonyTrack = track;
-    _prepareHarmoPitchGetterInputIfAllParametersSet();
+    _createHarmoPitchGetterIfAllParametersSet();
   }
 }
 
@@ -183,8 +184,7 @@ bool HarmoPitchGetterFactory::useHostPlayhead() const {
   return getUseHostPlayhead();
 }
 
-void HarmoPitchGetterFactory::
-    _prepareHarmoPitchGetterInputIfAllParametersSet() {
+void HarmoPitchGetterFactory::_createHarmoPitchGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack) {
     return;
   }

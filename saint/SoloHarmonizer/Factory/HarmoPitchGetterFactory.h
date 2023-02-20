@@ -30,7 +30,7 @@ public:
   bool useHostPlayhead() const override;
 
 private:
-  void _prepareHarmoPitchGetterInputIfAllParametersSet();
+  void _createHarmoPitchGetterIfAllParametersSet();
   std::vector<HarmoNoteSpan> _harmoPitchGetterInput;
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;
