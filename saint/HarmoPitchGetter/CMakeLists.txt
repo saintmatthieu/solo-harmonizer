@@ -10,6 +10,11 @@ target_link_libraries(HarmoPitchGetter
     juce::juce_audio_basics
 )
 
+target_include_directories(HarmoPitchGetter
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 add_executable(HarmoPitchGetterTests
   HarmoPitchGetterTests.cpp
   HarmoPitchHelperTests.cpp

@@ -15,4 +15,6 @@ add_subdirectory(LibPyin)
 add_subdirectory(googletest)
 add_subdirectory(JUCE)
 add_subdirectory(spdlog)
+add_subdirectory(pffft)
+
 add_subdirectory(saint)

@@ -71,23 +71,19 @@ target_link_libraries(SoloHarmonizer
 
 target_include_directories(SoloHarmonizer
   PUBLIC
-    ${CMAKE_SOURCE_DIR}/saint/HarmoPitchGetter
-    ${CMAKE_SOURCE_DIR}/saint/OnsetDetector
     ${CMAKE_SOURCE_DIR}/LibPyin/source
     ${CMAKE_SOURCE_DIR}/spdlog/include
     ${CMAKE_SOURCE_DIR}/_thirdParty
 )
 
 add_executable(SoloHarmonizerTests
-    testUtils.cpp
     SoloHarmonizerTests.cpp
 )
 
 target_link_libraries(SoloHarmonizerTests
     PRIVATE
         SoloHarmonizer
-        gtest_main
-        gmock
+        TestUtils
 )
 
 add_executable(SoloHarmonizerEditorTestApp

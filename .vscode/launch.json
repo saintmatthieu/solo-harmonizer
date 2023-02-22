@@ -7,7 +7,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["octave jumps.wav", "--gtest_filter=*Les_Petits_Poissons"],
+      "args": ["octave jumps.wav", "--gtest_filter=OnsetDetector*"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
