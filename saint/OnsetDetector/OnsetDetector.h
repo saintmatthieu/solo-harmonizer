@@ -1,7 +1,5 @@
 #pragma once
 
-#include "OnsetsDS/onsetsds.h"
-
 #include <pffft.hpp>
 #include <ringbuffer.hpp>
 
@@ -16,18 +14,30 @@ public:
   bool process(const float *, int);
 
 private:
-  struct alignas(16) AlignedArray { // To meet PFFFT's alignment requirements
-    std::array<float, maxBlockSize> array;
+  // PFFT memory alignment requirement
+  template <typename T> struct alignas(16) Aligned {
+    T value;
   };
+  // (zero-padded) FFT input
+  Aligned<std::vector<float>> _timeData;
+  // FFT output
+  Aligned<std::vector<std::complex<float>>> _freqData;
+  Aligned<std::vector<std::complex<float>>> _autoCorrFreqData;
+
+  // public for testing
+public:
+  // time-domain cross-correlation of current and past block
+  Aligned<std::vector<float>> _autoCorrTimeData;
+  float _peakMax = 0.f;
+  int _peakMaxIndex = 0;
+
+private:
   const std::vector<float> _window;
   const int _fftSizeSamples;
-  OnsetsDS _onsetsDS;
-  std::vector<float> _onsetsDSBuffer;
+  const int _firstSearchIndex;
+  const int _lastSearchIndex;
   pffft::Fft<float> _fftEngine;
-  std::vector<pffft::Fft<float>::Complex> _fftData;
-  int _ringBufferIndex = 0;
-  std::array<jnk0le::Ringbuffer<float, maxBlockSize>, 2> _ringBuffers;
-  int _numSamplesRemoved = 0;
-  AlignedArray _readBuffer;
+  jnk0le::Ringbuffer<float, maxBlockSize> _ringBuffer;
+  const std::vector<float> _windowXCorr;
 };
 } // namespace saint

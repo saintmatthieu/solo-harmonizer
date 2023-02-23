@@ -8,6 +8,8 @@
 
 namespace saint {
 
+namespace fs = std::filesystem;
+
 namespace {
 std::vector<float> makeNyquistWave(int numSamples) {
   std::vector<float> nyquist(numSamples);
@@ -31,19 +33,24 @@ TEST(OnsetDetector, firstPfftBinIsDcAndNyquist) {
 
 TEST(OnsetDetector, stuff) {
   OnsetDetector sut(44100);
-  const auto audio = testUtils::fromWavFile(
-      std::filesystem::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
-  std::vector<float> clicks(audio.size());
-  std::fill(clicks.begin(), clicks.end(), 0.f);
+  auto audio = testUtils::fromWavFile(
+      fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
+  // std::fill(audio.begin(), audio.end(), 1.f);
+  std::vector<float> autoCor(audio.size());
+  std::vector<float> autoCorMax(audio.size());
   constexpr auto blockSize = 512;
   for (auto n = 0u; n + blockSize < audio.size(); n += blockSize) {
-    if (sut.process(audio.data() + n, blockSize)) {
-      clicks[n] = 1.f;
-    }
+    sut.process(audio.data() + n, blockSize);
+    std::copy(sut._autoCorrTimeData.value.begin(),
+              sut._autoCorrTimeData.value.end(), autoCor.begin() + n);
+    std::fill(autoCorMax.begin() + n, autoCorMax.begin() + n + blockSize,
+              sut._peakMax);
+    autoCor[n + sut._peakMaxIndex] = -1;
   }
-  testUtils::toWavFile(
-      clicks.data(), clicks.size(),
-      std::filesystem::path{"C:/Users/saint/Downloads/clicks.wav"});
+  testUtils::toWavFile(autoCor.data(), autoCor.size(),
+                       fs::path{"C:/Users/saint/Downloads/autoCor.wav"});
+  testUtils::toWavFile(autoCorMax.data(), autoCorMax.size(),
+                       fs::path{"C:/Users/saint/Downloads/autoCorMax.wav"});
 }
 
 } // namespace saint
