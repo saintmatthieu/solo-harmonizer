@@ -14,6 +14,7 @@ namespace {
 constexpr auto fftSizeMs = 20;
 constexpr auto twoPi = 6.283185307179586f;
 constexpr auto windowSize = 512; // fftSizeMs * sampleRate / 1000;
+constexpr auto conj = std::complex<float>{1, -1}; // complex conjugate unit
 
 int getFftOrder(int windowSize) {
   return static_cast<int>(ceil(log2(windowSize)));
@@ -58,19 +59,29 @@ void applyWindow(const std::vector<float> &window, float *input) {
   }
 }
 
-std::vector<float> getXCorr(pffft::Fft<float> &fftEngine, const float *data) {
-  std::vector<std::complex<float>> freqData(fftEngine.getSpectrumSize());
-  std::vector<float> xcorr(fftEngine.getLength());
-  fftEngine.forward(data, freqData.data());
+void getXCorr(pffft::Fft<float> &fftEngine, float *timeData,
+              std::complex<float> *freqData) {
+  fftEngine.forward(timeData, freqData);
   for (auto i = 0; i < fftEngine.getSpectrumSize(); ++i) {
     auto &X = freqData[i];
     X *= std::complex<float>{X.real(), -X.imag()};
   }
-  fftEngine.inverse(freqData.data(), xcorr.data());
-  const auto normalizer = 1.f / xcorr[0];
-  for (auto i = 0u; i < xcorr.size(); ++i) {
-    xcorr[i] *= normalizer;
+  fftEngine.inverse(freqData, timeData);
+  const auto normalizer = 1.f / timeData[0];
+  for (auto i = 0u; i < fftEngine.getLength(); ++i) {
+    timeData[i] *= normalizer;
   }
+}
+
+std::vector<float> getXCorrVector(pffft::Fft<float> &fftEngine,
+                                  const std::vector<float> &timeData) {
+  Aligned<std::vector<float>> xcorrAligned;
+  auto &xcorr = xcorrAligned.value;
+  xcorr.resize((fftEngine.getLength()));
+  std::copy(timeData.begin(), timeData.end(), xcorr.begin());
+  std::fill(xcorr.begin() + timeData.size(), xcorr.end(), 0.f);
+  std::vector<std::complex<float>> freqData(fftEngine.getSpectrumSize());
+  getXCorr(fftEngine, xcorr.data(), freqData.data());
   return xcorr;
 };
 } // namespace
@@ -81,15 +92,13 @@ OnsetDetector::OnsetDetector(int sampleRate)
                                                               sampleRate / 1500 /*electric guitar played on high E, 24th fret is around 1328Hz */),
       _lastSearchIndex(std::min(_fftSizeSamples / 2, sampleRate / 83)),
       _fftEngine(_fftSizeSamples),
-      _windowXCorr(getXCorr(_fftEngine, _window.data())) {
+      _windowXCorr(getXCorrVector(_fftEngine, _window)) {
 
   _fftEngine.prepareLength(_fftSizeSamples);
   _timeData.value.resize(_fftSizeSamples);
+  // Make sure that zero-padding tail is zero.
   std::fill(_timeData.value.begin(), _timeData.value.end(), 0.f);
-
   _freqData.value.resize(_fftSizeSamples / 2);
-  _autoCorrFreqData.value.resize(_fftSizeSamples / 2);
-  _autoCorrTimeData.value.resize(_fftSizeSamples);
 }
 
 bool OnsetDetector::process(const float *audio, int audioSize) {
@@ -99,19 +108,11 @@ bool OnsetDetector::process(const float *audio, int audioSize) {
     auto timeData = _timeData.value.data();
     _ringBuffer.readBuff(timeData, _window.size());
     applyWindow(_window, timeData);
-    _fftEngine.forward(timeData, _freqData.value.data());
-    for (auto i = 0; i < _fftSizeSamples / 2; ++i) {
-      const auto &X = _freqData.value[i];
-      _autoCorrFreqData.value[i] = X * std::complex<float>{X.real(), -X.imag()};
-    }
-    _fftEngine.inverse(_autoCorrFreqData.value.data(),
-                       _autoCorrTimeData.value.data());
-    const auto normalizer = 1.f / _autoCorrTimeData.value[0];
+    getXCorr(_fftEngine, timeData, _freqData.value.data());
     for (auto i = 0u; i < _window.size(); ++i) {
-      _autoCorrTimeData.value[i] *= normalizer;
       if (_firstSearchIndex <= i && i < _lastSearchIndex &&
-          _autoCorrTimeData.value[i] > _peakMax) {
-        _peakMax = _autoCorrTimeData.value[i];
+          timeData[i] > _peakMax) {
+        _peakMax = timeData[i];
         _peakMaxIndex = i;
       }
     }

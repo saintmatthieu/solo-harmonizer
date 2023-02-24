@@ -41,8 +41,8 @@ TEST(OnsetDetector, stuff) {
   constexpr auto blockSize = 512;
   for (auto n = 0u; n + blockSize < audio.size(); n += blockSize) {
     sut.process(audio.data() + n, blockSize);
-    std::copy(sut._autoCorrTimeData.value.begin(),
-              sut._autoCorrTimeData.value.end(), autoCor.begin() + n);
+    std::copy(sut._timeData.value.begin(), sut._timeData.value.end(),
+              autoCor.begin() + n);
     std::fill(autoCorMax.begin() + n, autoCorMax.begin() + n + blockSize,
               sut._peakMax);
     autoCor[n + sut._peakMaxIndex] = -1;

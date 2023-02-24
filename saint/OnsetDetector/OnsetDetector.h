@@ -6,6 +6,12 @@
 #include <array>
 
 namespace saint {
+
+// PFFT memory alignment requirement
+template <typename T> struct alignas(16) Aligned {
+  T value;
+};
+
 class OnsetDetector {
 public:
   // Don't even try instantiating me if the block size exceeds this.
@@ -13,21 +19,12 @@ public:
   OnsetDetector(int sampleRate);
   bool process(const float *, int);
 
-private:
-  // PFFT memory alignment requirement
-  template <typename T> struct alignas(16) Aligned {
-    T value;
-  };
+  // Kept public for testing
+public:
   // (zero-padded) FFT input
   Aligned<std::vector<float>> _timeData;
-  // FFT output
   Aligned<std::vector<std::complex<float>>> _freqData;
-  Aligned<std::vector<std::complex<float>>> _autoCorrFreqData;
 
-  // public for testing
-public:
-  // time-domain cross-correlation of current and past block
-  Aligned<std::vector<float>> _autoCorrTimeData;
   float _peakMax = 0.f;
   int _peakMaxIndex = 0;
 
