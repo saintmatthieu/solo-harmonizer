@@ -3,8 +3,9 @@
 #include "pffft.hpp"
 #include "testUtils.h"
 
-#include <filesystem>
 #include <gtest/gtest.h>
+
+#include <filesystem>
 
 namespace saint {
 
@@ -33,24 +34,29 @@ TEST(OnsetDetector, firstPfftBinIsDcAndNyquist) {
 
 TEST(OnsetDetector, stuff) {
   OnsetDetector sut(44100);
-  auto audio = testUtils::fromWavFile(
+  auto src = testUtils::getWavFileReader(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
-  // std::fill(audio.begin(), audio.end(), 1.f);
-  std::vector<float> autoCor(audio.size());
-  std::vector<float> autoCorMax(audio.size());
+  auto autoCorDst =
+      testUtils::getWavFileWriter({"C:/Users/saint/Downloads/autoCor.wav"});
+  auto autoCorMax =
+      testUtils::getWavFileWriter({"C:/Users/saint/Downloads/autoCorMax.wav"});
   constexpr auto blockSize = 512;
-  for (auto n = 0u; n + blockSize < audio.size(); n += blockSize) {
-    sut.process(audio.data() + n, blockSize);
-    std::copy(sut._timeData.value.begin(), sut._timeData.value.end(),
-              autoCor.begin() + n);
-    std::fill(autoCorMax.begin() + n, autoCorMax.begin() + n + blockSize,
-              sut._peakMax);
-    autoCor[n + sut._peakMaxIndex] = -1;
+  // src->readSamples(int *const *destChannels, int numDestChannels, int
+  // startOffsetInDestBuffer, int64 startSampleInFile, int numSamples)
+  for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
+    std::vector<float> buffer(blockSize);
+    std::vector<float *> channels(1);
+    channels[0] = buffer.data();
+    if (!src->read(channels.data(), 1, n, blockSize)) {
+      ASSERT_TRUE(false);
+    }
+    sut.process(buffer.data(), blockSize);
+    channels[0] = sut._timeData.value.data();
+    autoCorDst->writeFromFloatArrays(channels.data(), 1, blockSize);
+    std::fill(buffer.begin(), buffer.end(), sut._peakMax);
+    channels[0] = buffer.data();
+    autoCorMax->writeFromFloatArrays(channels.data(), 1, blockSize);
   }
-  testUtils::toWavFile(autoCor.data(), autoCor.size(),
-                       fs::path{"C:/Users/saint/Downloads/autoCor.wav"});
-  testUtils::toWavFile(autoCorMax.data(), autoCorMax.size(),
-                       fs::path{"C:/Users/saint/Downloads/autoCorMax.wav"});
 }
 
 } // namespace saint

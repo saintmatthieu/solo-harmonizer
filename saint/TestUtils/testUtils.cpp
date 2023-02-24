@@ -1,28 +1,32 @@
 #include "testUtils.h"
 
-#include <juce_audio_utils/juce_audio_utils.h>
-
 #include <filesystem>
 #include <memory>
 #include <optional>
 
 namespace testUtils {
-void toWavFile(const float *audio, size_t N,
-               std::optional<std::filesystem::path> pathOpt) {
+
+namespace fs = std::filesystem;
+
+std::unique_ptr<juce::AudioFormatWriter> getWavFileWriter(fs::path path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
-  const auto path =
-      pathOpt ? pathOpt->string() : "C:/Users/saint/Downloads/test.wav";
-  if (std::filesystem::exists(path)) {
-    std::filesystem::remove(path);
+  if (fs::exists(path)) {
+    fs::remove(path);
   }
   writer.reset(format.createWriterFor(
-      new juce::FileOutputStream(juce::File(path)), 44100.0, 1, 16, {}, 0));
+      new juce::FileOutputStream(juce::File(path.string())), 44100.0, 1, 16, {},
+      0));
+  return writer;
+}
+
+void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt) {
+  const auto writer = getWavFileWriter(
+      pathOpt ? *pathOpt : fs::path{"C:/Users/saint/Downloads/test.wav"});
   writer->writeFromFloatArrays(&audio, 1, (int)N);
 }
 
 std::string getInputFilePath() {
-  namespace fs = std::filesystem;
   const fs::path wavFileDir{"C:/Users/saint/Downloads/"};
   const auto defaultPath = fs::path{wavFileDir}.append("cosine.wav");
 #ifdef _WIN32
@@ -34,12 +38,17 @@ std::string getInputFilePath() {
   return path.string();
 }
 
-std::vector<float> fromWavFile(std::optional<std::filesystem::path> pathOpt) {
+std::unique_ptr<juce::AudioFormatReader> getWavFileReader(fs::path path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatReader> reader;
-  const auto path = pathOpt ? pathOpt->string() : getInputFilePath();
   reader.reset(format.createReaderFor(
-      new juce::FileInputStream(juce::File(path)), true));
+      new juce::FileInputStream(juce::File(path.string())), true));
+  return reader;
+}
+
+std::vector<float> fromWavFile(std::optional<fs::path> pathOpt) {
+  const auto reader =
+      getWavFileReader(pathOpt ? *pathOpt : fs::path{getInputFilePath()});
   std::vector<float> audio((size_t)reader->lengthInSamples);
   const auto pData = audio.data();
   reader->read(&pData, 1, 0, (int)reader->lengthInSamples);

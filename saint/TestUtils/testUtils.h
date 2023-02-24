@@ -3,12 +3,20 @@
 #include <string>
 #include <vector>
 
+#include <juce_audio_utils/juce_audio_utils.h>
+
 namespace testUtils {
 std::vector<float>
 fromWavFile(std::optional<std::filesystem::path> path = std::nullopt);
 
+std::unique_ptr<juce::AudioFormatReader>
+getWavFileReader(std::filesystem::path pathOpt);
+
 void toWavFile(const float *audio, size_t N,
                std::optional<std::filesystem::path> pathOpt = std::nullopt);
+
+std::unique_ptr<juce::AudioFormatWriter>
+getWavFileWriter(std::filesystem::path path);
 
 std::string getInputFilePath();
 
