@@ -32,17 +32,56 @@ TEST(OnsetDetector, firstPfftBinIsDcAndNyquist) {
   EXPECT_FLOAT_EQ(fft.data()[0].imag(), blockSize);
 }
 
+struct WavWriters {
+  std::unique_ptr<juce::AudioFormatWriter> autoCorr;
+  std::unique_ptr<juce::AudioFormatWriter> autoCorrMax;
+};
+
+WavWriters makeWriters(int analysisIndex) {
+  auto autoCor = testUtils::getWavFileWriter(
+      {std::string("C:/Users/saint/Downloads/autoCor_" +
+                   std::to_string(analysisIndex) + ".wav")});
+  auto autoCorMax = testUtils::getWavFileWriter(
+      {std::string("C:/Users/saint/Downloads/autoCorMax_" +
+                   std::to_string(analysisIndex) + ".wav")});
+  return {std::move(autoCor), std::move(autoCorMax)};
+}
+
 TEST(OnsetDetector, stuff) {
-  OnsetDetector sut(44100);
-  auto src = testUtils::getWavFileReader(
-      fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
-  auto autoCorDst =
-      testUtils::getWavFileWriter({"C:/Users/saint/Downloads/autoCor.wav"});
-  auto autoCorMax =
-      testUtils::getWavFileWriter({"C:/Users/saint/Downloads/autoCorMax.wav"});
-  constexpr auto blockSize = 512;
   // src->readSamples(int *const *destChannels, int numDestChannels, int
   // startOffsetInDestBuffer, int64 startSampleInFile, int numSamples)
+  std::array<WavWriters, 2> debugWriters{makeWriters(0), makeWriters(1)};
+  auto first = true;
+  OnXcorReady debugCallback = [&debugWriters,
+                               &first](const std::vector<float> &xcorr,
+                                       int windowSize, int peakIndex,
+                                       int ringBufferIndex, float scaledMax) {
+    std::vector<float> truncatedXcorr(windowSize);
+    std::vector<const float *> channels(1);
+    std::copy(xcorr.begin(), xcorr.begin() + windowSize / 2,
+              truncatedXcorr.begin());
+    std::copy(xcorr.end() - windowSize / 2, xcorr.end(),
+              truncatedXcorr.begin() + windowSize / 2);
+    truncatedXcorr[peakIndex] = 0.f;
+    const auto offset = first ? windowSize / 2 : 0;
+    const auto size = first ? windowSize / 2 : windowSize;
+    first = false;
+    channels[0] = truncatedXcorr.data() + offset;
+    debugWriters[ringBufferIndex].autoCorr->writeFromFloatArrays(
+        channels.data(), 1, size);
+    std::vector<float> buffer(size);
+    std::fill(buffer.begin(), buffer.end(), scaledMax);
+    channels[0] = buffer.data();
+    debugWriters[ringBufferIndex].autoCorrMax->writeFromFloatArrays(
+        channels.data(), 1, size);
+  };
+
+  const auto src = testUtils::getWavFileReader(
+      "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
+  // const auto src = testUtils::getWavFileReader(
+  //     fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
+  constexpr auto blockSize = 512;
+  OnsetDetector sut(44100, std::move(debugCallback));
   for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
     std::vector<float> buffer(blockSize);
     std::vector<float *> channels(1);
@@ -50,12 +89,8 @@ TEST(OnsetDetector, stuff) {
     if (!src->read(channels.data(), 1, n, blockSize)) {
       ASSERT_TRUE(false);
     }
+    // std::fill(buffer.begin(), buffer.end(), 1.f);
     sut.process(buffer.data(), blockSize);
-    channels[0] = sut._timeData.value.data();
-    autoCorDst->writeFromFloatArrays(channels.data(), 1, blockSize);
-    std::fill(buffer.begin(), buffer.end(), sut._peakMax);
-    channels[0] = buffer.data();
-    autoCorMax->writeFromFloatArrays(channels.data(), 1, blockSize);
   }
 }
 

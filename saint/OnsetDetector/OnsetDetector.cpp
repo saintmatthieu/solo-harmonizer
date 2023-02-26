@@ -7,14 +7,7 @@
 
 namespace saint {
 namespace {
-// An electric guitar's lower E is normally 83Hz.
-// For a spectrum using a 1st-order cosine window, each sinusoid lobe spans 2
-// bins. That requires a window of ~2/83s=25ms. Let's squeeze this down a little
-// to 20ms.
-constexpr auto fftSizeMs = 20;
 constexpr auto twoPi = 6.283185307179586f;
-constexpr auto windowSize = 512; // fftSizeMs * sampleRate / 1000;
-constexpr auto conj = std::complex<float>{1, -1}; // complex conjugate unit
 
 int getFftOrder(int windowSize) {
   return static_cast<int>(ceil(log2(windowSize)));
@@ -24,7 +17,12 @@ int getFftSizeSamples(size_t windowSize) {
   return 1 << getFftOrder(windowSize);
 }
 
+int getWindowSizeSamples(int sampleRate) {
+  return OnsetDetector::windowSizeMs * sampleRate / 1000;
+}
+
 std::vector<float> getAnalysisWindow(int sampleRate) {
+  const auto windowSize = getWindowSizeSamples(sampleRate);
   const auto fftSize = getFftSizeSamples(windowSize);
   std::vector<float> window(windowSize);
   const auto freq = twoPi / windowSize;
@@ -40,6 +38,7 @@ std::vector<float> getAnalysisWindow(int sampleRate) {
 }
 
 std::vector<float> getFlatTopAnalysisWindow(int sampleRate) {
+  const auto windowSize = getWindowSizeSamples(sampleRate);
   const auto firstSearchIndex = std::min(sampleRate / 1500, windowSize);
   std::vector<float> window(windowSize);
   std::fill(window.begin(), window.end(), 1.f);
@@ -73,51 +72,62 @@ void getXCorr(pffft::Fft<float> &fftEngine, float *timeData,
   }
 }
 
-std::vector<float> getXCorrVector(pffft::Fft<float> &fftEngine,
-                                  const std::vector<float> &timeData) {
+std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
+                                  const std::vector<float> &window) {
   Aligned<std::vector<float>> xcorrAligned;
   auto &xcorr = xcorrAligned.value;
   xcorr.resize((fftEngine.getLength()));
-  std::copy(timeData.begin(), timeData.end(), xcorr.begin());
-  std::fill(xcorr.begin() + timeData.size(), xcorr.end(), 0.f);
+  std::copy(window.begin(), window.end(), xcorr.begin());
+  std::fill(xcorr.begin() + window.size(), xcorr.end(), 0.f);
   std::vector<std::complex<float>> freqData(fftEngine.getSpectrumSize());
   getXCorr(fftEngine, xcorr.data(), freqData.data());
   return xcorr;
 };
 } // namespace
 
-OnsetDetector::OnsetDetector(int sampleRate)
-    : _window(getAnalysisWindow(sampleRate)),
+OnsetDetector::OnsetDetector(int sampleRate,
+                             std::optional<OnXcorReady> onXcorReady)
+    : _onXcorReady(std::move(onXcorReady)),
+      _window(getAnalysisWindow(sampleRate)),
       _fftSizeSamples(getFftSizeSamples(_window.size())), _firstSearchIndex(
                                                               sampleRate / 1500 /*electric guitar played on high E, 24th fret is around 1328Hz */),
       _lastSearchIndex(std::min(_fftSizeSamples / 2, sampleRate / 83)),
       _fftEngine(_fftSizeSamples),
-      _windowXCorr(getXCorrVector(_fftEngine, _window)) {
+      _windowXCorr(getWindowXCorr(_fftEngine, _window)) {
 
-  _fftEngine.prepareLength(_fftSizeSamples);
+  // Fill the first ring buffer with half the window size of zeros.
+  std::vector<float> zeros(_window.size() / 2);
+  std::fill(zeros.begin(), zeros.end(), 0.f);
+  _ringBuffers[0].writeBuff(zeros.data(), zeros.size());
+
   _timeData.value.resize(_fftSizeSamples);
-  // Make sure that zero-padding tail is zero.
-  std::fill(_timeData.value.begin(), _timeData.value.end(), 0.f);
   _freqData.value.resize(_fftSizeSamples / 2);
 }
 
 bool OnsetDetector::process(const float *audio, int audioSize) {
-  _ringBuffer.writeBuff(audio, audioSize);
-  _peakMax = 0;
-  while (_ringBuffer.readAvailable() >= _window.size()) {
+  _ringBuffers[0].writeBuff(audio, audioSize);
+  _ringBuffers[1].writeBuff(audio, audioSize);
+  while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     auto timeData = _timeData.value.data();
-    _ringBuffer.readBuff(timeData, _window.size());
+    _ringBuffers[_ringBufferIndex].readBuff(timeData, _window.size());
+    std::fill(timeData + _window.size(), timeData + _fftSizeSamples, 0.f);
     applyWindow(_window, timeData);
     getXCorr(_fftEngine, timeData, _freqData.value.data());
-    for (auto i = 0u; i < _window.size(); ++i) {
-      if (_firstSearchIndex <= i && i < _lastSearchIndex &&
-          timeData[i] > _peakMax) {
-        _peakMax = timeData[i];
-        _peakMaxIndex = i;
+    auto max = 0.f;
+    auto maxIndex = 0;
+    for (auto i = _firstSearchIndex; i < _lastSearchIndex; ++i) {
+      if (timeData[i] > max) {
+        max = timeData[i];
+        maxIndex = i;
       }
     }
+    max /= _windowXCorr[maxIndex];
+    if (_onXcorReady) {
+      (*_onXcorReady)(_timeData.value, _window.size(), maxIndex,
+                      _ringBufferIndex, max);
+    }
+    _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
   }
-  _peakMax /= _windowXCorr[_peakMaxIndex];
   return false;
 }
 } // namespace saint
