@@ -9,9 +9,16 @@
 
 namespace saint {
 
-using OnXcorReady =
-    std::function<void(const std::vector<float> &xcorr, int windowSize,
-                       int ringBufferIndex, int peakIndex, float scaledMax)>;
+struct OnXcorReadyArgs {
+  int windowSize;
+  std::vector<float> xcor;
+  int olapAnalIndex;
+  int peakIndex;
+  float scaledMax;
+  float maxMin;
+};
+
+using OnXcorReady = std::function<void(const OnXcorReadyArgs &)>;
 
 // PFFT memory alignment requirement
 template <typename T> struct alignas(16) Aligned {
@@ -21,27 +28,20 @@ template <typename T> struct alignas(16) Aligned {
 class OnsetDetector {
 public:
   // Don't even try instantiating me if the block size exceeds this.
-  // An electric guitar's lower E is normally 83Hz.
-  // For a spectrum using a 1st-order cosine window, each sinusoid lobe spans 2
-  // bins. That requires a window of ~2/83s=25ms.
-  static constexpr auto windowSizeMs = 25;
   static constexpr auto maxBlockSize = 8192;
   OnsetDetector(int sampleRate, std::optional<OnXcorReady> = std::nullopt);
   bool process(const float *, int);
 
 private:
-  // (zero-padded) FFT input
-  Aligned<std::vector<float>> _timeData;
-  Aligned<std::vector<std::complex<float>>> _freqData;
   const std::optional<OnXcorReady> _onXcorReady;
-
   const std::vector<float> _window;
-  const int _fftSizeSamples;
-  const int _firstSearchIndex;
-  const int _lastSearchIndex;
-  pffft::Fft<float> _fftEngine;
+  const int _fftSize;
+  pffft::Fft<float> _fwdFft;
   std::array<jnk0le::Ringbuffer<float, maxBlockSize>, 2> _ringBuffers;
+  std::array<float, 2> _maxima;
   int _ringBufferIndex = 0;
-  const std::vector<float> _windowXCorr;
+  const std::vector<float> _lpWindow;
+  const std::vector<float> _windowXcor;
+  const int _lastSearchIndex;
 };
 } // namespace saint
