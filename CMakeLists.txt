@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
-add_definitions(-DNOMINMAX)
 add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED)
 
 project(SoloHarmonizer VERSION 0.0.1)

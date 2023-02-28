@@ -6,3 +6,5 @@ target_include_directories(rubberband-wrapper
   PUBLIC
   ${CMAKE_SOURCE_DIR}/rubberband
 )
+
+target_compile_definitions(rubberband-wrapper PRIVATE NOMINMAX)
