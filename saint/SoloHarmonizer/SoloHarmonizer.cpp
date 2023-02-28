@@ -1,6 +1,6 @@
 #include "SoloHarmonizer.h"
-#include "Factory/HarmoPitchGetterFactory.h"
-#include "HarmoPitchTypes.h"
+#include "Factory/IntervalGetterFactory.h"
+#include "IntervalTypes.h"
 #include "Playheads/BuiltinPlayhead.h"
 #include "Playheads/HostPlayhead.h"
 #include "SoloHarmonizerEditor.h"
@@ -92,11 +92,11 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
                                   juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
   _logger->trace("processBlock");
-  if (!_processorsFactoryView->hasHarmoPitchGetter()) {
+  if (!_processorsFactoryView->hasIntervalGetter()) {
     return;
   }
-  const auto harmoPitchGetter = _processorsFactoryView->getHarmoPitchGetter();
-  if (!harmoPitchGetter) {
+  const auto intervalGetter = _processorsFactoryView->getIntervalGetter();
+  if (!intervalGetter) {
     return;
   }
   const auto tick = _playhead->getTimeInCrotchets();
@@ -104,8 +104,8 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
     // TODO logging
     return;
   }
-  const auto pitchShift = harmoPitchGetter->getHarmoInterval(*tick);
-  _logger->debug("_harmoPitchGetter->getHarmoInterval() returned {0}",
+  const auto pitchShift = intervalGetter->getHarmoInterval(*tick);
+  _logger->debug("_intervalGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};
   _pitchShifter->setMixPercentage(pitchShift ? 50.f : 0.f);
@@ -140,8 +140,8 @@ void SoloHarmonizer::setStateInformation(const void *data, int sizeInBytes) {
 
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  const auto harmoPitchGetterFactory =
-      std::make_shared<saint::HarmoPitchGetterFactory>();
-  return new saint::SoloHarmonizer(std::nullopt, harmoPitchGetterFactory,
-                                   harmoPitchGetterFactory);
+  const auto intervalGetterFactory =
+      std::make_shared<saint::IntervalGetterFactory>();
+  return new saint::SoloHarmonizer(std::nullopt, intervalGetterFactory,
+                                   intervalGetterFactory);
 }

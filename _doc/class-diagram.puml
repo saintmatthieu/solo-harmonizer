@@ -4,7 +4,7 @@ hide fields
 hide Host methods
 hide saint.SoloHarmonizer methods
 hide saint.SoloHarmonizerEditor methods
-hide saint.HarmoPitchGetterFactory methods
+hide saint.IntervalGetterFactory methods
 
 class Host
 
@@ -17,7 +17,7 @@ abstract class EditorsFactoryView {
   getUseHostPlayhead(): bool
   setMidiFile(path)
   getMidiFile(): optional<path>
-  getMidiFileTrackNames(): std::vector<std::string>
+  getMidiFileTrackNames(): vector<string>
   setPlayedTrack(int)
   getPlayedTrack(): optional<int>
   setHarmonyTrack(int)
@@ -25,30 +25,30 @@ abstract class EditorsFactoryView {
 }
 
 abstract class ProcessorsFactoryView {
-  getState(): const std::vector<uint8_t>&
-  setState(std::vector<uint8_t>)
-  prepareToPlay(): std::unique_ptr<Invervaller>
+  getState(): const vector<uint8_t>&
+  setState(vector<uint8_t>)
+  hasIntervalGetter()
+  getIntervalGetter(): shared_ptr<IntervalGetter>
+  useHostPlayhead(): bool
 }
 
-class HarmoPitchGetterFactory
+class IntervalGetterFactory
+class IntervalGetter {
+  getHarmoInterval(double timeInCrotchets, optional<float> pitch): optional<float>
+}
 
 SoloHarmonizerEditor -o SoloHarmonizer
 SoloHarmonizer *-- ProcessorsFactoryView
 SoloHarmonizer *-- EditorsFactoryView
 SoloHarmonizerEditor o-- EditorsFactoryView
 
-EditorsFactoryView --|> HarmoPitchGetterFactory
-ProcessorsFactoryView --|> HarmoPitchGetterFactory
-
+EditorsFactoryView --|> IntervalGetterFactory
+ProcessorsFactoryView --|> IntervalGetterFactory
+SoloHarmonizer o. IntervalGetter
+IntervalGetter --* IntervalGetterFactory
 
 }
 
 Host *-- saint.SoloHarmonizerEditor
 
 @enduml
-
-ctor: MainThread
-createEditor: MainThread
-prepareToPlay: MainThread
-getStateInformation: MainThread
-processBlock: some AudioCalc

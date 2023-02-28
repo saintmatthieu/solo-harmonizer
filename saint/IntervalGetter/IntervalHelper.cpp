@@ -1,4 +1,4 @@
-#include "HarmoPitchHelper.h"
+#include "IntervalHelper.h"
 
 #include <cassert>
 #include <iterator>
@@ -20,10 +20,10 @@ bool setIntervalIndex(const std::vector<int> &intervals, size_t *pCurrentIndex,
   return true;
 }
 
-std::vector<HarmoNoteSpan>
-toHarmoNoteSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
-                 const std::vector<MidiNoteMsg> &harmoMidiTrack) {
-  std::vector<HarmoNoteSpan> spans;
+std::vector<IntervalSpan>
+toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
+                const std::vector<MidiNoteMsg> &harmoMidiTrack) {
+  std::vector<IntervalSpan> spans;
   auto playing = false;
   auto harmoIt = harmoMidiTrack.begin();
   for (auto playedIt = playedMidiTrack.begin();

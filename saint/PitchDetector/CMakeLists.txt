@@ -19,11 +19,11 @@ target_include_directories(PitchDetector
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(OnsetDetectorTests
-  OnsetDetectorTests.cpp
+add_executable(PitchDetectorTests
+  PitchDetectorTests.cpp
 )
 
-target_link_libraries(OnsetDetectorTests
+target_link_libraries(PitchDetectorTests
   PRIVATE
     TestUtils
     PitchDetector

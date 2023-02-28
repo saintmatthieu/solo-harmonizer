@@ -17,7 +17,7 @@ juce_add_plugin(SoloHarmonizer
 
 target_sources(SoloHarmonizer
     PRIVATE
-        Factory/HarmoPitchGetterFactory.cpp
+        Factory/IntervalGetterFactory.cpp
         Playheads/BuiltinPlayhead.cpp
         Playheads/HostPlayhead.cpp
         SoloHarmonizerEditor.cpp
@@ -55,7 +55,7 @@ target_compile_definitions(SoloHarmonizer
 
 target_link_libraries(SoloHarmonizer
     PUBLIC
-        HarmoPitchGetter
+        IntervalGetter
         PitchDetector
     PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here

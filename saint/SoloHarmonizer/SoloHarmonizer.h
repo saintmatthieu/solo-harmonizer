@@ -17,7 +17,7 @@ class logger;
 }
 
 namespace saint {
-class HarmoPitchGetter;
+class IntervalGetter;
 
 class SoloHarmonizer : public juce::AudioProcessor {
 public:

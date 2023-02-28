@@ -1,5 +1,5 @@
-#include "HarmoPitchGetter.h"
-#include "HarmoPitchHelper.h"
+#include "IntervalGetter.h"
+#include "IntervalHelper.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,31 +10,30 @@
 namespace saint {
 
 namespace {
-std::vector<int> getTicks(const std::vector<HarmoNoteSpan> &spans) {
+std::vector<int> getTicks(const std::vector<IntervalSpan> &spans) {
   std::vector<int> ticks;
   ticks.reserve(spans.size());
   std::transform(spans.begin(), spans.end(), std::back_inserter(ticks),
-                 [](const HarmoNoteSpan &span) { return span.beginTick; });
+                 [](const IntervalSpan &span) { return span.beginTick; });
   return ticks;
 }
 
 std::vector<std::optional<PlayedNote>>
-getNotes(const std::vector<HarmoNoteSpan> &spans) {
+getNotes(const std::vector<IntervalSpan> &spans) {
   std::vector<std::optional<PlayedNote>> intervals;
   intervals.reserve(spans.size());
   std::transform(spans.begin(), spans.end(), std::back_inserter(intervals),
-                 [](const HarmoNoteSpan &span) { return span.playedNote; });
+                 [](const IntervalSpan &span) { return span.playedNote; });
   return intervals;
 }
 } // namespace
 
-HarmoPitchGetter::HarmoPitchGetter(const std::vector<HarmoNoteSpan> &spans,
-                                   double ticksPerCrotchet)
+IntervalGetter::IntervalGetter(const std::vector<IntervalSpan> &spans,
+                               double ticksPerCrotchet)
     : _ticksPerCrotchet(ticksPerCrotchet), _ticks(getTicks(spans)),
       _intervals(getNotes(spans)) {}
 
-std::optional<float>
-HarmoPitchGetter::getHarmoInterval(double timeInCrotchets) {
+std::optional<float> IntervalGetter::getHarmoInterval(double timeInCrotchets) {
   const auto tick = timeInCrotchets * _ticksPerCrotchet;
   if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;

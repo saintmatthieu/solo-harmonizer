@@ -9,15 +9,15 @@ struct PlayedNote {
   std::optional<int> interval = std::nullopt;
 };
 
-struct HarmoNoteSpan {
+struct IntervalSpan {
   int beginTick;
   std::optional<PlayedNote> playedNote;
 };
 
 bool operator==(const PlayedNote &a, const PlayedNote &b);
-bool operator==(const HarmoNoteSpan &a, const HarmoNoteSpan &b);
+bool operator==(const IntervalSpan &a, const IntervalSpan &b);
 bool operator!=(const PlayedNote &a, const PlayedNote &b);
-bool operator!=(const HarmoNoteSpan &a, const HarmoNoteSpan &b);
+bool operator!=(const IntervalSpan &a, const IntervalSpan &b);
 
 struct MidiNoteMsg {
   const int tick; // quantized

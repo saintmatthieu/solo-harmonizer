@@ -1,8 +1,7 @@
-#include "HarmoPitchGetterFactory.h"
-#include "HarmoPitchGetter.h"
-#include "HarmoPitchHelper.h"
-#include "HarmoPitchTypes.h"
-
+#include "IntervalGetter.h"
+#include "IntervalGetterFactory.h"
+#include "IntervalHelper.h"
+#include "IntervalTypes.h"
 
 namespace saint {
 
@@ -110,15 +109,15 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
-void HarmoPitchGetterFactory::setUseHostPlayhead(bool useHostPlayhead) {
+void IntervalGetterFactory::setUseHostPlayhead(bool useHostPlayhead) {
   _useHostPlayhead = useHostPlayhead;
 }
 
-bool HarmoPitchGetterFactory::getUseHostPlayhead() const {
+bool IntervalGetterFactory::getUseHostPlayhead() const {
   return _useHostPlayhead;
 }
 
-void HarmoPitchGetterFactory::setMidiFile(std::filesystem::path path) {
+void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
   _juceMidiFile = getJuceMidiFile(path.string());
   _midiFilePath = std::move(path);
   _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
@@ -130,61 +129,60 @@ void HarmoPitchGetterFactory::setMidiFile(std::filesystem::path path) {
   _crotchetsPerSecond = _juceMidiFile ? getCrotchetsPerSecond(*_juceMidiFile)
                                       : std::optional<float>{};
 
-  _createHarmoPitchGetterIfAllParametersSet();
+  _createIntervalGetterIfAllParametersSet();
 }
 
 std::optional<std::filesystem::path>
-HarmoPitchGetterFactory::getMidiFile() const {
+IntervalGetterFactory::getMidiFile() const {
   return _midiFilePath;
 }
 
-std::vector<std::string>
-HarmoPitchGetterFactory::getMidiFileTrackNames() const {
+std::vector<std::string> IntervalGetterFactory::getMidiFileTrackNames() const {
   return _trackNames;
 }
 
-void HarmoPitchGetterFactory::setPlayedTrack(int track) {
+void IntervalGetterFactory::setPlayedTrack(int track) {
   if (_playedTrack != track) {
     _playedTrack = track;
-    _createHarmoPitchGetterIfAllParametersSet();
+    _createIntervalGetterIfAllParametersSet();
   }
 }
 
-std::optional<int> HarmoPitchGetterFactory::getPlayedTrack() const {
+std::optional<int> IntervalGetterFactory::getPlayedTrack() const {
   return _playedTrack;
 }
 
-void HarmoPitchGetterFactory::setHarmonyTrack(int track) {
+void IntervalGetterFactory::setHarmonyTrack(int track) {
   if (_harmonyTrack != track) {
     _harmonyTrack = track;
-    _createHarmoPitchGetterIfAllParametersSet();
+    _createIntervalGetterIfAllParametersSet();
   }
 }
 
-std::optional<int> HarmoPitchGetterFactory::getHarmonyTrack() const {
+std::optional<int> IntervalGetterFactory::getHarmonyTrack() const {
   return _harmonyTrack;
 }
 
-const std::vector<uint8_t> &HarmoPitchGetterFactory::getState() const {
+const std::vector<uint8_t> &IntervalGetterFactory::getState() const {
   return _state;
 }
 
-void HarmoPitchGetterFactory::setState(std::vector<uint8_t>) {}
+void IntervalGetterFactory::setState(std::vector<uint8_t>) {}
 
-bool HarmoPitchGetterFactory::hasHarmoPitchGetter() const {
-  return _harmoPitchGetter.use_count() > 0;
+bool IntervalGetterFactory::hasIntervalGetter() const {
+  return _intervalGetter.use_count() > 0;
 }
 
-std::shared_ptr<HarmoPitchGetter>
-HarmoPitchGetterFactory::getHarmoPitchGetter() const {
-  return _harmoPitchGetter;
+std::shared_ptr<IntervalGetter>
+IntervalGetterFactory::getIntervalGetter() const {
+  return _intervalGetter;
 }
 
-bool HarmoPitchGetterFactory::useHostPlayhead() const {
+bool IntervalGetterFactory::useHostPlayhead() const {
   return getUseHostPlayhead();
 }
 
-void HarmoPitchGetterFactory::_createHarmoPitchGetterIfAllParametersSet() {
+void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack) {
     return;
   }
@@ -192,13 +190,13 @@ void HarmoPitchGetterFactory::_createHarmoPitchGetterIfAllParametersSet() {
       *_juceMidiFile->getTrack(*_playedTrack), *_ticksPerCrotchet);
   const auto harmoSeq = getMidiNoteMessages(
       *_juceMidiFile->getTrack(*_harmonyTrack), *_ticksPerCrotchet);
-  _harmoPitchGetterInput = toHarmoNoteSpans(playedSeq, harmoSeq);
-  if (_harmoPitchGetterInput.empty()) {
-    // _logger->warn("toHarmoPitchGetterInput returned empty vector");
+  _intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
+  if (_intervalGetterInput.empty()) {
+    // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
-    // TODO: No need to wrap HarmoPitchGetter
-    _harmoPitchGetter = std::make_shared<HarmoPitchGetter>(
-        _harmoPitchGetterInput, *_ticksPerCrotchet);
+    // TODO: No need to wrap IntervalGetter
+    _intervalGetter = std::make_shared<IntervalGetter>(_intervalGetterInput,
+                                                       *_ticksPerCrotchet);
   }
 }
 
