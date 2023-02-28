@@ -1,4 +1,4 @@
-add_subdirectory(OnsetDetector)
+add_subdirectory(PitchDetector)
 add_subdirectory(HarmoPitchGetter)
 add_subdirectory(SoloHarmonizer)
 add_subdirectory(TestUtils)

@@ -56,7 +56,7 @@ target_compile_definitions(SoloHarmonizer
 target_link_libraries(SoloHarmonizer
     PUBLIC
         HarmoPitchGetter
-        OnsetDetector
+        PitchDetector
     PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils

@@ -1,4 +1,4 @@
-#include "OnsetDetector.h"
+#include "PitchDetector.h"
 
 #include <cassert>
 #include <cmath>
@@ -94,9 +94,9 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
 };
 } // namespace
 
-OnsetDetector::OnsetDetector(int sampleRate,
+PitchDetector::PitchDetector(int sampleRate,
                              std::optional<OnXcorReady> onXcorReady)
-    : _onXcorReady(std::move(onXcorReady)),
+    : _sampleRate(sampleRate), _onXcorReady(std::move(onXcorReady)),
       _window(getAnalysisWindow(getWindowSizeSamples(sampleRate))),
       _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _windowXcor(getWindowXCorr(_fwdFft, _window, _lpWindow)),
@@ -110,9 +110,10 @@ OnsetDetector::OnsetDetector(int sampleRate,
   _ringBuffers[0].writeBuff(zeros.data(), zeros.size());
 }
 
-bool OnsetDetector::process(const float *audio, int audioSize) {
+std::optional<float> PitchDetector::process(const float *audio, int audioSize) {
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
+  std::optional<float> detectedPitch;
   while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     std::vector<float> time(_fftSize);
     _ringBuffers[_ringBufferIndex].readBuff(time.data(), _window.size());
@@ -141,7 +142,10 @@ bool OnsetDetector::process(const float *audio, int audioSize) {
       (*_onXcorReady)(args);
     }
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
+    if (max > 0.9) {
+      detectedPitch = _sampleRate / maxIndex;
+    }
   }
-  return false;
+  return detectedPitch;
 }
 } // namespace saint

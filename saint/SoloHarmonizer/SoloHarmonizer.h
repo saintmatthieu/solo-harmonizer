@@ -2,7 +2,7 @@
 
 #include "Factory/EditorsFactoryView.h"
 #include "Factory/ProcessorsFactoryView.h"
-#include "OnsetDetector.h"
+#include "PitchDetector.h"
 #include "Playheads/IPlayhead.h"
 
 #include "DavidCNAntonia/PitchShifter.h"
@@ -67,7 +67,7 @@ private:
   const std::shared_ptr<spdlog::logger> _logger;
   const std::unique_ptr<IPlayhead> _playhead;
   std::unique_ptr<DavidCNAntonia::PitchShifter> _pitchShifter;
-  std::unique_ptr<OnsetDetector> _onsetDetector;
+  std::unique_ptr<PitchDetector> _pitchDetector;
 
   // For testing
   std::optional<int> _ticksPerCrotchet = std::nullopt;

@@ -1,17 +1,17 @@
-add_library(OnsetDetector)
+add_library(PitchDetector)
 
-target_sources(OnsetDetector
+target_sources(PitchDetector
   PUBLIC
-    OnsetDetector.cpp
+    PitchDetector.cpp
 )
 
-target_link_libraries(OnsetDetector
+target_link_libraries(PitchDetector
   PUBLIC
     OnsetsDS
     PFFFT
 )
 
-target_include_directories(OnsetDetector
+target_include_directories(PitchDetector
   PUBLIC
     ${CMAKE_SOURCE_DIR}/_thirdParty
     ${CMAKE_SOURCE_DIR}/pffft
@@ -26,5 +26,5 @@ add_executable(OnsetDetectorTests
 target_link_libraries(OnsetDetectorTests
   PRIVATE
     TestUtils
-    OnsetDetector
+    PitchDetector
 )

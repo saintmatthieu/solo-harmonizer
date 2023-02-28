@@ -1,4 +1,4 @@
-#include "OnsetDetector.h"
+#include "PitchDetector.h"
 
 #include "pffft.hpp"
 #include "testUtils.h"
@@ -21,8 +21,8 @@ std::vector<float> makeNyquistWave(int numSamples) {
 }
 } // namespace
 
-TEST(OnsetDetector, firstPfftBinIsDcAndNyquist) {
-  OnsetDetector sut(44100);
+TEST(PitchDetector, firstPfftBinIsDcAndNyquist) {
+  PitchDetector sut(44100);
   constexpr auto blockSize = 512;
   const auto audio = makeNyquistWave(blockSize);
   pffft::Fft<float> fftEngine(blockSize);
@@ -52,7 +52,7 @@ OlapMetricWriters makeOlapMetricWriters(int analysisIndex) {
   return {std::move(autoCor), std::move(autoCorMax)};
 }
 
-TEST(OnsetDetector, stuff) {
+TEST(PitchDetector, stuff) {
   constexpr auto blockSize = 512;
   MetricWriters metricWriters;
   metricWriters.combinedMax =
@@ -90,7 +90,7 @@ TEST(OnsetDetector, stuff) {
       "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
   // const auto src = testUtils::getWavFileReader(
   //     fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
-  OnsetDetector sut(44100, std::move(debugCallback));
+  PitchDetector sut(44100, std::move(debugCallback));
   for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
     std::vector<float> buffer(blockSize);
     std::vector<float *> channels(1);

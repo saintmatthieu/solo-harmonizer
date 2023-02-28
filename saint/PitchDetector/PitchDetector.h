@@ -25,14 +25,15 @@ template <typename T> struct alignas(16) Aligned {
   T value;
 };
 
-class OnsetDetector {
+class PitchDetector {
 public:
   // Don't even try instantiating me if the block size exceeds this.
   static constexpr auto maxBlockSize = 8192;
-  OnsetDetector(int sampleRate, std::optional<OnXcorReady> = std::nullopt);
-  bool process(const float *, int);
+  PitchDetector(int sampleRate, std::optional<OnXcorReady> = std::nullopt);
+  std::optional<float> process(const float *, int);
 
 private:
+  const float _sampleRate;
   const std::optional<OnXcorReady> _onXcorReady;
   const std::vector<float> _window;
   const int _fftSize;
