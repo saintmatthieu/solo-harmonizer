@@ -104,7 +104,7 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
     // TODO logging
     return;
   }
-  const auto pitchShift = intervalGetter->getHarmoInterval(*tick);
+  const auto pitchShift = intervalGetter->getHarmoInterval(*tick, std::nullopt);
   _logger->debug("_intervalGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   juce::dsp::AudioBlock<float> block{buffer};

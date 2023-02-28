@@ -8,7 +8,6 @@ add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED)
 project(SoloHarmonizer VERSION 0.0.1)
 
 add_subdirectory(_thirdParty/DavidCNAntonia)
-add_subdirectory(_thirdParty/OnsetsDS)
 add_subdirectory(rubberband-wrapper)
 add_subdirectory(LibPyin)
 add_subdirectory(googletest)
