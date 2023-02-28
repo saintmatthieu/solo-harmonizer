@@ -17,12 +17,10 @@ constexpr auto twoPi = 6.283185307179586f;
 constexpr auto cutoffFreq = 1500;
 
 int getFftOrder(int windowSize) {
-  return static_cast<int>(ceil(log2(windowSize)));
+  return static_cast<int>(ceilf(log2f(windowSize)));
 }
 
-int getFftSizeSamples(size_t windowSize) {
-  return 1 << getFftOrder(windowSize);
-}
+int getFftSizeSamples(int windowSize) { return 1 << getFftOrder(windowSize); }
 
 int getWindowSizeSamples(int sampleRate) {
   return windowSizeMs * sampleRate / 1000;
@@ -99,10 +97,10 @@ PitchDetector::PitchDetector(int sampleRate,
     : _sampleRate(sampleRate), _onXcorReady(std::move(onXcorReady)),
       _window(getAnalysisWindow(getWindowSizeSamples(sampleRate))),
       _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
-      _windowXcor(getWindowXCorr(_fwdFft, _window, _lpWindow)),
-      _fftSize(getFftSizeSamples(_window.size())),
+      _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
       _lastSearchIndex(
-          std::min(_fftSize / 2, static_cast<int>(sampleRate / 70))) {
+          std::min(_fftSize / 2, static_cast<int>(sampleRate / 70))),
+      _windowXcor(getWindowXCorr(_fwdFft, _window, _lpWindow)) {
 
   // Fill the first ring buffer with half the window size of zeros.
   std::vector<float> zeros(_window.size() / 2);

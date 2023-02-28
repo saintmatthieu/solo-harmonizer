@@ -33,7 +33,9 @@ IntervalGetter::IntervalGetter(const std::vector<IntervalSpan> &spans,
     : _ticksPerCrotchet(ticksPerCrotchet), _ticks(getTicks(spans)),
       _intervals(getNotes(spans)) {}
 
-std::optional<float> IntervalGetter::getHarmoInterval(double timeInCrotchets) {
+std::optional<float>
+IntervalGetter::getHarmoInterval(double timeInCrotchets,
+                                 const std::optional<float> &pitch) {
   const auto tick = timeInCrotchets * _ticksPerCrotchet;
   if (!setIntervalIndex(_ticks, &_index, tick)) {
     return std::nullopt;
