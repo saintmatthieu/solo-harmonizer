@@ -1,4 +1,4 @@
-#include "PitchDetector.h"
+#include "PitchDetectorImpl.h"
 
 #include <cassert>
 #include <cmath>
@@ -7,6 +7,11 @@
 #include <numeric>
 
 namespace saint {
+
+std::unique_ptr<PitchDetector> PitchDetector::createInstance(int sampleRate) {
+  return std::make_unique<PitchDetectorImpl>(sampleRate);
+}
+
 namespace {
 // Through experiment, for it to work with as low as a guitar open low E.
 // For drop-D tuning or lower, a longer size would be needed, and hence more
@@ -17,7 +22,7 @@ constexpr auto twoPi = 6.283185307179586f;
 constexpr auto cutoffFreq = 1500;
 
 int getFftOrder(int windowSize) {
-  return static_cast<int>(ceilf(log2f(windowSize)));
+  return static_cast<int>(ceilf(log2f((float)windowSize)));
 }
 
 int getFftSizeSamples(int windowSize) { return 1 << getFftOrder(windowSize); }
@@ -27,10 +32,10 @@ int getWindowSizeSamples(int sampleRate) {
 }
 
 std::vector<float> getAnalysisWindow(int windowSize) {
-  std::vector<float> window(windowSize);
-  const auto freq = twoPi / windowSize;
+  std::vector<float> window((size_t)windowSize);
+  const auto freq = twoPi / (float)windowSize;
   // TODO: make sure a rectangular window is tried.
-  for (auto i = 0; i < windowSize; ++i) {
+  for (auto i = 0u; i < windowSize; ++i) {
     // A Hanning window.
     // For this use case and if there is not need for overlapping windows,
     // a flat-top might work as well.
@@ -41,7 +46,7 @@ std::vector<float> getAnalysisWindow(int windowSize) {
 }
 
 void applyWindow(const std::vector<float> &window, std::vector<float> &input) {
-  for (auto i = 0; i < window.size(); ++i) {
+  for (auto i = 0u; i < window.size(); ++i) {
     input[i] *= window[i];
   }
 }
@@ -92,8 +97,8 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
 };
 } // namespace
 
-PitchDetector::PitchDetector(int sampleRate,
-                             std::optional<OnXcorReady> onXcorReady)
+PitchDetectorImpl::PitchDetectorImpl(int sampleRate,
+                                     std::optional<OnXcorReady> onXcorReady)
     : _sampleRate(sampleRate), _onXcorReady(std::move(onXcorReady)),
       _window(getAnalysisWindow(getWindowSizeSamples(sampleRate))),
       _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
@@ -108,7 +113,8 @@ PitchDetector::PitchDetector(int sampleRate,
   _ringBuffers[0].writeBuff(zeros.data(), zeros.size());
 }
 
-std::optional<float> PitchDetector::process(const float *audio, int audioSize) {
+std::optional<float> PitchDetectorImpl::process(const float *audio,
+                                                int audioSize) {
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
   std::optional<float> detectedPitch;

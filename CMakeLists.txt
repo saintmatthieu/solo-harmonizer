@@ -3,16 +3,19 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED)
 
 project(SoloHarmonizer VERSION 0.0.1)
 
 add_subdirectory(_thirdParty/DavidCNAntonia)
 add_subdirectory(rubberband-wrapper)
-add_subdirectory(LibPyin)
 add_subdirectory(googletest)
 add_subdirectory(JUCE)
 add_subdirectory(spdlog)
 add_subdirectory(pffft)
 
 add_subdirectory(saint)
+
+# target_compile_options(JUCE -Wdeprecated)
+# target_compile_definitions(spdlog -Wswitch-enum)

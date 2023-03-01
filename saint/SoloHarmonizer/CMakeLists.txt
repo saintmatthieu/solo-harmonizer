@@ -61,7 +61,6 @@ target_link_libraries(SoloHarmonizer
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
         juce::juce_dsp
-        LibPyin
         spdlog
         DavidCNAntonia
     PUBLIC
@@ -71,7 +70,6 @@ target_link_libraries(SoloHarmonizer
 
 target_include_directories(SoloHarmonizer
   PUBLIC
-    ${CMAKE_SOURCE_DIR}/LibPyin/source
     ${CMAKE_SOURCE_DIR}/spdlog/include
     ${CMAKE_SOURCE_DIR}/_thirdParty
 )

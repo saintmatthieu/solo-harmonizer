@@ -7,7 +7,6 @@
 
 #include "DavidCNAntonia/PitchShifter.h"
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <libpyincpp.h>
 
 #include <filesystem>
 #include <memory>

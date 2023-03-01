@@ -60,8 +60,7 @@ const juce::String SoloHarmonizer::getName() const { return JucePlugin_Name; }
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _pitchShifter = std::make_unique<DavidCNAntonia::PitchShifter>(
       1, sampleRate, samplesPerBlock, _rbStretcherOptions);
-  _pitchDetector =
-      std::make_unique<PitchDetector>(static_cast<int>(sampleRate));
+  _pitchDetector = PitchDetector::createInstance(static_cast<int>(sampleRate));
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }
@@ -116,7 +115,7 @@ void SoloHarmonizer::processBlock(juce::AudioBuffer<float> &buffer,
   // TODO: check if these additional steps are necessary or not.
   const auto bp = block.getChannelPointer(0);
   auto ap = buffer.getWritePointer(0);
-  memcpy(ap, bp, buffer.getNumSamples() * sizeof(float));
+  memcpy(ap, bp, static_cast<size_t>(buffer.getNumSamples()) * sizeof(float));
   // must be called after processing
   // TODO: how to remove this trap ?
   _playhead->incrementSampleCount(buffer.getNumSamples());

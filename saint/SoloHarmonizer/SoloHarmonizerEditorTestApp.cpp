@@ -55,7 +55,7 @@ public:
 
   const juce::String getApplicationVersion() override { return "0.0.0"; }
 
-  void initialise(const juce::String &commandLineParameters) override {
+  void initialise(const juce::String &) override {
     mainWindow.reset(new MainWindow("SaintHarmonizer"));
   }
 
