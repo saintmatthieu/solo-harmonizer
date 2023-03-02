@@ -1,6 +1,6 @@
 #include "Factory/IntervalGetterFactory.h"
-#include "SoloHarmonizer.h"
 #include "SoloHarmonizerEditor.h"
+#include "SoloHarmonizerVst.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -11,17 +11,14 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
-          _openEditorButton("Open Editor"),
-          _intervallerFactory(std::make_shared<saint::IntervalGetterFactory>()),
-          _harmonizer(std::nullopt, _intervallerFactory, _intervallerFactory) {
+          _openEditorButton("Open Editor") {
       centreWithSize(400, 300);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
       _openEditorButton.setSize(400, 100);
       _openEditorButton.onClick = [this]() {
         if (!_sut) {
-          _sut = std::make_unique<saint::SoloHarmonizerEditor>(
-              _harmonizer, *_intervallerFactory);
+          _sut.reset(_harmonizerVst.createEditor());
           _sut->setTopLeftPosition(0, 100);
           _openEditorButton.setButtonText("Close Editor");
           _rootComponent.addAndMakeVisible(_sut.get());
@@ -43,9 +40,8 @@ public:
   private:
     juce::Component _rootComponent;
     juce::TextButton _openEditorButton;
-    const std::shared_ptr<saint::IntervalGetterFactory> _intervallerFactory;
-    saint::SoloHarmonizer _harmonizer;
-    std::unique_ptr<saint::SoloHarmonizerEditor> _sut;
+    saint::SoloHarmonizerVst _harmonizerVst;
+    std::unique_ptr<juce::AudioProcessorEditor> _sut;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainWindow)
   };
 

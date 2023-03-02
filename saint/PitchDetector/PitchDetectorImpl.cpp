@@ -94,7 +94,7 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
   std::fill(xcorr.begin() + window.size(), xcorr.end(), 0.f);
   getXCorr(fftEngine, xcorr, lpWindow);
   return xcorr;
-};
+}
 } // namespace
 
 PitchDetectorImpl::PitchDetectorImpl(int sampleRate,

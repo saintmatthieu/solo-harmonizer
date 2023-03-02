@@ -29,5 +29,5 @@ add_executable(PitchDetectorImplTests
 target_link_libraries(PitchDetectorImplTests
   PRIVATE
     TestUtils
-    PitchDetectorImpl
+    PitchDetector
 )

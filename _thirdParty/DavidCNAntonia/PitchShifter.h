@@ -1,11 +1,17 @@
 #pragma once
 
+#include "IPitchShifter.h"
 #include "RingBuffer.h"
-#include <juce_dsp/juce_dsp.h>
 #include <rubberband/RubberBandStretcher.h>
 
+namespace juce {
+namespace dsp {
+template <typename T> class DryWetMixer;
+} // namespace dsp
+} // namespace juce
+
 namespace DavidCNAntonia {
-class PitchShifter {
+class PitchShifter : public IPitchShifter {
 public:
   static const RubberBand::RubberBandStretcher::Options defaultOptions =
       RubberBand::RubberBandStretcher::Option::OptionProcessRealTime +
@@ -25,35 +31,36 @@ public:
   PitchShifter(int numChannels, double sampleRate, int samplesPerBlock,
                std::optional<RubberBand::RubberBandStretcher::Options> opts);
 
-  void setFormantPreserving(bool shouldPreserveFormants);
+  void setFormantPreserving(bool shouldPreserveFormants) override;
 
-  int getLatency();
+  int getLatency() override;
 
   /** Pitch shift a juce::AudioBuffer<float>
    */
-  void processBuffer(juce::dsp::AudioBlock<float> &block);
+  void processBuffer(float *const *audio, int numberOfChannels,
+                     int numberOfSamples) override;
 
   /** Set the wet/dry mix as a % value.
    */
-  void setMixPercentage(float newPercentage);
+  void setMixPercentage(float newPercentage) override;
 
   /** Set the pitch shift in semitones.
    */
-  void setSemitoneShift(float newShift);
+  void setSemitoneShift(float newShift) override;
 
   /** Get the % value of the wet/dry mix.
    */
-  float getMixPercentage();
+  float getMixPercentage() override;
 
   /** Get the pitch shift in semitones.
    */
-  float getSemitoneShift();
+  float getSemitoneShift() override;
 
   /** Get the estimated latency. This is an average guess of latency with no
    * pitch shifting but can vary by a few buffers. Changing the pitch shift can
    * cause less or more latency.
    */
-  int getLatencyEstimationInSamples();
+  int getLatencyEstimationInSamples() override;
 
 private:
   std::unique_ptr<RubberBand::RubberBandStretcher> rubberband;

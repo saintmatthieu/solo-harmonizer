@@ -9,6 +9,7 @@ target_link_libraries(TestUtils
   PUBLIC
     gtest_main
     gmock
+  PRIVATE
     juce::juce_audio_utils
 )
 

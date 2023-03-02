@@ -29,6 +29,10 @@ public:
   std::shared_ptr<IntervalGetter> getIntervalGetter() const override;
   bool useHostPlayhead() const override;
 
+  // For testing
+  std::optional<int> getTicksPerCrotchet() const;
+  std::optional<float> getCrotchetsPerSecond() const;
+
 private:
   void _createIntervalGetterIfAllParametersSet();
   std::vector<IntervalSpan> _intervalGetterInput;

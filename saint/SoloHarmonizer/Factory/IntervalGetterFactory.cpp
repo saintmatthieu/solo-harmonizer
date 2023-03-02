@@ -1,5 +1,5 @@
-#include "IntervalGetter.h"
 #include "IntervalGetterFactory.h"
+#include "IntervalGetter.h"
 #include "IntervalHelper.h"
 #include "IntervalTypes.h"
 
@@ -63,19 +63,19 @@ std::vector<std::string> getTrackNames(const juce::MidiFile &midiFile) {
   return tracks;
 }
 
-float getCrotchetsPerSecond(const juce::MidiFile &midiFile) {
+float extractCrotchetsPerSecond(const juce::MidiFile &midiFile) {
   // This makes the assumption that the tempo stays constant.
   // For tempo-changing pieces, something more elaborate would be needed.
   // But again, this is only for the built-in tick provider ; a proper host
   // would do that.
-  const auto secondsPerCrotchet = getFirstFromTrack<double>(
+  const auto secondsPerCrotchet = getFirstFromTrack<float>(
       *midiFile.getTrack(0),
       [](const juce::MidiMessage &msg) { return msg.isTempoMetaEvent(); },
       [](const juce::MidiMessage &msg) {
         return msg.getTempoSecondsPerQuarterNote();
       });
   if (secondsPerCrotchet.has_value()) {
-    return static_cast<float>(1 / (*secondsPerCrotchet) + 0.5);
+    return 1 / *secondsPerCrotchet;
   } else {
     // TODO error
     return 0.f;
@@ -126,8 +126,9 @@ void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
       _juceMidiFile
           ? std::optional<int>{static_cast<int>(_juceMidiFile->getTimeFormat())}
           : std::optional<int>{};
-  _crotchetsPerSecond = _juceMidiFile ? getCrotchetsPerSecond(*_juceMidiFile)
-                                      : std::optional<float>{};
+  _crotchetsPerSecond = _juceMidiFile
+                            ? extractCrotchetsPerSecond(*_juceMidiFile)
+                            : std::optional<float>{};
 
   _createIntervalGetterIfAllParametersSet();
 }
@@ -198,6 +199,14 @@ void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
     _intervalGetter = std::make_shared<IntervalGetter>(_intervalGetterInput,
                                                        *_ticksPerCrotchet);
   }
+}
+
+std::optional<int> IntervalGetterFactory::getTicksPerCrotchet() const {
+  return _ticksPerCrotchet;
+}
+
+std::optional<float> IntervalGetterFactory::getCrotchetsPerSecond() const {
+  return _crotchetsPerSecond;
 }
 
 } // namespace saint

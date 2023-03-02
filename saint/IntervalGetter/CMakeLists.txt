@@ -4,12 +4,6 @@ add_library(IntervalGetter
   IntervalTypes.cpp
 )
 
-target_link_libraries(IntervalGetter
-  PUBLIC
-    juce::juce_core
-    juce::juce_audio_basics
-)
-
 target_include_directories(IntervalGetter
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

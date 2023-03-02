@@ -1,6 +1,14 @@
 #include "PitchShifter.h"
+#include <juce_dsp/juce_dsp.h>
 
 namespace DavidCNAntonia {
+std::unique_ptr<IPitchShifter>
+IPitchShifter::createInstance(int numChannels, double sampleRate,
+                              int samplesPerBlock) {
+  return std::make_unique<PitchShifter>(numChannels, sampleRate,
+                                        samplesPerBlock, std::nullopt);
+}
+
 PitchShifter::PitchShifter(
     int numChannels, double sampleRate, int samplesPerBlock,
     std::optional<RubberBand::RubberBandStretcher::Options> opts) {
@@ -59,7 +67,12 @@ void PitchShifter::setFormantPreserving(bool shouldPreserveFormants) {
 
 int PitchShifter::getLatency() { return latencyInSamples; }
 
-void PitchShifter::processBuffer(juce::dsp::AudioBlock<float> &block) {
+void PitchShifter::processBuffer(float *const *audio, int numberOfChannels,
+                                 int numberOfSamples) {
+
+  juce::dsp::AudioBlock<float> block{audio,
+                                     static_cast<size_t>(numberOfChannels),
+                                     static_cast<size_t>(numberOfSamples)};
 
   pitchSmoothing.setTargetValue(powf(
       2.0, pitchParam / 12)); // Convert semitone value into pitch scale value.

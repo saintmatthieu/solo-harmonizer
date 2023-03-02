@@ -1,4 +1,30 @@
-juce_add_plugin(SoloHarmonizer
+add_library(SoloHarmonizer)
+
+target_sources(SoloHarmonizer
+  PUBLIC
+    Factory/IntervalGetterFactory.cpp
+    Playheads/BuiltinPlayhead.cpp
+    SoloHarmonizerEditor.cpp
+    SoloHarmonizerHelper.cpp
+    SoloHarmonizer.cpp
+)
+
+target_include_directories(SoloHarmonizer
+  PUBLIC
+    ${CMAKE_SOURCE_DIR}/spdlog/include
+    ${CMAKE_SOURCE_DIR}/_thirdParty
+)
+
+target_link_libraries(SoloHarmonizer
+  PUBLIC
+    IntervalGetter
+    PitchDetector
+  PUBLIC
+    spdlog
+    DavidCNAntonia
+)
+
+juce_add_plugin(SoloHarmonizerVst
     # VERSION ...                               # Set this if the plugin version is different to the project version
     # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
     # ICON_SMALL ...
@@ -15,14 +41,9 @@ juce_add_plugin(SoloHarmonizer
     FORMATS VST3 Standalone                     # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
     PRODUCT_NAME "Solo Harmonizer")        # The name of the final executable, which can differ from the target name
 
-target_sources(SoloHarmonizer
+target_sources(SoloHarmonizerVst
     PRIVATE
-        Factory/IntervalGetterFactory.cpp
-        Playheads/BuiltinPlayhead.cpp
-        Playheads/HostPlayhead.cpp
-        SoloHarmonizerEditor.cpp
-        SoloHarmonizerHelper.cpp
-        SoloHarmonizer.cpp)
+        SoloHarmonizerVst.cpp)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
@@ -31,7 +52,7 @@ target_sources(SoloHarmonizer
 # definitions will be visible both to your code, and also the JUCE module code, so for new
 # definitions, pick unique names that are unlikely to collide! This is a standard CMake command.
 
-target_compile_definitions(SoloHarmonizer
+target_compile_definitions(SoloHarmonizerVst
     PUBLIC
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
@@ -53,26 +74,17 @@ target_compile_definitions(SoloHarmonizer
 # linked automatically. If we'd generated a binary data target above, we would need to link to it
 # here too. This is a standard CMake command.
 
-target_link_libraries(SoloHarmonizer
+target_link_libraries(SoloHarmonizerVst
     PUBLIC
-        IntervalGetter
-        PitchDetector
+        SoloHarmonizer
     PUBLIC
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
         juce::juce_dsp
-        spdlog
-        DavidCNAntonia
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
-
-target_include_directories(SoloHarmonizer
-  PUBLIC
-    ${CMAKE_SOURCE_DIR}/spdlog/include
-    ${CMAKE_SOURCE_DIR}/_thirdParty
-)
 
 add_executable(SoloHarmonizerTests
     SoloHarmonizerTests.cpp
@@ -90,7 +102,7 @@ add_executable(SoloHarmonizerEditorTestApp
 
 target_link_libraries(SoloHarmonizerEditorTestApp
     PRIVATE
-    SoloHarmonizer
+    SoloHarmonizerVst
     juce::juce_gui_basics
     juce::juce_audio_processors
 )
