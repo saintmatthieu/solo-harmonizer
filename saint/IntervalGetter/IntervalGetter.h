@@ -19,6 +19,6 @@ private:
   const double _ticksPerCrotchet;
   const std::vector<int> _ticks;
   const std::vector<std::optional<PlayedNote>> _intervals;
-  size_t _index = 0;
+  int _lastIndex = 0;
 };
 } // namespace saint

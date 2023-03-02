@@ -7,32 +7,32 @@ namespace saint {
 
 TEST(IntervalHelper, setIntervalIndex) {
   const std::vector<int> intervals{{1, 2, 3, 5, 8}};
-  size_t currentIndex = 0u;
-  EXPECT_FALSE(setIntervalIndex(intervals, &currentIndex, 0 /*tick*/));
+  auto currentIndex = 0;
+  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 0 /*tick*/));
 
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 1));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 1));
   EXPECT_EQ(0, currentIndex);
 
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 2));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 2));
   EXPECT_EQ(1, currentIndex);
 
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 4));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 4));
   EXPECT_EQ(2, currentIndex);
 
   // Last interval is closed
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 8));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 8));
   EXPECT_EQ(4, currentIndex);
 
-  EXPECT_FALSE(setIntervalIndex(intervals, &currentIndex, 9));
+  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 9));
   EXPECT_EQ(4, currentIndex); // Value of current index isn't modified
 
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 2));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 2));
   EXPECT_EQ(1, currentIndex);
 
-  EXPECT_TRUE(setIntervalIndex(intervals, &currentIndex, 1));
+  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 1));
   EXPECT_EQ(0, currentIndex);
 
-  EXPECT_FALSE(setIntervalIndex(intervals, &currentIndex, 0));
+  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 0));
   EXPECT_EQ(0, currentIndex);
 }
 

@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace saint {
-bool setIntervalIndex(const std::vector<int> &intervals, size_t *currentIndex,
+bool setIntervalIndex(const std::vector<int> &intervals, int &currentIndex,
                       double tick);
 
 std::vector<IntervalSpan>

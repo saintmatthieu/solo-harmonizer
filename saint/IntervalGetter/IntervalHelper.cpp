@@ -4,18 +4,16 @@
 #include <iterator>
 
 namespace saint {
-bool setIntervalIndex(const std::vector<int> &intervals, size_t *pCurrentIndex,
+bool setIntervalIndex(const std::vector<int> &intervals, int &currentIndex,
                       double tick) {
-  if (intervals.size() == 0u || pCurrentIndex == nullptr ||
-      tick < intervals[0] || tick > intervals[intervals.size() - 1]) {
+  if (tick < intervals[0] || tick > intervals[intervals.size() - 1]) {
     return false;
   }
-  auto &index = *pCurrentIndex;
-  while (index < intervals.size() && intervals[index] <= tick) {
-    ++index;
+  while (currentIndex < intervals.size() && intervals[currentIndex] <= tick) {
+    ++currentIndex;
   }
-  while (index == intervals.size() || intervals[index] > tick) {
-    --index;
+  while (currentIndex == intervals.size() || intervals[currentIndex] > tick) {
+    --currentIndex;
   }
   return true;
 }

@@ -7,7 +7,7 @@
       "request": "launch",
       // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["octave jumps.wav", "--gtest_filter=SoloHarmonizerTest*"],
+      "args": ["octave jumps.wav", "--gtest_filter=*"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
