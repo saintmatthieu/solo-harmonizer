@@ -36,17 +36,19 @@ IntervalGetter::IntervalGetter(const std::vector<IntervalSpan> &spans,
 std::optional<float>
 IntervalGetter::getHarmoInterval(double timeInCrotchets,
                                  const std::optional<float> &pitch) {
-  // If the last value this function returned was a valid interval, the caller
-  // has used it to harmonize, and we are not
-
-  // there already is an interval, the pitch has value, setIntervalIndex returns
-  // true -> return value F, F, F -> nullopt F, F, T -> interval F, T, F ->
-  // nullopt F, T, T -> interval (if there wasn't an interval before, the pitch
-  // is free to jump) T, F, F ->
+  if (_prevWasPitched && pitch.has_value()) {
+    // Pitch is stable -> pitch shift interval is locked.
+    return _getInterval();
+  }
+  _prevWasPitched = pitch.has_value();
   const auto tick = timeInCrotchets * _ticksPerCrotchet;
   if (!setIntervalIndex(_ticks, _lastIndex, tick)) {
     return std::nullopt;
   }
+  return _getInterval();
+}
+
+std::optional<float> IntervalGetter::_getInterval() const {
   const auto &interval = _intervals[_lastIndex];
   if (!interval || !interval->interval) {
     return std::nullopt;

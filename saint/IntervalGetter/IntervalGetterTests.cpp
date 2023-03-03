@@ -22,17 +22,6 @@ constexpr OptPlayedNote minor3rdB4{{71, 3}};
 constexpr OptPlayedNote major3rdB4{{71, 4}};
 } // namespace
 
-TEST(IntervalGetter, returns_nullopt_when_tick_is_outside_boundaries) {
-  IntervalGetter sut{{
-                         {1, minor3rdB4},
-                         {2, noNote},
-                     },
-                     ticksPerCrotchet};
-  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Eq(std::nullopt));
-  EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(3.f));
-  EXPECT_THAT(sut.getHarmoInterval(2, 123.f), Eq(std::nullopt));
-}
-
 TEST(IntervalGetter, returns_nullopt_if_no_interval) {
   IntervalGetter sut{{
                          {0, aloneA4}, // not an interval, just a note by itself

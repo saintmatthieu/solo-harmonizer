@@ -16,9 +16,11 @@ public:
                                         const std::optional<float> &pitch);
 
 private:
+  std::optional<float> _getInterval() const;
   const double _ticksPerCrotchet;
   const std::vector<int> _ticks;
   const std::vector<std::optional<PlayedNote>> _intervals;
+  bool _prevWasPitched = false;
   int _lastIndex = 0;
 };
 } // namespace saint
