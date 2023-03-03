@@ -10,16 +10,29 @@
 #include <gtest/gtest.h>
 #include <unordered_map>
 
+namespace saint {
+
 namespace fs = std::filesystem;
 
 constexpr auto blockSize = 512;
 constexpr auto sampleRate = 44100;
 const fs::path basePath{"C:/Users/saint/Downloads"};
 
-namespace saint {
+void prependDelay(std::vector<float> &vector) {
+  constexpr auto delayMs =
+      0; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
+         // than half of that - should still work.
+  constexpr auto delaySamples = delayMs * sampleRate / 1000;
+  const auto prevSize = vector.size();
+  vector.resize(vector.size() + delaySamples);
+  std::fill(vector.begin() + prevSize, vector.end(), 0.f);
+  std::rotate(vector.begin(), vector.begin() + prevSize, vector.end());
+}
+
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   auto wav = testUtils::fromWavFile(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
+  prependDelay(wav);
   const auto factory = std::make_shared<IntervalGetterFactory>();
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
   factory->setPlayedTrack(1);

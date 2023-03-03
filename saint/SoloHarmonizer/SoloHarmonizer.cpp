@@ -57,13 +57,14 @@ void SoloHarmonizer::processBlock(float *block, int size) {
   if (!intervalGetter) {
     return;
   }
-  const auto tick = _playhead.getTimeInCrotchets();
-  if (!tick) {
+  const auto timeOpt = _playhead.getTimeInCrotchets();
+  if (!timeOpt.has_value()) {
     // TODO logging
     return;
   }
+  const auto time = *timeOpt;
   const auto pitch = _pitchDetector->process(block, size);
-  const auto pitchShift = intervalGetter->getHarmoInterval(*tick, pitch);
+  const auto pitchShift = intervalGetter->getHarmoInterval(time, pitch);
   _logger->debug("_intervalGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   if (pitchShift.has_value()) {

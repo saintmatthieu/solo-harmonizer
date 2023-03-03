@@ -117,7 +117,6 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
                                                 int audioSize) {
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
-  std::optional<float> detectedPitch;
   while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     std::vector<float> time(_fftSize);
     _ringBuffers[_ringBufferIndex].readBuff(time.data(), _window.size());
@@ -147,9 +146,11 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
     }
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
     if (max > 0.9) {
-      detectedPitch = _sampleRate / maxIndex;
+      _detectedPitch = _sampleRate / maxIndex;
+    } else {
+      _detectedPitch.reset();
     }
   }
-  return detectedPitch;
+  return _detectedPitch;
 }
 } // namespace saint

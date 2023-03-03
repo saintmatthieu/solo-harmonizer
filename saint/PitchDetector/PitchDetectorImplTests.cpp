@@ -86,10 +86,10 @@ TEST(PitchDetectorImpl, stuff) {
                                                     size / 2);
   };
 
-  const auto src = testUtils::getWavFileReader(
-      "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
   // const auto src = testUtils::getWavFileReader(
-  //     fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
+  //     "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
+  const auto src = testUtils::getWavFileReader(
+      fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   PitchDetectorImpl sut(44100, std::move(debugCallback));
   for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
     std::vector<float> buffer(blockSize);

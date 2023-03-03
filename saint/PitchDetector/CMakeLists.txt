@@ -30,4 +30,5 @@ target_link_libraries(PitchDetectorImplTests
   PRIVATE
     TestUtils
     PitchDetector
+    juce::juce_audio_utils
 )

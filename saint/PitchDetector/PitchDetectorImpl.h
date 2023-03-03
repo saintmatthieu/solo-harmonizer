@@ -45,5 +45,6 @@ private:
   const std::vector<float> _lpWindow;
   const std::vector<float> _windowXcor;
   const int _lastSearchIndex;
+  std::optional<float> _detectedPitch;
 };
 } // namespace saint
