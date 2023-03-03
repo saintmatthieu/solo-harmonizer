@@ -1,5 +1,6 @@
 #include "IntervalGetter.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -7,6 +8,7 @@
 #include <optional>
 
 using namespace saint;
+using namespace ::testing;
 
 namespace {
 float getPitch(int noteNumber) {
@@ -26,9 +28,9 @@ TEST(IntervalGetter, returns_nullopt_when_tick_is_outside_boundaries) {
                          {2, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(0, 123.f));
-  EXPECT_EQ(3, sut.getHarmoInterval(1, 123.f));
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(2, 123.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Eq(std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(2, 123.f), Eq(std::nullopt));
 }
 
 TEST(IntervalGetter, returns_nullopt_if_no_interval) {
@@ -37,7 +39,7 @@ TEST(IntervalGetter, returns_nullopt_if_no_interval) {
                          {1, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(0, 123.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Eq(std::nullopt));
 }
 
 TEST(IntervalGetter,
@@ -47,9 +49,8 @@ TEST(IntervalGetter,
                          {1, noNote},
                      },
                      ticksPerCrotchet};
-  const auto expectedInterval = 3;
-  EXPECT_FLOAT_EQ(*sut.getHarmoInterval(0, 0.f), expectedInterval);
-  EXPECT_FLOAT_EQ(*sut.getHarmoInterval(0, 100.f), expectedInterval);
+  EXPECT_THAT(sut.getHarmoInterval(0, 0.f), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, 100.f), Optional(3.f));
 }
 
 // We are only allowed to have interval jump when there is a discontinuity in
@@ -66,20 +67,20 @@ TEST(IntervalGetter, natural_scenario) {
                          {5, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(0, 123.f));
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(1, 234.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(1, 234.f), Optional(3.f));
   // This tick cuts a major 3rd, but the interval state sticks because the pitch
   // state is a yes-yes transition.
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(2, 345.f));
+  EXPECT_THAT(sut.getHarmoInterval(2, 345.f), Optional(3.f));
   // yes-no transition -> we switch asap to the next interval, to keep delay as
   // low as possible.
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(3, std::nullopt));
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(4, 456.f));
+  EXPECT_THAT(sut.getHarmoInterval(3, std::nullopt), Optional(4.f));
+  EXPECT_THAT(sut.getHarmoInterval(4, 456.f), Optional(4.f));
   // yes-yes transition -> the interval is preserved. That the tick doesn't cut
   // any interval doesn't matter.
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(5, 456.f));
+  EXPECT_THAT(sut.getHarmoInterval(5, 456.f), Optional(4.f));
   // yes-no transition -> we let go.
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(6, std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(6, std::nullopt), Eq(std::nullopt));
 }
 
 TEST(IntervalGetter, no_pitch_to_no_pitch) {
@@ -90,10 +91,10 @@ TEST(IntervalGetter, no_pitch_to_no_pitch) {
                          {3, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(0, std::nullopt));
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(1, std::nullopt));
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(2, std::nullopt));
-  EXPECT_EQ(std::nullopt, sut.getHarmoInterval(3, std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Eq(std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(2, std::nullopt), Optional(4.f));
+  EXPECT_THAT(sut.getHarmoInterval(3, std::nullopt), Eq(std::nullopt));
 }
 
 TEST(IntervalGetter, no_pitch_to_yes_pitch) {
@@ -103,8 +104,8 @@ TEST(IntervalGetter, no_pitch_to_yes_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(0, std::nullopt));
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(1, 123.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(4.f));
 }
 
 TEST(IntervalGetter, yes_pitch_to_yes_pitch) {
@@ -114,8 +115,8 @@ TEST(IntervalGetter, yes_pitch_to_yes_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(0, 123.f));
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(1, 123.f));
+  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(3.f));
 }
 
 TEST(IntervalGetter, yes_pitch_to_no_pitch) {
@@ -125,6 +126,6 @@ TEST(IntervalGetter, yes_pitch_to_no_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet};
-  EXPECT_FLOAT_EQ(3, *sut.getHarmoInterval(0, 123.f));
-  EXPECT_FLOAT_EQ(4, *sut.getHarmoInterval(1, std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
+  EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(4.f));
 }
