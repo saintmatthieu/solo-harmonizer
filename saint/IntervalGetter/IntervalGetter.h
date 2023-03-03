@@ -21,6 +21,6 @@ private:
   const std::vector<int> _ticks;
   const std::vector<std::optional<PlayedNote>> _intervals;
   bool _prevWasPitched = false;
-  int _lastIndex = 0;
+  int _currentIndex = 0;
 };
 } // namespace saint

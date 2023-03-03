@@ -1,42 +1,43 @@
 #include "IntervalHelper.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <optional>
 
 namespace saint {
 
-TEST(IntervalHelper, setIntervalIndex) {
-  const std::vector<int> intervals{{1, 2, 3, 5, 8}};
-  auto currentIndex = 0;
-  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 0 /*tick*/));
+using namespace ::testing;
 
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 1));
-  EXPECT_EQ(0, currentIndex);
+TEST(getClosestLimitIndex, leading_round_up_rule) {
+  // We'll want the playhead to snap to the first interval slightly before it
+  // has reached it already. What does "slightly before" mean ? We say it's half
+  // the duration of the first interval.
+  const std::vector<int> intervalExample1{
+      {3, 7}}; // Should snap to first interval from 1 already.
+  const std::vector<int> intervalExample2{
+      {3, 5}}; // Should snapt to first interval from 2.
 
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 2));
-  EXPECT_EQ(1, currentIndex);
-
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 4));
-  EXPECT_EQ(2, currentIndex);
-
-  // Last interval is closed
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 8));
-  EXPECT_EQ(4, currentIndex);
-
-  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 9));
-  EXPECT_EQ(4, currentIndex); // Value of current index isn't modified
-
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 2));
-  EXPECT_EQ(1, currentIndex);
-
-  EXPECT_TRUE(setIntervalIndex(intervals, currentIndex, 1));
-  EXPECT_EQ(0, currentIndex);
-
-  EXPECT_FALSE(setIntervalIndex(intervals, currentIndex, 0));
-  EXPECT_EQ(0, currentIndex);
+  EXPECT_THAT(getClosestLimitIndex(intervalExample1, 1), Optional(0));
+  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 1), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 2), Optional(0));
 }
 
-TEST(IntervalHelper, toIntervalSpans) {
+TEST(getClosestLimitIndex, various_tests) {
+  const std::vector<int> intervals{{2, 3, 5, 8}};
+  EXPECT_THAT(getClosestLimitIndex(intervals, 0), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 1), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 2), Optional(0));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 3), Optional(1));
+  // 4 is exactly in the middle of [3, 5) -> rounds up.
+  EXPECT_THAT(getClosestLimitIndex(intervals, 4), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 5), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 6), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 7), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 8), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 9), Eq(std::nullopt));
+}
+
+TEST(toIntervalSpans, variousTests) {
   const std::vector<MidiNoteMsg> playedMidiTrack{{
                                                      1,    // tick
                                                      true, // isNoteOn

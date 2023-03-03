@@ -64,6 +64,7 @@ TEST(IntervalGetter, natural_scenario) {
   // yes-no transition -> we switch asap to the next interval, to keep delay as
   // low as possible.
   EXPECT_THAT(sut.getHarmoInterval(3, std::nullopt), Optional(4.f));
+  EXPECT_THAT(sut.getHarmoInterval(3, 456.f), Optional(4.f));
   EXPECT_THAT(sut.getHarmoInterval(4, 456.f), Optional(4.f));
   // yes-yes transition -> the interval is preserved. That the tick doesn't cut
   // any interval doesn't matter.
@@ -117,4 +118,20 @@ TEST(IntervalGetter, yes_pitch_to_no_pitch) {
                      ticksPerCrotchet};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(4.f));
+}
+
+TEST(IntervalGetter, snaps_interval_to_onset_closest_to_playhead) {
+  IntervalGetter sut{{
+                         {0, aloneA4},
+                         {3, minor3rdB4},
+                         {6, major3rdB4},
+                         {9, noNote},
+                     },
+                     ticksPerCrotchet};
+  EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Eq(std::nullopt));
+  EXPECT_THAT(sut.getHarmoInterval(2, std::nullopt), Optional(3));
+  EXPECT_THAT(sut.getHarmoInterval(4, std::nullopt), Optional(3));
+  EXPECT_THAT(sut.getHarmoInterval(5, std::nullopt), Optional(4));
+  EXPECT_THAT(sut.getHarmoInterval(7, std::nullopt), Optional(4));
+  EXPECT_THAT(sut.getHarmoInterval(8, std::nullopt), Eq(std::nullopt));
 }

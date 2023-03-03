@@ -4,18 +4,46 @@
 #include <iterator>
 
 namespace saint {
-bool setIntervalIndex(const std::vector<int> &intervals, int &currentIndex,
-                      double tick) {
-  if (tick < intervals[0] || tick > intervals[intervals.size() - 1]) {
+std::optional<int> getClosestLimitIndex(const std::vector<int> &intervals,
+                                        double tick) {
+  if (intervals.size() < 2u) {
     return false;
   }
-  while (currentIndex < intervals.size() && intervals[currentIndex] <= tick) {
-    ++currentIndex;
+
+  if (tick < intervals[0]) {
+    // apply round-up rule
+    const auto leftLimit = intervals[0];
+    const auto rightLimit = intervals[1];
+    const auto snapRange = (rightLimit - leftLimit) / 2.f;
+    if (tick >= leftLimit - snapRange) {
+      return 0;
+    } else {
+      return std::nullopt;
+    }
   }
-  while (currentIndex == intervals.size() || intervals[currentIndex] > tick) {
-    --currentIndex;
+
+  const auto lastRightLimitIt = std::prev(intervals.end());
+  auto leftLimitIt = intervals.begin();
+  while (leftLimitIt != lastRightLimitIt) {
+    if (*leftLimitIt <= tick && tick < *std::next(leftLimitIt)) {
+      break;
+    }
+    ++leftLimitIt;
   }
-  return true;
+
+  if (leftLimitIt == lastRightLimitIt) {
+    return std::nullopt;
+  }
+
+  const auto leftLimit = *leftLimitIt;
+  const auto rightLimit = *std::next(leftLimitIt);
+  const auto leftLimitIndex = std::distance(intervals.begin(), leftLimitIt);
+  const auto closestLimitIndex = tick - leftLimit < rightLimit - tick
+                                     ? leftLimitIndex
+                                     : leftLimitIndex + 1;
+  return closestLimitIndex == static_cast<int>(intervals.size() - 1)
+             ? std::optional<int>{}
+             : std::optional<int>{closestLimitIndex};
 }
 
 std::vector<IntervalSpan>

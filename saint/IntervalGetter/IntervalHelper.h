@@ -5,8 +5,8 @@
 #include <vector>
 
 namespace saint {
-bool setIntervalIndex(const std::vector<int> &intervals, int &currentIndex,
-                      double tick);
+std::optional<int> getClosestLimitIndex(const std::vector<int> &intervals,
+                                        double tick);
 
 std::vector<IntervalSpan>
 toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,

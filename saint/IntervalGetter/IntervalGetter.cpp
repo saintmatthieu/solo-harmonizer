@@ -42,14 +42,16 @@ IntervalGetter::getHarmoInterval(double timeInCrotchets,
   }
   _prevWasPitched = pitch.has_value();
   const auto tick = timeInCrotchets * _ticksPerCrotchet;
-  if (!setIntervalIndex(_ticks, _lastIndex, tick)) {
+  const auto newIndex = getClosestLimitIndex(_ticks, tick);
+  if (!newIndex.has_value()) {
     return std::nullopt;
   }
+  _currentIndex = *newIndex;
   return _getInterval();
 }
 
 std::optional<float> IntervalGetter::_getInterval() const {
-  const auto &interval = _intervals[_lastIndex];
+  const auto &interval = _intervals[_currentIndex];
   if (!interval || !interval->interval) {
     return std::nullopt;
   }
