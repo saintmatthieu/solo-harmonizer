@@ -19,9 +19,9 @@ target_link_libraries(SoloHarmonizer
   PUBLIC
     IntervalGetter
     PitchDetector
-  PUBLIC
     spdlog
     DavidCNAntonia
+    Utils
 )
 
 juce_add_plugin(SoloHarmonizerVst

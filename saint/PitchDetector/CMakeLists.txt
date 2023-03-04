@@ -8,6 +8,7 @@ target_sources(PitchDetector
 target_link_libraries(PitchDetector
   PUBLIC
     PFFFT
+    TestUtils
 )
 
 target_include_directories(PitchDetector
@@ -28,7 +29,8 @@ add_executable(PitchDetectorImplTests
 
 target_link_libraries(PitchDetectorImplTests
   PRIVATE
-    TestUtils
     PitchDetector
     juce::juce_audio_utils
+    gtest_main
+    gmock
 )

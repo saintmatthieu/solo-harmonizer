@@ -20,7 +20,7 @@ const fs::path basePath{"C:/Users/saint/Downloads"};
 
 void prependDelay(std::vector<float> &vector) {
   constexpr auto delayMs =
-      0; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
+      100; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
          // than half of that - should still work.
   constexpr auto delaySamples = delayMs * sampleRate / 1000;
   const auto prevSize = vector.size();

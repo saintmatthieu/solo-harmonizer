@@ -1,4 +1,5 @@
 #include "SoloHarmonizerHelper.h"
+#include "Utils.h"
 
 #include <array>
 #include <cstdlib>
@@ -39,26 +40,23 @@ std::filesystem::path generateLogFilename(const std::string &loggerName) {
 
 spdlog::level::level_enum getLogLevelFromEnv() {
   constexpr auto defaultLogLevel = spdlog::level::info;
-  char *buffer = nullptr;
-  size_t size = 0;
-  _dupenv_s(&buffer, &size, "SAINT_LOG_LEVEL");
-  if (!buffer) {
+  const auto envLogLevel = utils::getEnvironmentVariable("SAINT_LOG_LEVEL");
+  if (!envLogLevel.has_value()) {
     return defaultLogLevel;
   }
-  const std::string str{buffer};
-  if (str == "trace") {
+  if (*envLogLevel == "trace") {
     return spdlog::level::trace;
-  } else if (str == "debug") {
+  } else if (*envLogLevel == "debug") {
     return spdlog::level::debug;
-  } else if (str == "info") {
+  } else if (*envLogLevel == "info") {
     return spdlog::level::info;
-  } else if (str == "warn") {
+  } else if (*envLogLevel == "warn") {
     return spdlog::level::warn;
-  } else if (str == "err") {
+  } else if (*envLogLevel == "err") {
     return spdlog::level::err;
-  } else if (str == "critical") {
+  } else if (*envLogLevel == "critical") {
     return spdlog::level::critical;
-  } else if (str == "off") {
+  } else if (*envLogLevel == "off") {
     return spdlog::level::off;
   } else {
     // unrecognized

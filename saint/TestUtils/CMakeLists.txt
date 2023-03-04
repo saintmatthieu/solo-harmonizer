@@ -3,13 +3,11 @@ add_library(TestUtils)
 target_sources(TestUtils
   PUBLIC
     testUtils.cpp
+    PitchDetectorImplDebugCb.cpp
 )
 
 target_link_libraries(TestUtils
-  PUBLIC
-    gtest_main
-    gmock
-  PRIVATE
+PUBLIC
     juce::juce_audio_utils
 )
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -5,6 +7,7 @@
 
 #include <juce_audio_utils/juce_audio_utils.h>
 
+namespace saint {
 namespace testUtils {
 std::vector<float>
 fromWavFile(std::optional<std::filesystem::path> path = std::nullopt);
@@ -33,3 +36,4 @@ std::vector<T> getDiff(const std::vector<T> &A, const std::vector<T> &B) {
   return diff;
 }
 } // namespace testUtils
+} // namespace saint

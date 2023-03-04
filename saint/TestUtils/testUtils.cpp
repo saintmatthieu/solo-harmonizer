@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 
+namespace saint {
 namespace testUtils {
 
 namespace fs = std::filesystem;
@@ -71,3 +72,4 @@ float getRms(const std::vector<float> &V) {
   return std::sqrtf(std::accumulate(U.begin(), U.end(), 0.f) / (float)V.size());
 }
 } // namespace testUtils
+} // namespace saint

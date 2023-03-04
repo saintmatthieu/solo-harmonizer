@@ -97,9 +97,9 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
 }
 } // namespace
 
-PitchDetectorImpl::PitchDetectorImpl(int sampleRate,
-                                     std::optional<OnXcorReady> onXcorReady)
-    : _sampleRate(sampleRate), _onXcorReady(std::move(onXcorReady)),
+PitchDetectorImpl::PitchDetectorImpl(
+    int sampleRate, std::optional<testUtils::PitchDetectorImplCb> debugCb)
+    : _sampleRate(sampleRate), _debugCb(std::move(debugCb)),
       _window(getAnalysisWindow(getWindowSizeSamples(sampleRate))),
       _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
@@ -134,15 +134,15 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
       }
     }
     max /= _windowXcor[maxIndex];
-    if (_onXcorReady) {
-      OnXcorReadyArgs args;
+    if (_debugCb) {
+      testUtils::PitchDetectorImplCbArgs args;
       args.xcor = time;
       args.windowSize = _window.size();
       args.olapAnalIndex = _ringBufferIndex;
       args.peakIndex = maxIndex;
       args.scaledMax = max;
       args.maxMin = std::min(_maxima[0], _maxima[1]);
-      (*_onXcorReady)(args);
+      (*_debugCb)(args);
     }
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
     if (max > 0.9) {
