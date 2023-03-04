@@ -1,10 +1,11 @@
 #pragma once
 
-#include <optional>
 #include <string>
 
 namespace saint {
 namespace utils {
-std::optional<std::string> getEnvironmentVariable(const std::string &);
-}
+std::string getEnvironmentVariable(const char *);
+bool getEnvironmentVariableAsBool(const char *);
+bool isDebugBuild();
+} // namespace utils
 } // namespace saint

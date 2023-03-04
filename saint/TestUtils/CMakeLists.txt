@@ -3,7 +3,7 @@ add_library(TestUtils)
 target_sources(TestUtils
   PUBLIC
     testUtils.cpp
-    PitchDetectorImplDebugCb.cpp
+    PitchDetectorDebugCb.cpp
 )
 
 target_compile_definitions(TestUtils

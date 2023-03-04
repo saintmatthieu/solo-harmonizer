@@ -22,7 +22,7 @@ std::vector<float> makeNyquistWave(int numSamples) {
 } // namespace
 
 TEST(PitchDetectorImpl, firstPfftBinIsDcAndNyquist) {
-  PitchDetectorImpl sut(44100);
+  PitchDetectorImpl sut(44100, std::nullopt);
   constexpr auto blockSize = 512;
   const auto audio = makeNyquistWave(blockSize);
   pffft::Fft<float> fftEngine(blockSize);
@@ -33,7 +33,7 @@ TEST(PitchDetectorImpl, firstPfftBinIsDcAndNyquist) {
 }
 
 TEST(PitchDetectorImpl, stuff) {
-  const auto debugCb = testUtils::getPitchDetectorImplDebugCb();
+  const auto debugCb = testUtils::getPitchDetectorDebugCb();
   constexpr auto blockSize = 512;
   // const auto src = testUtils::getWavFileReader(
   //     "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");

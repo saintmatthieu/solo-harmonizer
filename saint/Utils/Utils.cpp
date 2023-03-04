@@ -1,16 +1,35 @@
 #include "Utils.h"
+#include <algorithm>
+#include <cctype>
 
 namespace saint {
 namespace utils {
-std::optional<std::string> getEnvironmentVariable(const std::string &var) {
+std::string getEnvironmentVariable(const char *var) {
   char *buffer = nullptr;
   size_t size = 0;
-  _dupenv_s(&buffer, &size, "SAINT_LOG_LEVEL");
+  _dupenv_s(&buffer, &size, var);
   if (!buffer) {
-    return std::nullopt;
+    return "";
   } else {
     return std::string{buffer};
   }
 }
+
+bool getEnvironmentVariableAsBool(const char *var) {
+  auto str = getEnvironmentVariable(var);
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return str == "1" || str == "true" || str == "on" || str == "yes" ||
+         str == "y";
+}
+
+bool isDebugBuild() {
+#ifdef NDEBUG
+  return false;
+#else
+  return true;
+#endif
+}
+
 } // namespace utils
 } // namespace saint

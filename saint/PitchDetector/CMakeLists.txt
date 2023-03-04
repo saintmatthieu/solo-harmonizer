@@ -9,6 +9,7 @@ target_link_libraries(PitchDetector
   PUBLIC
     PFFFT
     TestUtils
+    Utils
 )
 
 target_include_directories(PitchDetector

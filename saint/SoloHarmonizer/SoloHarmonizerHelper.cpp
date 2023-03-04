@@ -41,22 +41,19 @@ std::filesystem::path generateLogFilename(const std::string &loggerName) {
 spdlog::level::level_enum getLogLevelFromEnv() {
   constexpr auto defaultLogLevel = spdlog::level::info;
   const auto envLogLevel = utils::getEnvironmentVariable("SAINT_LOG_LEVEL");
-  if (!envLogLevel.has_value()) {
-    return defaultLogLevel;
-  }
-  if (*envLogLevel == "trace") {
+  if (envLogLevel == "trace") {
     return spdlog::level::trace;
-  } else if (*envLogLevel == "debug") {
+  } else if (envLogLevel == "debug") {
     return spdlog::level::debug;
-  } else if (*envLogLevel == "info") {
+  } else if (envLogLevel == "info") {
     return spdlog::level::info;
-  } else if (*envLogLevel == "warn") {
+  } else if (envLogLevel == "warn") {
     return spdlog::level::warn;
-  } else if (*envLogLevel == "err") {
+  } else if (envLogLevel == "err") {
     return spdlog::level::err;
-  } else if (*envLogLevel == "critical") {
+  } else if (envLogLevel == "critical") {
     return spdlog::level::critical;
-  } else if (*envLogLevel == "off") {
+  } else if (envLogLevel == "off") {
     return spdlog::level::off;
   } else {
     // unrecognized
