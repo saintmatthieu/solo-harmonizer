@@ -5,8 +5,13 @@ target_sources(DavidCNAntonia
         PitchShifter.cpp
         RingBuffer.cpp)
 
+target_compile_definitions(DavidCNAntonia PUBLIC JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED)
+
 target_link_libraries(DavidCNAntonia
     PUBLIC
-        juce::juce_audio_basics
-        juce::juce_dsp
         rubberband-wrapper)
+
+target_include_directories(DavidCNAntonia
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/JUCE/modules
+)

@@ -5,25 +5,10 @@
       "name": "(msvc) Launch",
       "type": "cppvsdbg",
       "request": "launch",
-      // Resolved by CMake Tools:
       "program": "${command:cmake.launchTargetPath}",
-      // "args": ["--gtest_filter=*PitchDetectorImpl*"],
       "args": ["--gtest_filter=*SoloHarmonizerTest*"],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [
-        {
-          // add the directory where our target was built to the PATHs
-          // it gets resolved by CMake Tools:
-          "name": "PATH",
-          "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
-        },
-        {
-          "name": "OTHER_VALUE",
-          "value": "Something something"
-        }
-      ],
-      "console": "externalTerminal"
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

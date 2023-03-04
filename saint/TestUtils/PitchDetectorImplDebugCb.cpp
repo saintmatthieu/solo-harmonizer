@@ -1,6 +1,8 @@
 #include "PitchDetectorImplDebugCb.h"
 #include "testUtils.h"
 
+#include <juce_audio_formats/juce_audio_formats.h>
+
 namespace saint {
 namespace testUtils {
 namespace {

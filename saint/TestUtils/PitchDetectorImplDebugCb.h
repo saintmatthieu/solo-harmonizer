@@ -1,10 +1,6 @@
 #pragma once
 
-#include "testUtils.h"
-
-#include <juce_audio_formats/juce_audio_formats.h>
-
-#include <memory>
+#include <functional>
 
 namespace saint {
 namespace testUtils {

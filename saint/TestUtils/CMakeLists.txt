@@ -6,12 +6,13 @@ target_sources(TestUtils
     PitchDetectorImplDebugCb.cpp
 )
 
-target_link_libraries(TestUtils
-PUBLIC
-    juce::juce_audio_utils
+target_compile_definitions(TestUtils
+  PUBLIC
+    JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED
 )
 
 target_include_directories(TestUtils
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/JUCE/modules
 )

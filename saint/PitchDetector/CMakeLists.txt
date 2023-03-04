@@ -30,7 +30,7 @@ add_executable(PitchDetectorImplTests
 target_link_libraries(PitchDetectorImplTests
   PRIVATE
     PitchDetector
-    juce::juce_audio_utils
+    ${JuceLibDeps_PitchDetector}
     gtest_main
     gmock
 )
