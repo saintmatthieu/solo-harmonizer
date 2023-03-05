@@ -1,7 +1,9 @@
 #include "IntervalGetterFactory.h"
 #include "IntervalGetter.h"
+#include "IntervalGetterDebugCb.h"
 #include "IntervalHelper.h"
 #include "IntervalTypes.h"
+#include "Utils.h"
 
 namespace saint {
 
@@ -196,8 +198,15 @@ void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
     // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
     // TODO: No need to wrap IntervalGetter
-    _intervalGetter = std::make_shared<IntervalGetter>(_intervalGetterInput,
-                                                       *_ticksPerCrotchet);
+    if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
+        utils::isDebugBuild()) {
+      _intervalGetter = std::make_shared<IntervalGetter>(
+          _intervalGetterInput, *_ticksPerCrotchet,
+          testUtils::getIntervalGetterDebugCb());
+    } else {
+      _intervalGetter = std::make_shared<IntervalGetter>(
+          _intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
+    }
   }
 }
 

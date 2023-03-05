@@ -9,6 +9,11 @@ target_include_directories(IntervalGetter
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_link_libraries(IntervalGetter
+  PUBLIC
+    TestUtils
+)
+
 add_executable(IntervalGetterTests
   IntervalGetterTests.cpp
   IntervalHelperTests.cpp
@@ -17,6 +22,7 @@ add_executable(IntervalGetterTests
 target_link_libraries(IntervalGetterTests
   PRIVATE
     IntervalGetter
+    ${JuceLibDeps_IntervalGetter}
     gmock
     gtest_main
 )

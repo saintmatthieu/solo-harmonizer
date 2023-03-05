@@ -5,10 +5,6 @@
 #include <cassert>
 
 namespace saint {
-namespace {
-static std::atomic<int> instanceCounter = 0;
-} // namespace
-
 SoloHarmonizerVst::SoloHarmonizerVst()
     : AudioProcessor(
           BusesProperties()

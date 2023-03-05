@@ -1,5 +1,7 @@
 #include "testUtils.h"
 
+#include <juce_audio_formats/juce_audio_formats.h>
+
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -9,7 +11,8 @@ namespace testUtils {
 
 namespace fs = std::filesystem;
 
-std::unique_ptr<juce::AudioFormatWriter> getWavFileWriter(fs::path path) {
+namespace {
+std::unique_ptr<juce::AudioFormatWriter> getJuceWavFileWriter(fs::path path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
   if (fs::exists(path)) {
@@ -20,9 +23,29 @@ std::unique_ptr<juce::AudioFormatWriter> getWavFileWriter(fs::path path) {
       0));
   return writer;
 }
+} // namespace
+
+WavFileWriter::WavFileWriter(const fs::path &path)
+    : _juceWriter(getJuceWavFileWriter(path)) {}
+
+bool WavFileWriter::write(const float *audio, int size) {
+  std::vector<const float *> channels(1);
+  channels[0] = audio;
+  return _juceWriter->writeFromFloatArrays(channels.data(), 1, size);
+}
+
+bool WavFileWriter::write(const std::vector<float> &audio) {
+  return write(audio.data(), static_cast<int>(audio.size()));
+}
+
+bool WavFileWriter::write(float value, int size) {
+  std::vector<float> audio(size);
+  std::fill(audio.begin(), audio.end(), value);
+  return write(audio);
+}
 
 void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt) {
-  const auto writer = getWavFileWriter(
+  const auto writer = getJuceWavFileWriter(
       pathOpt ? *pathOpt : fs::path{"C:/Users/saint/Downloads/test.wav"});
   writer->writeFromFloatArrays(&audio, 1, (int)N);
 }
@@ -38,6 +61,8 @@ std::string getInputFilePath() {
 #endif
   return path.string();
 }
+
+std::string getOutDir() { return "C:/Users/saint/Downloads/"; }
 
 std::unique_ptr<juce::AudioFormatReader> getWavFileReader(fs::path path) {
   juce::WavAudioFormat format;

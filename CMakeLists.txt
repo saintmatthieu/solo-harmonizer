@@ -25,6 +25,9 @@ set(JuceLibDeps_SoloHarmonizerVst
     ${JuceLibDeps_SoloHarmonizer}
     juce::juce_audio_processors
 )
+set(JuceLibDeps_IntervalGetter
+    ${JuceLibDeps_TestUtils}
+)
 
 add_subdirectory(_thirdParty/DavidCNAntonia)
 add_subdirectory(rubberband-wrapper)

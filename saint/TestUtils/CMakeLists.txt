@@ -3,6 +3,7 @@ add_library(TestUtils)
 target_sources(TestUtils
   PUBLIC
     testUtils.cpp
+    IntervalGetterDebugCb.cpp
     PitchDetectorDebugCb.cpp
 )
 

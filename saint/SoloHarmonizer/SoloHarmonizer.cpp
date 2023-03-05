@@ -64,7 +64,7 @@ void SoloHarmonizer::processBlock(float *block, int size) {
   }
   const auto time = *timeOpt;
   const auto pitch = _pitchDetector->process(block, size);
-  const auto pitchShift = intervalGetter->getHarmoInterval(time, pitch);
+  const auto pitchShift = intervalGetter->getHarmoInterval(time, pitch, size);
   _logger->debug("_intervalGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   if (pitchShift.has_value()) {

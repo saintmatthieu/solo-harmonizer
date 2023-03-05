@@ -27,7 +27,8 @@ TEST(IntervalGetter, returns_nullopt_if_no_interval) {
                          {0, aloneA4}, // not an interval, just a note by itself
                          {1, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Eq(std::nullopt));
 }
 
@@ -37,7 +38,8 @@ TEST(IntervalGetter,
                          {0, minor3rdB4},
                          {1, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 0.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(0, 100.f), Optional(3.f));
 }
@@ -55,7 +57,8 @@ TEST(IntervalGetter, natural_scenario) {
                          {2, major3rdB4},
                          {5, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 234.f), Optional(3.f));
   // This tick cuts a major 3rd, but the interval state sticks because the pitch
@@ -80,7 +83,8 @@ TEST(IntervalGetter, no_pitch_to_no_pitch) {
                          {2, major3rdB4},
                          {3, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Eq(std::nullopt));
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(2, std::nullopt), Optional(4.f));
@@ -93,7 +97,8 @@ TEST(IntervalGetter, no_pitch_to_yes_pitch) {
                          {1, major3rdB4},
                          {2, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(4.f));
 }
@@ -104,7 +109,8 @@ TEST(IntervalGetter, yes_pitch_to_yes_pitch) {
                          {1, major3rdB4},
                          {2, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(3.f));
 }
@@ -115,7 +121,8 @@ TEST(IntervalGetter, yes_pitch_to_no_pitch) {
                          {1, major3rdB4},
                          {2, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(4.f));
 }
@@ -127,7 +134,8 @@ TEST(IntervalGetter, snaps_interval_to_onset_closest_to_playhead) {
                          {6, major3rdB4},
                          {9, noNote},
                      },
-                     ticksPerCrotchet};
+                     ticksPerCrotchet,
+                     std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Eq(std::nullopt));
   EXPECT_THAT(sut.getHarmoInterval(2, std::nullopt), Optional(3));
   EXPECT_THAT(sut.getHarmoInterval(4, std::nullopt), Optional(3));
