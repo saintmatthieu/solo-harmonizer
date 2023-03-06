@@ -11,9 +11,6 @@ using namespace saint;
 using namespace ::testing;
 
 namespace {
-float getPitch(int noteNumber) {
-  return 440 * std::powf(2, (noteNumber - 69) / 12.f);
-}
 constexpr auto ticksPerCrotchet = 1.f;
 constexpr auto ticksPerSample = 1.f;
 using OptPlayedNote = std::optional<PlayedNote>;

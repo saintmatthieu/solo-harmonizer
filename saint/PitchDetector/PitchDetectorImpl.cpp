@@ -11,23 +11,21 @@
 
 namespace saint {
 
-std::unique_ptr<PitchDetector> PitchDetector::createInstance(int sampleRate) {
+std::unique_ptr<PitchDetector> PitchDetector::createInstance(
+    int sampleRate, const std::optional<float> &leastFrequencyToDetect) {
   const auto debug =
       utils::getEnvironmentVariableAsBool("SAINT_DEBUG_PITCHDETECTOR");
   if (debug && utils::isDebugBuild()) {
     return std::make_unique<PitchDetectorImpl>(
-        sampleRate, testUtils::getPitchDetectorDebugCb());
+        sampleRate, leastFrequencyToDetect,
+        testUtils::getPitchDetectorDebugCb());
   } else {
-    return std::make_unique<PitchDetectorImpl>(sampleRate, std::nullopt);
+    return std::make_unique<PitchDetectorImpl>(
+        sampleRate, leastFrequencyToDetect, std::nullopt);
   }
 }
 
 namespace {
-// Through experiment, for it to work with as low as a guitar open low E.
-// For drop-D tuning or lower, a longer size would be needed, and hence more
-// delay. However, if the lowest played note of a solo is known, it could be
-// taken to minimize latency.
-constexpr auto windowSizeMs = 40;
 constexpr auto twoPi = 6.283185307179586f;
 constexpr auto cutoffFreq = 1500;
 
@@ -37,7 +35,18 @@ int getFftOrder(int windowSize) {
 
 int getFftSizeSamples(int windowSize) { return 1 << getFftOrder(windowSize); }
 
-int getWindowSizeSamples(int sampleRate) {
+int getWindowSizeSamples(int sampleRate,
+                         const std::optional<float> &leastFrequencyToDetect) {
+  // If not provided, use the lower open-E of a guitar.
+  const auto freq =
+      leastFrequencyToDetect.has_value() ? *leastFrequencyToDetect : 83.f;
+
+  // 3.3 times the fundamental period. More and that's unnecessary delay, less
+  // and the detection becomes inaccurate - at least with this autocorrelation
+  // method. A spectral-domain method might need less than this, since
+  // autocorrelation requires there to be at least two periods within the
+  // window, against 1 for a spectrum reading.
+  const auto windowSizeMs = 1000 * 3.3 / freq;
   return windowSizeMs * sampleRate / 1000;
 }
 
@@ -108,9 +117,11 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
 } // namespace
 
 PitchDetectorImpl::PitchDetectorImpl(
-    int sampleRate, std::optional<testUtils::PitchDetectorDebugCb> debugCb)
+    int sampleRate, const std::optional<float> &leastFrequencyToDetect,
+    std::optional<testUtils::PitchDetectorDebugCb> debugCb)
     : _sampleRate(sampleRate), _debugCb(std::move(debugCb)),
-      _window(getAnalysisWindow(getWindowSizeSamples(sampleRate))),
+      _window(getAnalysisWindow(
+          getWindowSizeSamples(sampleRate, leastFrequencyToDetect))),
       _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
       _lastSearchIndex(

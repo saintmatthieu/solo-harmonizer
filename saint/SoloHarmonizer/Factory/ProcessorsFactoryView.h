@@ -14,5 +14,7 @@ public:
   virtual bool hasIntervalGetter() const = 0;
   virtual std::shared_ptr<IntervalGetter> getIntervalGetter() const = 0;
   virtual bool useHostPlayhead() const = 0;
+  virtual std::optional<float>
+  getLowestPlayedTrackHarmonizedFrequency() const = 0;
 };
 } // namespace saint

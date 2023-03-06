@@ -31,7 +31,9 @@ SoloHarmonizer::~SoloHarmonizer() { _logger->info("dtor {0}", _loggerName); }
 void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _pitchShifter = DavidCNAntonia::IPitchShifter::createInstance(
       1, sampleRate, samplesPerBlock);
-  _pitchDetector = PitchDetector::createInstance(static_cast<int>(sampleRate));
+  _pitchDetector = PitchDetector::createInstance(
+      static_cast<int>(sampleRate),
+      _processorsFactoryView->getLowestPlayedTrackHarmonizedFrequency());
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }

@@ -23,6 +23,7 @@ public:
   std::optional<int> getPlayedTrack() const override;
   void setHarmonyTrack(int) override;
   std::optional<int> getHarmonyTrack() const override;
+  std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
 
   // ProcessorsFactoryView
   const std::vector<uint8_t> &getState() const override;
@@ -46,6 +47,7 @@ private:
   std::optional<int> _harmonyTrack;
   std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
+  std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
   std::vector<uint8_t> _state;
   std::shared_ptr<IntervalGetter> _intervalGetter;
   bool _useHostPlayhead = true;

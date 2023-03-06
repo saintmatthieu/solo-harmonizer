@@ -1,6 +1,7 @@
 #include "Utils.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 
 namespace saint {
 namespace utils {
@@ -29,6 +30,10 @@ bool isDebugBuild() {
 #else
   return true;
 #endif
+}
+
+float getPitch(int noteNumber) {
+  return 440 * std::powf(2, (noteNumber - 69) / 12.f);
 }
 
 } // namespace utils

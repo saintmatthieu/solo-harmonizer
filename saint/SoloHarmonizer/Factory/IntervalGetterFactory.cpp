@@ -4,6 +4,8 @@
 #include "IntervalHelper.h"
 #include "IntervalTypes.h"
 #include "Utils.h"
+#include <algorithm>
+#include <iterator>
 
 namespace saint {
 
@@ -199,6 +201,28 @@ bool IntervalGetterFactory::useHostPlayhead() const {
   return getUseHostPlayhead();
 }
 
+namespace {
+std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
+    const std::vector<IntervalSpan> &spans) {
+  std::vector<IntervalSpan> harmonizedSpans;
+  std::copy_if(spans.begin(), spans.end(), std::back_inserter(harmonizedSpans),
+               [](const IntervalSpan &span) {
+                 return span.playedNote.has_value() &&
+                        span.playedNote->interval.has_value();
+               });
+  const auto it = std::min_element(
+      harmonizedSpans.begin(), harmonizedSpans.end(),
+      [](const IntervalSpan &a, const IntervalSpan &b) -> bool {
+        return a.playedNote->noteNumber < b.playedNote->noteNumber;
+      });
+  if (it == harmonizedSpans.end()) {
+    return std::nullopt;
+  } else {
+    return utils::getPitch(it->playedNote->noteNumber);
+  }
+}
+} // namespace
+
 void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||
       !_samplesPerSecond) {
@@ -209,6 +233,8 @@ void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   const auto harmoSeq = getMidiNoteMessages(
       *_juceMidiFile->getTrack(*_harmonyTrack), *_ticksPerCrotchet);
   _intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
+  _lowestPlayedTrackHarmonizedFrequency =
+      ::saint::getLowestPlayedTrackHarmonizedFrequency(_intervalGetterInput);
   if (_intervalGetterInput.empty()) {
     // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
@@ -234,6 +260,11 @@ std::optional<int> IntervalGetterFactory::getTicksPerCrotchet() const {
 
 std::optional<float> IntervalGetterFactory::getCrotchetsPerSecond() const {
   return _crotchetsPerSecond;
+}
+
+std::optional<float>
+IntervalGetterFactory::getLowestPlayedTrackHarmonizedFrequency() const {
+  return _lowestPlayedTrackHarmonizedFrequency;
 }
 
 } // namespace saint

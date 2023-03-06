@@ -22,7 +22,7 @@ std::vector<float> makeNyquistWave(int numSamples) {
 } // namespace
 
 TEST(PitchDetectorImpl, firstPfftBinIsDcAndNyquist) {
-  PitchDetectorImpl sut(44100, std::nullopt);
+  PitchDetectorImpl sut(44100, std::nullopt, std::nullopt);
   constexpr auto blockSize = 512;
   const auto audio = makeNyquistWave(blockSize);
   pffft::Fft<float> fftEngine(blockSize);
@@ -39,7 +39,7 @@ TEST(PitchDetectorImpl, stuff) {
   //     "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
   const auto src = testUtils::getWavFileReader(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
-  PitchDetectorImpl sut(44100, std::move(debugCb));
+  PitchDetectorImpl sut(44100, 83.f, std::move(debugCb));
   for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
     std::vector<float> buffer(blockSize);
     std::vector<float *> channels(1);
