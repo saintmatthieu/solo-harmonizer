@@ -23,10 +23,16 @@ void prependDelay(std::vector<float> &vector) {
       100; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
            // than half of that - should still work.
   constexpr auto delaySamples = delayMs * sampleRate / 1000;
-  const auto prevSize = vector.size();
-  vector.resize(vector.size() + delaySamples);
-  std::fill(vector.begin() + prevSize, vector.end(), 0.f);
-  std::rotate(vector.begin(), vector.begin() + prevSize, vector.end());
+  if (delaySamples >= 0) {
+    const auto prevSize = vector.size();
+    vector.resize(vector.size() + delaySamples);
+    std::fill(vector.begin() + prevSize, vector.end(), 0.f);
+    std::rotate(vector.begin(), vector.begin() + prevSize, vector.end());
+  } else {
+    const auto numToErase =
+        std::min(static_cast<size_t>(-delaySamples), vector.size());
+    vector.erase(vector.begin(), vector.begin() + numToErase);
+  }
 }
 
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
