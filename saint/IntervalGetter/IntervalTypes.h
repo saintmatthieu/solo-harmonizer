@@ -20,8 +20,8 @@ bool operator!=(const PlayedNote &a, const PlayedNote &b);
 bool operator!=(const IntervalSpan &a, const IntervalSpan &b);
 
 struct MidiNoteMsg {
-  const int tick; // quantized
-  const bool isNoteOn;
-  const int noteNumber;
+  int tick; // quantized
+  bool isNoteOn;
+  int noteNumber;
 };
 } // namespace saint

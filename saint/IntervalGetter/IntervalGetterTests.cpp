@@ -14,7 +14,8 @@ namespace {
 float getPitch(int noteNumber) {
   return 440 * std::powf(2, (noteNumber - 69) / 12.f);
 }
-constexpr auto ticksPerCrotchet = 1.0;
+constexpr auto ticksPerCrotchet = 1.f;
+constexpr auto ticksPerSample = 1.f;
 using OptPlayedNote = std::optional<PlayedNote>;
 constexpr OptPlayedNote noNote;
 constexpr OptPlayedNote aloneA4{{69}};
@@ -28,6 +29,7 @@ TEST(IntervalGetter, returns_nullopt_if_no_interval) {
                          {1, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Eq(std::nullopt));
 }
@@ -39,6 +41,7 @@ TEST(IntervalGetter,
                          {1, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 0.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(0, 100.f), Optional(3.f));
@@ -58,6 +61,7 @@ TEST(IntervalGetter, natural_scenario) {
                          {5, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 234.f), Optional(3.f));
@@ -84,6 +88,7 @@ TEST(IntervalGetter, no_pitch_to_no_pitch) {
                          {3, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Eq(std::nullopt));
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(3.f));
@@ -98,6 +103,7 @@ TEST(IntervalGetter, no_pitch_to_yes_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, std::nullopt), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(4.f));
@@ -110,6 +116,7 @@ TEST(IntervalGetter, yes_pitch_to_yes_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, 123.f), Optional(3.f));
@@ -122,6 +129,7 @@ TEST(IntervalGetter, yes_pitch_to_no_pitch) {
                          {2, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(0, 123.f), Optional(3.f));
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Optional(4.f));
@@ -135,6 +143,7 @@ TEST(IntervalGetter, snaps_interval_to_onset_closest_to_playhead) {
                          {9, noNote},
                      },
                      ticksPerCrotchet,
+                     ticksPerSample,
                      std::nullopt};
   EXPECT_THAT(sut.getHarmoInterval(1, std::nullopt), Eq(std::nullopt));
   EXPECT_THAT(sut.getHarmoInterval(2, std::nullopt), Optional(3));

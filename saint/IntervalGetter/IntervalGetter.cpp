@@ -29,19 +29,20 @@ getNotes(const std::vector<IntervalSpan> &spans) {
 } // namespace
 
 IntervalGetter::IntervalGetter(
-    const std::vector<IntervalSpan> &spans, double ticksPerCrotchet,
+    const std::vector<IntervalSpan> &spans, float ticksPerCrotchet,
+    float ticksPerSample,
     std::optional<testUtils::IntervalGetterDebugCb> debugCb)
     : _debugCb(std::move(debugCb)), _ticksPerCrotchet(ticksPerCrotchet),
-      _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
+      _ticksPerSample(ticksPerSample), _ticks(getTicks(spans)),
+      _intervals(getNotes(spans)) {}
 
 std::optional<float> IntervalGetter::getHarmoInterval(
-    double timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
+    float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
   const auto interval = _getHarmoInterval(timeInCrotchets, pitch);
   if (_debugCb) {
-    testUtils::IntervalGetterDebugCbArgs args;
-    args.inputPitch = pitch;
+    testUtils::IntervalGetterDebugCbArgs args{_ticks, pitch, interval};
+    args.ticksPerSample = _ticksPerSample;
     args.newIndex = _currentIndex;
-    args.numIndices = static_cast<int>(_intervals.size());
     args.blockSize = blockSize;
     (*_debugCb)(args);
   }
@@ -49,7 +50,7 @@ std::optional<float> IntervalGetter::getHarmoInterval(
 }
 
 std::optional<float>
-IntervalGetter::_getHarmoInterval(double timeInCrotchets,
+IntervalGetter::_getHarmoInterval(float timeInCrotchets,
                                   const std::optional<float> &pitch) {
   if (_prevWasPitched && pitch.has_value()) {
     // Pitch is stable -> pitch shift interval is locked.

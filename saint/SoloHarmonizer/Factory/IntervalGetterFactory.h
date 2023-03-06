@@ -11,6 +11,8 @@ namespace saint {
 class IntervalGetterFactory : public EditorsFactoryView,
                               public ProcessorsFactoryView {
 public:
+  void setSampleRate(int);
+
   // EditorsFactoryView
   void setUseHostPlayhead(bool) override;
   bool getUseHostPlayhead() const override;
@@ -39,6 +41,7 @@ private:
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;
   std::vector<std::string> _trackNames;
+  std::optional<int> _samplesPerSecond;
   std::optional<int> _playedTrack;
   std::optional<int> _harmonyTrack;
   std::optional<int> _ticksPerCrotchet;

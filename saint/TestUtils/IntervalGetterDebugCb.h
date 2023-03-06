@@ -6,9 +6,11 @@
 namespace saint {
 namespace testUtils {
 struct IntervalGetterDebugCbArgs {
-  std::optional<float> inputPitch;
+  const std::vector<int> &intervalTicks;
+  const std::optional<float> &inputPitch;
+  const std::optional<float> &returnedInterval;
+  float ticksPerSample;
   int newIndex;
-  int numIndices;
   int blockSize;
 };
 

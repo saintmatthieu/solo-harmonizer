@@ -9,12 +9,35 @@ IntervalGetterDebugCb getIntervalGetterDebugCb() {
       std::make_shared<WavFileWriter>(getOutDir() + "ig_inputPitch.wav");
   const auto newIndexWriter =
       std::make_shared<WavFileWriter>(getOutDir() + "ig_newIndex.wav");
-  return [inputPitchWriter,
-          newIndexWriter](const IntervalGetterDebugCbArgs &args) {
+  const auto tickIntervalWriter =
+      std::make_shared<WavFileWriter>(getOutDir() + "ig_tickIntervals.wav");
+  const auto returnedIntervalWriter =
+      std::make_shared<WavFileWriter>(getOutDir() + "ig_returnedInterval.wav");
+  return [inputPitchWriter, newIndexWriter, tickIntervalWriter,
+          returnedIntervalWriter, intervalIndex = 0,
+          first = true](const IntervalGetterDebugCbArgs &args) mutable {
+    if (first) {
+      first = false;
+      const auto &ticks = args.intervalTicks;
+      const auto numSamples =
+          static_cast<int>(ticks[ticks.size() - 1] / args.ticksPerSample) + 1;
+      std::vector<float> changes(numSamples);
+      for (const auto tick : ticks) {
+        const auto tickIndex = static_cast<int>(tick / args.ticksPerSample);
+        changes[tickIndex] = 1;
+      }
+      tickIntervalWriter->write(changes);
+    }
     inputPitchWriter->write(args.inputPitch ? *args.inputPitch / 1000 : 0.f,
                             args.blockSize);
-    newIndexWriter->write(args.newIndex / static_cast<float>(args.numIndices),
-                          args.blockSize);
+    std::vector<float> newIndexV(args.blockSize);
+    if (args.newIndex != intervalIndex) {
+      newIndexV[0] = 1;
+      intervalIndex = args.newIndex;
+    }
+    newIndexWriter->write(newIndexV);
+    returnedIntervalWriter->write(
+        args.returnedInterval.has_value() ? 0.5f : 0.f, args.blockSize);
   };
 }
 } // namespace testUtils

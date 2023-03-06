@@ -20,7 +20,7 @@ const fs::path basePath{"C:/Users/saint/Downloads"};
 
 void prependDelay(std::vector<float> &vector) {
   constexpr auto delayMs =
-      100; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
+      0; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
          // than half of that - should still work.
   constexpr auto delaySamples = delayMs * sampleRate / 1000;
   const auto prevSize = vector.size();
@@ -34,6 +34,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   prependDelay(wav);
   const auto factory = std::make_shared<IntervalGetterFactory>();
+  factory->setSampleRate(sampleRate);
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);

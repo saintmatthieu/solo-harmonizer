@@ -98,18 +98,32 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
     const auto tick =
         static_cast<int>(msg.getTimeStamp() / ticksPer32nd + 0.5) *
         ticksPer32nd;
-    if (msg.isNoteOn() && lastMsg && !lastMsg->isNoteOn &&
-        lastMsg->tick == tick) {
-      // This new NoteOn coincides with the previous NoteOff => let's delete
-      // that NoteOff
-      msgs.pop_back();
-    }
     msgs.push_back({tick, msg.isNoteOn(), msg.getNoteNumber()});
     lastMsg = &msgs.back();
+  }
+  std::sort(msgs.begin(), msgs.end(),
+            [](const MidiNoteMsg &a, const MidiNoteMsg &b) {
+              return a.isNoteOn && !b.isNoteOn;
+            });
+  std::sort(msgs.begin(), msgs.end(),
+            [](const MidiNoteMsg &a, const MidiNoteMsg &b) {
+              return a.tick < b.tick;
+            });
+  auto it = std::prev(msgs.end());
+  while (it != msgs.begin()) {
+    auto prev = std::prev(it);
+    if (prev->isNoteOn && !it->isNoteOn && prev->tick == it->tick) {
+      msgs.erase(it);
+    }
+    it = prev;
   }
   return msgs;
 }
 } // namespace
+
+void IntervalGetterFactory::setSampleRate(int sampleRate) {
+  _samplesPerSecond = sampleRate;
+}
 
 void IntervalGetterFactory::setUseHostPlayhead(bool useHostPlayhead) {
   _useHostPlayhead = useHostPlayhead;
@@ -186,7 +200,8 @@ bool IntervalGetterFactory::useHostPlayhead() const {
 }
 
 void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
-  if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack) {
+  if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||
+      !_samplesPerSecond) {
     return;
   }
   const auto playedSeq = getMidiNoteMessages(
@@ -197,15 +212,18 @@ void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   if (_intervalGetterInput.empty()) {
     // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
+    const auto ticksPerSample =
+        *_ticksPerCrotchet * *_crotchetsPerSecond / *_samplesPerSecond;
     // TODO: No need to wrap IntervalGetter
     if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
         utils::isDebugBuild()) {
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet,
+          _intervalGetterInput, *_ticksPerCrotchet, ticksPerSample,
           testUtils::getIntervalGetterDebugCb());
     } else {
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
+          _intervalGetterInput, *_ticksPerCrotchet, ticksPerSample,
+          std::nullopt);
     }
   }
 }

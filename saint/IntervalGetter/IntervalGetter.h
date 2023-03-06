@@ -9,21 +9,22 @@ namespace saint {
 class IntervalGetter {
 public:
   IntervalGetter(const std::vector<IntervalSpan> &timeSegments,
-                 double ticksPerCrotchet,
+                 float ticksPerCrotchet, float ticksPerSample,
                  std::optional<testUtils::IntervalGetterDebugCb>);
   // The caller should only pass a nullopt pitch whenever there is no pitch to
   // be had, or a pitch jump was detected.
   // When `pitch == nullopt`, the algorithm will allow pitch shift jumps.
-  std::optional<float> getHarmoInterval(double timeInCrotchets,
+  std::optional<float> getHarmoInterval(float timeInCrotchets,
                                         const std::optional<float> &pitch,
                                         int blockSize = 0);
 
 private:
   std::optional<float> _getInterval() const;
-  std::optional<float> _getHarmoInterval(double timeInCrotchets,
+  std::optional<float> _getHarmoInterval(float timeInCrotchets,
                                          const std::optional<float> &pitch);
   const std::optional<testUtils::IntervalGetterDebugCb> _debugCb;
-  const double _ticksPerCrotchet;
+  const float _ticksPerCrotchet;
+  const float _ticksPerSample;
   const std::vector<int> _ticks;
   const std::vector<std::optional<PlayedNote>> _intervals;
   bool _prevWasPitched = false;

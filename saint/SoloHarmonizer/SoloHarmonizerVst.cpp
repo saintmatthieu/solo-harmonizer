@@ -19,6 +19,7 @@ const juce::String SoloHarmonizerVst::getName() const {
 }
 
 void SoloHarmonizerVst::prepareToPlay(double sampleRate, int samplesPerBlock) {
+  _intervalGetterFactory->setSampleRate(static_cast<int>(sampleRate));
   _soloHarmonizer->prepareToPlay(sampleRate, samplesPerBlock);
 }
 

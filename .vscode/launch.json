@@ -8,7 +8,8 @@
       "program": "${command:cmake.launchTargetPath}",
       "args": ["--gtest_filter=*SoloHarmonizerTest*"],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}"
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
     }
   ]
 }
