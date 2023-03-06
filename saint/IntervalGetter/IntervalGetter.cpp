@@ -52,8 +52,10 @@ std::optional<float> IntervalGetter::getHarmoInterval(
 std::optional<float>
 IntervalGetter::_getHarmoInterval(float timeInCrotchets,
                                   const std::optional<float> &pitch) {
-  if (_prevWasPitched && pitch.has_value()) {
-    // Pitch is stable -> pitch shift interval is locked.
+  if (_prevWasPitched || !pitch.has_value()) {
+    _prevWasPitched = pitch.has_value();
+    // We only are interested in interval changes when the state goes from
+    // unpitched to pitched.
     return _getInterval();
   }
   _prevWasPitched = pitch.has_value();
