@@ -50,20 +50,19 @@ std::vector<IntervalSpan>
 toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
                 const std::vector<MidiNoteMsg> &harmoMidiTrack) {
   std::vector<IntervalSpan> spans;
-  auto playing = false;
   auto harmoIt = harmoMidiTrack.begin();
   for (auto playedIt = playedMidiTrack.begin();
        playedIt != playedMidiTrack.end(); ++playedIt) {
     const auto &played = *playedIt;
     if (!played.isNoteOn) {
-      assert(playing); // Looks like this isn't a monophonic track
-      if (playing) {
+      if (std::next(playedIt) == playedMidiTrack.end()) {
+        // We do this because other places assume that the intervals end with a
+        // closing. Would be better to address this assumption, but too tired
+        // right now.
         spans.push_back({played.tick, std::nullopt});
-        playing = false;
       }
       continue;
     }
-    playing = true;
     if (spans.size() > 0u && !spans.back().playedNote &&
         spans.back().beginTick == played.tick) {
       // This new NoteOn coincides with the previous NoteOff => let's delete
