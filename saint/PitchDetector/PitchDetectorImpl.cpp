@@ -46,7 +46,7 @@ int getWindowSizeSamples(int sampleRate,
   // method. A spectral-domain method might need less than this, since
   // autocorrelation requires there to be at least two periods within the
   // window, against 1 for a spectrum reading.
-  const auto windowSizeMs = 1000 * 3.3 / freq;
+  const auto windowSizeMs = 1000 * 3.5 / freq;
   return windowSizeMs * sampleRate / 1000;
 }
 
