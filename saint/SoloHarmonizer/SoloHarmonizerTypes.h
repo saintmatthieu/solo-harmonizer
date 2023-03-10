@@ -16,7 +16,7 @@ enum class PlayheadCommand {
 
 using PlayheadFactory = std::function<std::shared_ptr<Playhead>(
     bool mustSetPpqPosition, const JuceAudioPlayHeadProvider &playheadProvider,
-    float crotchetsPerSample)>;
+    float crotchetsPerSample, int samplesPerSecond)>;
 
 enum class TrackType { played, harmony, _size };
 constexpr auto numTrackTypes = static_cast<size_t>(TrackType::_size);

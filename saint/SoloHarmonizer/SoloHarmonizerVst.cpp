@@ -132,7 +132,8 @@ bool SoloHarmonizerVst::_startPlaying() {
   }
   const auto crotchetsPerSample =
       utils::getCrotchetsPerSample(*_crotchetsPerSecond, *_samplesPerSecond);
-  _playhead = _playheadFactory(_isStandalone, *this, crotchetsPerSample);
+  _playhead = _playheadFactory(_isStandalone, *this, crotchetsPerSample,
+                               *_samplesPerSecond);
   return true;
 }
 
@@ -148,10 +149,11 @@ juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
   PlayheadFactory factory{
       [](bool mustSetPpqPosition,
          const JuceAudioPlayHeadProvider &playheadProvider,
-         float crotchetsPerSample) -> std::shared_ptr<Playhead> {
+         float crotchetsPerSample,
+         int samplesPerSecond) -> std::shared_ptr<Playhead> {
         if (mustSetPpqPosition) {
           return std::make_shared<ProcessCallbackDrivenPlayhead>(
-              crotchetsPerSample);
+              samplesPerSecond, crotchetsPerSample);
         } else {
           return std::make_shared<HostDrivenPlayhead>(playheadProvider);
         }

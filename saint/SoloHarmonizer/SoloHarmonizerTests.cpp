@@ -40,13 +40,17 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   auto wav = testUtils::fromWavFile(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   prependDelay(wav);
-  const auto factory = std::make_shared<IntervalGetterFactory>();
+  OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
+  OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
+  const auto factory = std::make_shared<IntervalGetterFactory>(
+      onCrotchetsPerSecondAvailable, onPlayheadCommand);
   factory->setSampleRate(sampleRate);
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);
-  ProcessCallbackDrivenPlayhead playhead{utils::getCrotchetsPerSample(
-      *factory->getCrotchetsPerSecond(), sampleRate)};
+  ProcessCallbackDrivenPlayhead playhead{
+      sampleRate, utils::getCrotchetsPerSample(
+                      *factory->getCrotchetsPerSecond(), sampleRate)};
   SoloHarmonizer sut{factory, playhead};
   sut.prepareToPlay(sampleRate, blockSize);
   for (auto offset = 0; offset + blockSize < static_cast<int>(wav.size());

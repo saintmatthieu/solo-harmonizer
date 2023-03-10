@@ -71,6 +71,7 @@ target_link_libraries(SoloHarmonizerVst
 
 add_executable(SoloHarmonizerTests
     SoloHarmonizerTests.cpp
+    Playheads/ProcessCallbackDrivenPlayheadTests.cpp
 )
 
 target_link_libraries(SoloHarmonizerTests
