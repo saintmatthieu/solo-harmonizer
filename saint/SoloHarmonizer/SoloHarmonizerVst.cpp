@@ -43,37 +43,25 @@ void SoloHarmonizerVst::releaseResources() {
   _soloHarmonizer->releaseResources();
 }
 
-bool SoloHarmonizerVst::isBusesLayoutSupported(
-    const BusesLayout &layouts) const {
-  // This is the place where you check if the layout is supported.
-  // In this template code we only support mono or stereo.
-  // Some plugin hosts, such as certain GarageBand versions, will only
-  // load plugins that support stereo bus layouts.
-  if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono())
-    return false;
-
-  if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-    return false;
-
+bool SoloHarmonizerVst::isBusesLayoutSupported(const BusesLayout &) const {
   return true;
 }
 
 void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
                                      juce::MidiBuffer &) {
-  if (!_playhead) {
-    return;
-  }
   const auto playhead = _playhead;
-  if (!playhead) {
-    return;
-  }
-  const auto p = buffer.getWritePointer(0);
   const auto numSamples = buffer.getNumSamples();
-  _soloHarmonizer->processBlock(p, numSamples);
-  if (_isStandalone) {
+  if (playhead) {
+    const auto p = buffer.getWritePointer(0);
+    _soloHarmonizer->processBlock(p, numSamples);
     playhead->mixMetronome(p, numSamples);
+    playhead->incrementSampleCount(numSamples);
   }
-  playhead->incrementSampleCount(numSamples);
+  const auto p = buffer.getReadPointer(0);
+  for (auto i = 1; i < buffer.getNumChannels(); ++i) {
+    const auto q = buffer.getWritePointer(i);
+    std::copy(p, p + numSamples, q);
+  }
 }
 
 std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
