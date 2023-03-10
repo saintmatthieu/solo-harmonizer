@@ -9,6 +9,7 @@ hide Playhead methods
 hide SoloHarmonizerVst methods
 hide ProcessCallbackDrivenPlayhead methods
 hide HostDrivenPlayhead methods
+hide IntervalGetter methods
 
 abstract class Playhead
 class SoloHarmonizer

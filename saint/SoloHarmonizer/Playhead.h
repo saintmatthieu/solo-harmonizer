@@ -8,7 +8,7 @@ namespace saint {
 class Playhead {
 public:
   virtual void incrementSampleCount(int) {}
-  virtual bool execute(PlayheadCommand) { return false; }
+  virtual void mixMetronome(float *, int) {}
   virtual std::optional<float> getTimeInCrotchets() const = 0;
   virtual ~Playhead() = default;
 };

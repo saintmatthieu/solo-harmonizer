@@ -36,5 +36,10 @@ float getPitch(int noteNumber) {
   return 440 * std::powf(2, (noteNumber - 69) / 12.f);
 }
 
+float getCrotchetsPerSample(float crotchetsPerSecond, int samplesPerSecond) {
+  return (crotchetsPerSecond == 0 ? 120.f : crotchetsPerSecond) /
+         static_cast<float>(samplesPerSecond);
+}
+
 } // namespace utils
 } // namespace saint

@@ -17,6 +17,8 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::mono(), true)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
+      _isStandalone(wrapperType ==
+                    juce::AudioProcessor::wrapperType_Standalone),
       _intervalGetterFactory(std::make_shared<IntervalGetterFactory>(
           std::bind(&SoloHarmonizerVst::_onCrotchetsPerSecondAvailable, this,
                     _1),
@@ -33,7 +35,6 @@ void SoloHarmonizerVst::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _samplesPerSecond = static_cast<int>(sampleRate);
   _intervalGetterFactory->setSampleRate(*_samplesPerSecond);
   _soloHarmonizer->prepareToPlay(*_samplesPerSecond, samplesPerBlock);
-  _createPlayheadIfReady();
 }
 
 void SoloHarmonizerVst::releaseResources() {
@@ -59,22 +60,28 @@ bool SoloHarmonizerVst::isBusesLayoutSupported(
 
 void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
                                      juce::MidiBuffer &) {
-  _soloHarmonizer->processBlock(buffer.getWritePointer(0),
-                                buffer.getNumSamples());
-  incrementSampleCount(buffer.getNumSamples());
+  if (!_playhead) {
+    return;
+  }
+  const auto playhead = _playhead;
+  if (!playhead) {
+    return;
+  }
+  const auto p = buffer.getWritePointer(0);
+  const auto numSamples = buffer.getNumSamples();
+  _soloHarmonizer->processBlock(p, numSamples);
+  if (_isStandalone) {
+    playhead->mixMetronome(p, numSamples);
+  }
+  playhead->incrementSampleCount(numSamples);
 }
 
 std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
-  if (_playhead) {
-    return _playhead->getTimeInCrotchets();
+  const auto playhead = _playhead;
+  if (playhead) {
+    return playhead->getTimeInCrotchets();
   } else {
     return std::nullopt;
-  }
-}
-
-void SoloHarmonizerVst::incrementSampleCount(int increment) {
-  if (_playhead) {
-    _playhead->incrementSampleCount(increment);
   }
 }
 
@@ -97,25 +104,41 @@ void SoloHarmonizerVst::setStateInformation(const void *data, int sizeInBytes) {
   _soloHarmonizer->setState(vectorView);
 }
 
-void SoloHarmonizerVst::_createPlayheadIfReady() {
-  if (_samplesPerSecond.has_value() && _crotchetsPerSecond.has_value()) {
-    const auto mustSetPpqPosition =
-        wrapperType ==
-        juce::AudioProcessor::WrapperType::wrapperType_Standalone;
-    const auto crotchetsPerSample =
-        utils::getCrotchetsPerSample(*_crotchetsPerSecond, *_samplesPerSecond);
-    _playhead = _playheadFactory(mustSetPpqPosition, *this, crotchetsPerSample);
-  }
-}
-
 void SoloHarmonizerVst::_onCrotchetsPerSecondAvailable(
     float crotchetsPerSecond) {
   _crotchetsPerSecond = crotchetsPerSecond;
-  _createPlayheadIfReady();
 }
 
 bool SoloHarmonizerVst::_onPlayheadCommand(PlayheadCommand command) {
-  return _playhead ? _playhead->execute(command) : false;
+  if (!_crotchetsPerSecond.has_value() || !_samplesPerSecond.has_value()) {
+    assert(false);
+    return false;
+  }
+  switch (command) {
+  case PlayheadCommand::play:
+    return _startPlaying();
+  case PlayheadCommand::stop:
+    return _stopPlaying();
+  case PlayheadCommand::pause:
+  default:
+    // TODO: log
+    return false;
+  }
+}
+
+bool SoloHarmonizerVst::_startPlaying() {
+  if (!_samplesPerSecond.has_value() || !_crotchetsPerSecond.has_value()) {
+    return false;
+  }
+  const auto crotchetsPerSample =
+      utils::getCrotchetsPerSample(*_crotchetsPerSecond, *_samplesPerSecond);
+  _playhead = _playheadFactory(_isStandalone, *this, crotchetsPerSample);
+  return true;
+}
+
+bool SoloHarmonizerVst::_stopPlaying() {
+  _playhead.reset();
+  return true;
 }
 } // namespace saint
 
@@ -125,12 +148,12 @@ juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
   PlayheadFactory factory{
       [](bool mustSetPpqPosition,
          const JuceAudioPlayHeadProvider &playheadProvider,
-         float crotchetsPerSample) -> std::unique_ptr<Playhead> {
+         float crotchetsPerSample) -> std::shared_ptr<Playhead> {
         if (mustSetPpqPosition) {
-          return std::make_unique<ProcessCallbackDrivenPlayhead>(
+          return std::make_shared<ProcessCallbackDrivenPlayhead>(
               crotchetsPerSample);
         } else {
-          return std::make_unique<HostDrivenPlayhead>(playheadProvider);
+          return std::make_shared<HostDrivenPlayhead>(playheadProvider);
         }
       }};
   return new SoloHarmonizerVst(std::move(factory));

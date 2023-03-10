@@ -29,7 +29,6 @@ public:
 
   // Playhead
   std::optional<float> getTimeInCrotchets() const override;
-  void incrementSampleCount(int) override;
 
   // JuceAudioPlayHeadProvider
   juce::AudioPlayHead *getJuceAudioPlayHead() const override;
@@ -59,15 +58,17 @@ private:
   void setStateInformation(const void *data, int sizeInBytes) override;
 
 private:
-  void _createPlayheadIfReady();
   void _onCrotchetsPerSecondAvailable(float);
   bool _onPlayheadCommand(PlayheadCommand);
+  bool _startPlaying();
+  bool _stopPlaying();
+  const bool _isStandalone;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;
   const std::shared_ptr<IntervalGetterFactory> _intervalGetterFactory;
   const std::unique_ptr<SoloHarmonizer> _soloHarmonizer;
   const PlayheadFactory _playheadFactory;
-  std::unique_ptr<Playhead> _playhead;
+  std::shared_ptr<Playhead> _playhead;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerVst)
 };
 } // namespace saint

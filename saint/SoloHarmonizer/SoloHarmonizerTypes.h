@@ -14,7 +14,7 @@ enum class PlayheadCommand {
   stop,
 };
 
-using PlayheadFactory = std::function<std::unique_ptr<Playhead>(
+using PlayheadFactory = std::function<std::shared_ptr<Playhead>(
     bool mustSetPpqPosition, const JuceAudioPlayHeadProvider &playheadProvider,
     float crotchetsPerSample)>;
 
