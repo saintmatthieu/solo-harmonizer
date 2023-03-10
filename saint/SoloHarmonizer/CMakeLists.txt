@@ -57,6 +57,7 @@ target_compile_definitions(SoloHarmonizerVst
 target_include_directories(SoloHarmonizerVst
     PUBLIC
         ${CMAKE_SOURCE_DIR}/JUCE/modules
+        ${CMAKE_SOURCE_DIR}/_thirdParty/asiosdk/common # Needed by JUCE
 )
 
 target_link_libraries(SoloHarmonizerVst
