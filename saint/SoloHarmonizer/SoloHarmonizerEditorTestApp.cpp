@@ -1,9 +1,10 @@
-#include "Factory/IntervalGetterFactory.h"
+#include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"
 #include "SoloHarmonizerVst.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+namespace saint {
 class MainWindowTutorialApplication : public juce::JUCEApplication {
 public:
   class MainWindow : public juce::DocumentWindow {
@@ -11,7 +12,13 @@ public:
     MainWindow(juce::String name)
         : DocumentWindow(name, juce::Colours::lightgrey,
                          DocumentWindow::allButtons),
-          _openEditorButton("Open Editor") {
+          _openEditorButton("Open Editor"),
+          _harmonizerVst(
+              [](bool mustSetPpqPosition, const JuceAudioPlayHeadProvider &,
+                 const AudioConfig &config) -> std::unique_ptr<Playhead> {
+                assert(mustSetPpqPosition);
+                return std::make_unique<ProcessCallbackDrivenPlayhead>(config);
+              }) {
       centreWithSize(400, 300);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
@@ -60,9 +67,10 @@ public:
 private:
   std::unique_ptr<MainWindow> mainWindow;
 };
+} // namespace saint
 
 static juce::JUCEApplicationBase *juce_CreateApplication() {
-  return new MainWindowTutorialApplication();
+  return new saint::MainWindowTutorialApplication();
 }
 
 int main() {

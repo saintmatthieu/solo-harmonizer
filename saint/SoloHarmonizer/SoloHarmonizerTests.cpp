@@ -1,5 +1,5 @@
 #include "Factory/IntervalGetterFactory.h"
-#include "Playheads/BuiltinPlayhead.h"
+#include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
 #include "testUtils.h"
 
@@ -47,7 +47,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   AudioConfig config;
   config.samplesPerSecond = sampleRate;
   config.crotchetsPerSecond = *factory->getCrotchetsPerSecond();
-  BuiltinPlayhead playhead{config};
+  ProcessCallbackDrivenPlayhead playhead{config};
   SoloHarmonizer sut{factory, playhead};
   sut.prepareToPlay(sampleRate, blockSize);
   for (auto offset = 0; offset + blockSize < static_cast<int>(wav.size());

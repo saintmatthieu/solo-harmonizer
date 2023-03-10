@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Factory/IntervalGetterFactory.h"
-#include "Playheads/IPlayhead.h"
+#include "JuceAudioPlayHeadProvider.h"
+#include "Playhead.h"
 #include "SoloHarmonizer.h"
+#include "SoloHarmonizerTypes.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -14,19 +16,22 @@ class logger;
 }
 
 namespace saint {
-class IntervalGetter;
-
-class SoloHarmonizerVst : public juce::AudioProcessor, public IPlayhead {
+class SoloHarmonizerVst : public juce::AudioProcessor,
+                          public Playhead,
+                          JuceAudioPlayHeadProvider {
 public:
-  SoloHarmonizerVst();
+  SoloHarmonizerVst(PlayheadFactory);
 
   // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
   juce::AudioProcessorEditor *createEditor() override;
 
-  // IPlayhead
-  std::optional<double> getTimeInCrotchets() const override;
+  // Playhead
+  std::optional<float> getTimeInCrotchets() const override;
+
+  // JuceAudioPlayHeadProvider
+  juce::AudioPlayHead *getJuceAudioPlayHead() const override;
 
 private:
   void releaseResources() override;
@@ -53,8 +58,15 @@ private:
   void setStateInformation(const void *data, int sizeInBytes) override;
 
 private:
+  void _createPlayheadIfReady();
+  void _onCrotchetsPerSecondAvailable(float);
+  bool _onPlayheadCommand(PlayheadCommand);
+  std::optional<float> _crotchetsPerSecond;
+  std::optional<int> _samplesPerSecond;
   const std::shared_ptr<IntervalGetterFactory> _intervalGetterFactory;
   const std::unique_ptr<SoloHarmonizer> _soloHarmonizer;
+  const PlayheadFactory _playheadFactory;
+  std::unique_ptr<Playhead> _playhead;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerVst)
 };
 } // namespace saint

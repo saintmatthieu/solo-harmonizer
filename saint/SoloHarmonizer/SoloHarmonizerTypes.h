@@ -1,10 +1,27 @@
 #pragma once
 
+#include <functional>
+#include <memory>
+
 namespace saint {
+
+class JuceAudioPlayHeadProvider;
+class Playhead;
+
+enum class PlayheadCommand {
+  play,
+  pause,
+  stop,
+};
+
 struct AudioConfig {
   int samplesPerSecond = 0;
   float crotchetsPerSecond = 0;
 };
+
+using PlayheadFactory = std::function<std::unique_ptr<Playhead>(
+    bool mustSetPpqPosition, const JuceAudioPlayHeadProvider &playheadProvider,
+    const AudioConfig &)>;
 
 enum class TrackType { played, harmony, _size };
 constexpr auto numTrackTypes = static_cast<size_t>(TrackType::_size);

@@ -1,26 +1,38 @@
 #include "SoloHarmonizerVst.h"
 #include "Factory/IntervalGetterFactory.h"
+#include "Playheads/HostDrivenPlayhead.h"
+#include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"
 
 #include <cassert>
+#include <optional>
 
 namespace saint {
-SoloHarmonizerVst::SoloHarmonizerVst()
+
+using namespace std::placeholders;
+
+SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
     : AudioProcessor(
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::mono(), true)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      _intervalGetterFactory(std::make_shared<IntervalGetterFactory>()),
+      _intervalGetterFactory(std::make_shared<IntervalGetterFactory>(
+          std::bind(&SoloHarmonizerVst::_onCrotchetsPerSecondAvailable, this,
+                    _1),
+          std::bind(&SoloHarmonizerVst::_onPlayheadCommand, this, _1))),
       _soloHarmonizer(
-          std::make_unique<SoloHarmonizer>(_intervalGetterFactory, *this)) {}
+          std::make_unique<SoloHarmonizer>(_intervalGetterFactory, *this)),
+      _playheadFactory(std::move(factory)) {}
 
 const juce::String SoloHarmonizerVst::getName() const {
   return JucePlugin_Name;
 }
 
 void SoloHarmonizerVst::prepareToPlay(double sampleRate, int samplesPerBlock) {
-  _intervalGetterFactory->setSampleRate(static_cast<int>(sampleRate));
-  _soloHarmonizer->prepareToPlay(sampleRate, samplesPerBlock);
+  _samplesPerSecond = static_cast<int>(sampleRate);
+  _intervalGetterFactory->setSampleRate(*_samplesPerSecond);
+  _soloHarmonizer->prepareToPlay(*_samplesPerSecond, samplesPerBlock);
+  _createPlayheadIfReady();
 }
 
 void SoloHarmonizerVst::releaseResources() {
@@ -48,24 +60,21 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
                                      juce::MidiBuffer &) {
   _soloHarmonizer->processBlock(buffer.getWritePointer(0),
                                 buffer.getNumSamples());
+  if (_playhead) {
+    _playhead->incrementSampleCount(buffer.getNumSamples());
+  }
 }
 
-std::optional<double> SoloHarmonizerVst::getTimeInCrotchets() const {
-  const juce::AudioPlayHead *playhead = getPlayHead();
-  if (!playhead) {
-    // TODO log
+std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
+  if (_playhead) {
+    return _playhead->getTimeInCrotchets();
+  } else {
     return std::nullopt;
   }
-  const auto position = playhead->getPosition();
-  if (!position) {
-    return std::nullopt;
-  }
-  const auto ppq = position->getPpqPosition();
-  if (!ppq) {
-    // TODO log
-    return std::nullopt;
-  }
-  return *ppq;
+}
+
+juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
+  return getPlayHead();
 }
 
 juce::AudioProcessorEditor *SoloHarmonizerVst::createEditor() {
@@ -82,9 +91,41 @@ void SoloHarmonizerVst::setStateInformation(const void *data, int sizeInBytes) {
   const std::vector<uint8_t> vectorView{uint8Data, uint8Data + sizeInBytes};
   _soloHarmonizer->setState(vectorView);
 }
+
+void SoloHarmonizerVst::_createPlayheadIfReady() {
+  if (_samplesPerSecond.has_value() && _crotchetsPerSecond.has_value()) {
+    const auto mustSetPpqPosition =
+        wrapperType ==
+        juce::AudioProcessor::WrapperType::wrapperType_Standalone;
+    _playhead =
+        _playheadFactory(mustSetPpqPosition, *this,
+                         AudioConfig{*_samplesPerSecond, *_crotchetsPerSecond});
+  }
+}
+
+void SoloHarmonizerVst::_onCrotchetsPerSecondAvailable(
+    float crotchetsPerSecond) {
+  _crotchetsPerSecond = crotchetsPerSecond;
+  _createPlayheadIfReady();
+}
+
+bool SoloHarmonizerVst::_onPlayheadCommand(PlayheadCommand command) {
+  return _playhead ? _playhead->execute(command) : false;
+}
 } // namespace saint
 
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
-  return new saint::SoloHarmonizerVst();
+  using namespace saint;
+  PlayheadFactory factory{
+      [](bool mustSetPpqPosition,
+         const JuceAudioPlayHeadProvider &playheadProvider,
+         const AudioConfig &config) -> std::unique_ptr<Playhead> {
+        if (mustSetPpqPosition) {
+          return std::make_unique<ProcessCallbackDrivenPlayhead>(config);
+        } else {
+          return std::make_unique<HostDrivenPlayhead>(playheadProvider);
+        }
+      }};
+  return new SoloHarmonizerVst(std::move(factory));
 }

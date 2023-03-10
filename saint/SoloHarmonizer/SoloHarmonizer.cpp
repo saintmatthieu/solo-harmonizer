@@ -15,7 +15,7 @@ static std::atomic<int> instanceCounter = 0;
 
 SoloHarmonizer::SoloHarmonizer(
     std::shared_ptr<ProcessorsFactoryView> processorsFactoryView,
-    IPlayhead &playhead)
+    Playhead &playhead)
     : _processorsFactoryView(std::move(processorsFactoryView)),
       _loggerName(std::string{"SoloHarmonizer_"} +
                   std::to_string(instanceCounter++)),
@@ -28,11 +28,11 @@ SoloHarmonizer::SoloHarmonizer(
 
 SoloHarmonizer::~SoloHarmonizer() { _logger->info("dtor {0}", _loggerName); }
 
-void SoloHarmonizer::prepareToPlay(double sampleRate, int samplesPerBlock) {
+void SoloHarmonizer::prepareToPlay(int sampleRate, int samplesPerBlock) {
   _pitchShifter = DavidCNAntonia::IPitchShifter::createInstance(
-      1, sampleRate, samplesPerBlock);
+      1, static_cast<double>(sampleRate), samplesPerBlock);
   _pitchDetector = PitchDetector::createInstance(
-      static_cast<int>(sampleRate),
+      sampleRate,
       _processorsFactoryView->getLowestPlayedTrackHarmonizedFrequency());
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);

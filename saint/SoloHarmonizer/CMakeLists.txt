@@ -3,7 +3,8 @@ add_library(SoloHarmonizer)
 target_sources(SoloHarmonizer
   PUBLIC
     Factory/IntervalGetterFactory.cpp
-    Playheads/BuiltinPlayhead.cpp
+    Playheads/HostDrivenPlayhead.cpp
+    Playheads/ProcessCallbackDrivenPlayhead.cpp
     SoloHarmonizerEditor.cpp
     SoloHarmonizerHelper.cpp
     SoloHarmonizer.cpp

@@ -19,12 +19,12 @@ public:
 
 private:
   void _updateWidgets();
+  void _updatePlayButton();
 
   EditorsFactoryView &_intervallerFactoryView;
   juce::TextButton _chooseFileButton;
+  juce::TextButton _playButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
-  juce::ToggleButton _useHostPlayheadToggle;
-
   const juce::Colour _chooseFileButtonDefaultColour;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)

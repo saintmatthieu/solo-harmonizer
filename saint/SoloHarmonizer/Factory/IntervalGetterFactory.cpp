@@ -123,16 +123,14 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
+IntervalGetterFactory::IntervalGetterFactory(
+    OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable,
+    OnPlayheadCommand onPlayheadCommand)
+    : _onCrotchetsPerSecondAvailable(onCrotchetsPerSecondAvailable),
+      _onPlayheadCommand(onPlayheadCommand) {}
+
 void IntervalGetterFactory::setSampleRate(int sampleRate) {
   _samplesPerSecond = sampleRate;
-}
-
-void IntervalGetterFactory::setUseHostPlayhead(bool useHostPlayhead) {
-  _useHostPlayhead = useHostPlayhead;
-}
-
-bool IntervalGetterFactory::getUseHostPlayhead() const {
-  return _useHostPlayhead;
 }
 
 void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
@@ -147,6 +145,9 @@ void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
   _crotchetsPerSecond = _juceMidiFile
                             ? extractCrotchetsPerSecond(*_juceMidiFile)
                             : std::optional<float>{};
+  if (_crotchetsPerSecond.has_value()) {
+    _onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
+  }
 
   _createIntervalGetterIfAllParametersSet();
 }
@@ -197,10 +198,6 @@ IntervalGetterFactory::getIntervalGetter() const {
   return _intervalGetter;
 }
 
-bool IntervalGetterFactory::useHostPlayhead() const {
-  return getUseHostPlayhead();
-}
-
 namespace {
 std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
     const std::vector<IntervalSpan> &spans) {
@@ -225,7 +222,7 @@ std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
 
 void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||
-      !_samplesPerSecond) {
+      !_samplesPerSecond || !_crotchetsPerSecond) {
     return;
   }
   const auto playedSeq = getMidiNoteMessages(
@@ -265,6 +262,10 @@ std::optional<float> IntervalGetterFactory::getCrotchetsPerSecond() const {
 std::optional<float>
 IntervalGetterFactory::getLowestPlayedTrackHarmonizedFrequency() const {
   return _lowestPlayedTrackHarmonizedFrequency;
+}
+
+bool IntervalGetterFactory::execute(PlayheadCommand command) {
+  return _onPlayheadCommand(command);
 }
 
 } // namespace saint

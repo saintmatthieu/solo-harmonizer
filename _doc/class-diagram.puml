@@ -1,20 +1,23 @@
 @startuml
 
 hide fields
-hide Host methods
-hide saint.SoloHarmonizer methods
-hide saint.SoloHarmonizerEditor methods
-hide saint.IntervalGetterFactory methods
+hide SoloHarmonizer methods
+hide SoloHarmonizerEditor methods
+hide IntervalGetterFactory methods
+hide juce_AudioPlayhead methods
+hide Playhead methods
+hide SoloHarmonizerVst methods
+hide ProcessCallbackDrivenPlayhead methods
+hide HostDrivenPlayhead methods
 
-class Host
-
-namespace saint {
+abstract class Playhead
 class SoloHarmonizer
 class SoloHarmonizerEditor
+class SoloHarmonizerVst
+class ProcessCallbackDrivenPlayhead
+class HostDrivenPlayhead
 
 abstract class EditorsFactoryView {
-  setUseHostPlayhead(bool)
-  getUseHostPlayhead(): bool
   setMidiFile(path)
   getMidiFile(): optional<path>
   getMidiFileTrackNames(): vector<string>
@@ -29,26 +32,28 @@ abstract class ProcessorsFactoryView {
   setState(vector<uint8_t>)
   hasIntervalGetter()
   getIntervalGetter(): shared_ptr<IntervalGetter>
-  useHostPlayhead(): bool
 }
 
 class IntervalGetterFactory
-class IntervalGetter {
-  getHarmoInterval(double timeInCrotchets, optional<float> pitch): optional<float>
-}
+class IntervalGetter
 
+SoloHarmonizerVst *- IntervalGetterFactory
+SoloHarmonizerVst *-- SoloHarmonizer
+SoloHarmonizerVst *.. ProcessCallbackDrivenPlayhead
+SoloHarmonizerVst *.. HostDrivenPlayhead
 SoloHarmonizerEditor -o SoloHarmonizer
-SoloHarmonizer *-- ProcessorsFactoryView
-SoloHarmonizer *-- EditorsFactoryView
+SoloHarmonizer o-- ProcessorsFactoryView
 SoloHarmonizerEditor o-- EditorsFactoryView
 
-EditorsFactoryView --|> IntervalGetterFactory
-ProcessorsFactoryView --|> IntervalGetterFactory
+EditorsFactoryView <|-- IntervalGetterFactory
+ProcessorsFactoryView <|-- IntervalGetterFactory
 SoloHarmonizer o. IntervalGetter
 IntervalGetter --* IntervalGetterFactory
 
-}
-
-Host *-- saint.SoloHarmonizerEditor
+juce_AudioPlayhead -o SoloHarmonizerVst
+SoloHarmonizerVst -|> Playhead
+Playhead <|-- ProcessCallbackDrivenPlayhead
+Playhead <|-- HostDrivenPlayhead
+Playhead --o SoloHarmonizer
 
 @enduml

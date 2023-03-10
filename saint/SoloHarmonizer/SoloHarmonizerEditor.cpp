@@ -4,25 +4,20 @@
 namespace saint {
 namespace {
 constexpr auto chooseFileButtonTxt = "Choose MIDI file ...";
-}
+constexpr auto playTxt = "Play";
+constexpr auto stopTxt = "Stop";
+} // namespace
 
 SoloHarmonizerEditor::SoloHarmonizerEditor(
     juce::AudioProcessor &p, EditorsFactoryView &intervallerFactory)
     : AudioProcessorEditor(&p), _intervallerFactoryView(intervallerFactory),
-      _chooseFileButton(chooseFileButtonTxt),
-      _useHostPlayheadToggle("use host playhead"),
+      _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
 
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
   setSize(400, 300);
-
-  _useHostPlayheadToggle.onClick = [this]() {
-    _intervallerFactoryView.setUseHostPlayhead(
-        _useHostPlayheadToggle.getToggleState());
-  };
-  addAndMakeVisible(_useHostPlayheadToggle);
 
   _comboBoxes[playedTrackTypeIndex].setTextWhenNothingSelected(
       "set play track");
@@ -31,7 +26,6 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
   for (auto i = 0u; i < numTrackTypes; ++i) {
     const auto trackType = static_cast<TrackType>(i);
     auto &box = _comboBoxes[i];
-    box.setTextWhenNoChoicesAvailable("Choose MIDI file first ...");
     box.setJustificationType(juce::Justification::centred |
                              juce::Justification::horizontallyCentred);
     box.onChange = [&box, trackType, this]() {
@@ -41,8 +35,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
       } else {
         _intervallerFactoryView.setHarmonyTrack(selectedTrack);
       }
+      _updatePlayButton();
     };
-    addAndMakeVisible(box);
+    addChildComponent(box);
   }
 
   _chooseFileButton.setTooltip(
@@ -59,6 +54,17 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
     }
   };
   addAndMakeVisible(_chooseFileButton);
+
+  _playButton.onClick = [this]() {
+    if (_playButton.getButtonText() == playTxt &&
+        _intervallerFactoryView.execute(PlayheadCommand::play)) {
+      _playButton.setButtonText(stopTxt);
+    } else if (_intervallerFactoryView.execute(PlayheadCommand::stop)) {
+      _playButton.setButtonText(playTxt);
+    }
+  };
+  addChildComponent(_playButton);
+
   _updateWidgets();
 }
 
@@ -67,13 +73,10 @@ void SoloHarmonizerEditor::_updateWidgets() {
   const auto trackNames = _intervallerFactoryView.getMidiFileTrackNames();
   _chooseFileButton.setButtonText(
       midiFilePath ? midiFilePath->filename().string() : chooseFileButtonTxt);
-  if (!trackNames.empty()) {
-    _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
-                                juce::Colours::darkgreen);
-  } else {
-    _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
-                                _chooseFileButtonDefaultColour);
-  }
+  _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
+                              trackNames.empty()
+                                  ? _chooseFileButtonDefaultColour
+                                  : juce::Colours::darkgreen);
   for (auto &box : _comboBoxes) {
     box.clear();
     for (auto i = 0u; i < trackNames.size(); ++i) {
@@ -82,6 +85,7 @@ void SoloHarmonizerEditor::_updateWidgets() {
                             : std::to_string(i + 1) + " : " + trackNames[i];
       box.addItem(name, (int)i + 1);
     }
+    box.setVisible(!trackNames.empty());
   }
   if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
     _comboBoxes[playedTrackTypeIndex].setSelectedId(*playedTrack);
@@ -89,9 +93,13 @@ void SoloHarmonizerEditor::_updateWidgets() {
   if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
     _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
-  _useHostPlayheadToggle.setToggleState(
-      _intervallerFactoryView.getUseHostPlayhead(),
-      juce::NotificationType::dontSendNotification);
+  _updatePlayButton();
+}
+
+void SoloHarmonizerEditor::_updatePlayButton() {
+  _playButton.setVisible(_intervallerFactoryView.getMidiFile().has_value() &&
+                         _intervallerFactoryView.getPlayedTrack().has_value() &&
+                         _intervallerFactoryView.getHarmonyTrack().has_value());
 }
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
@@ -111,9 +119,9 @@ void SoloHarmonizerEditor::resized() {
   grid.templateColumns = {Track(1_fr), Track(1_fr)};
   grid.autoColumns = Track(1_fr);
   grid.autoRows = Track(1_fr);
-  grid.items.addArray({GridItem(_useHostPlayheadToggle).withColumn({1, 3}),
-                       GridItem(_chooseFileButton).withColumn({1, 3}),
-                       GridItem(_comboBoxes[0]), GridItem(_comboBoxes[1])});
+  grid.items.addArray({GridItem(_chooseFileButton).withColumn({1, 3}),
+                       GridItem(_comboBoxes[0]), GridItem(_comboBoxes[1]),
+                       GridItem(_playButton).withColumn({1, 3})});
   grid.performLayout(getLocalBounds());
 }
 } // namespace saint

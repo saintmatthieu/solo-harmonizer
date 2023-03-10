@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../SoloHarmonizerTypes.h"
 #include "EditorsFactoryView.h"
 #include "IntervalGetter.h"
 #include "IntervalTypes.h"
@@ -8,14 +9,17 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 namespace saint {
+
+using OnCrotchetsPerSecondAvailable = std::function<void(float)>;
+using OnPlayheadCommand = std::function<bool(PlayheadCommand)>;
+
 class IntervalGetterFactory : public EditorsFactoryView,
                               public ProcessorsFactoryView {
 public:
+  IntervalGetterFactory(OnCrotchetsPerSecondAvailable, OnPlayheadCommand);
   void setSampleRate(int);
 
   // EditorsFactoryView
-  void setUseHostPlayhead(bool) override;
-  bool getUseHostPlayhead() const override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
   std::vector<std::string> getMidiFileTrackNames() const override;
@@ -24,13 +28,13 @@ public:
   void setHarmonyTrack(int) override;
   std::optional<int> getHarmonyTrack() const override;
   std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
+  bool execute(PlayheadCommand) override;
 
   // ProcessorsFactoryView
   const std::vector<uint8_t> &getState() const override;
   void setState(std::vector<uint8_t>) override;
   bool hasIntervalGetter() const override;
   std::shared_ptr<IntervalGetter> getIntervalGetter() const override;
-  bool useHostPlayhead() const override;
 
   // For testing
   std::optional<int> getTicksPerCrotchet() const;
@@ -38,6 +42,8 @@ public:
 
 private:
   void _createIntervalGetterIfAllParametersSet();
+  const OnCrotchetsPerSecondAvailable _onCrotchetsPerSecondAvailable;
+  const OnPlayheadCommand _onPlayheadCommand;
   std::vector<IntervalSpan> _intervalGetterInput;
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;
@@ -50,6 +56,5 @@ private:
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
   std::vector<uint8_t> _state;
   std::shared_ptr<IntervalGetter> _intervalGetter;
-  bool _useHostPlayhead = true;
 };
 } // namespace saint
