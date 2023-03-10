@@ -3,6 +3,7 @@
 #include "Playheads/HostDrivenPlayhead.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"
+#include "Utils.h"
 
 #include <cassert>
 #include <optional>
@@ -60,9 +61,7 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
                                      juce::MidiBuffer &) {
   _soloHarmonizer->processBlock(buffer.getWritePointer(0),
                                 buffer.getNumSamples());
-  if (_playhead) {
-    _playhead->incrementSampleCount(buffer.getNumSamples());
-  }
+  incrementSampleCount(buffer.getNumSamples());
 }
 
 std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
@@ -70,6 +69,12 @@ std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
     return _playhead->getTimeInCrotchets();
   } else {
     return std::nullopt;
+  }
+}
+
+void SoloHarmonizerVst::incrementSampleCount(int increment) {
+  if (_playhead) {
+    _playhead->incrementSampleCount(increment);
   }
 }
 
@@ -97,9 +102,9 @@ void SoloHarmonizerVst::_createPlayheadIfReady() {
     const auto mustSetPpqPosition =
         wrapperType ==
         juce::AudioProcessor::WrapperType::wrapperType_Standalone;
-    _playhead =
-        _playheadFactory(mustSetPpqPosition, *this,
-                         AudioConfig{*_samplesPerSecond, *_crotchetsPerSecond});
+    const auto crotchetsPerSample =
+        utils::getCrotchetsPerSample(*_crotchetsPerSecond, *_samplesPerSecond);
+    _playhead = _playheadFactory(mustSetPpqPosition, *this, crotchetsPerSample);
   }
 }
 
@@ -120,9 +125,10 @@ juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
   PlayheadFactory factory{
       [](bool mustSetPpqPosition,
          const JuceAudioPlayHeadProvider &playheadProvider,
-         const AudioConfig &config) -> std::unique_ptr<Playhead> {
+         float crotchetsPerSample) -> std::unique_ptr<Playhead> {
         if (mustSetPpqPosition) {
-          return std::make_unique<ProcessCallbackDrivenPlayhead>(config);
+          return std::make_unique<ProcessCallbackDrivenPlayhead>(
+              crotchetsPerSample);
         } else {
           return std::make_unique<HostDrivenPlayhead>(playheadProvider);
         }

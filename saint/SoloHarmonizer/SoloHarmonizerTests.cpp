@@ -1,6 +1,7 @@
 #include "Factory/IntervalGetterFactory.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
+#include "Utils.h"
 #include "testUtils.h"
 
 #include <algorithm>
@@ -44,10 +45,8 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);
-  AudioConfig config;
-  config.samplesPerSecond = sampleRate;
-  config.crotchetsPerSecond = *factory->getCrotchetsPerSecond();
-  ProcessCallbackDrivenPlayhead playhead{config};
+  ProcessCallbackDrivenPlayhead playhead{utils::getCrotchetsPerSample(
+      *factory->getCrotchetsPerSecond(), sampleRate)};
   SoloHarmonizer sut{factory, playhead};
   sut.prepareToPlay(sampleRate, blockSize);
   for (auto offset = 0; offset + blockSize < static_cast<int>(wav.size());

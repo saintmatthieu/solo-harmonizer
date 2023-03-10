@@ -29,6 +29,7 @@ public:
 
   // Playhead
   std::optional<float> getTimeInCrotchets() const override;
+  void incrementSampleCount(int) override;
 
   // JuceAudioPlayHeadProvider
   juce::AudioPlayHead *getJuceAudioPlayHead() const override;

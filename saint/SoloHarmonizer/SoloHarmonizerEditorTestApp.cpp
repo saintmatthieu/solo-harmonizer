@@ -15,9 +15,10 @@ public:
           _openEditorButton("Open Editor"),
           _harmonizerVst(
               [](bool mustSetPpqPosition, const JuceAudioPlayHeadProvider &,
-                 const AudioConfig &config) -> std::unique_ptr<Playhead> {
+                 float crotchetsPerSample) -> std::unique_ptr<Playhead> {
                 assert(mustSetPpqPosition);
-                return std::make_unique<ProcessCallbackDrivenPlayhead>(config);
+                return std::make_unique<ProcessCallbackDrivenPlayhead>(
+                    crotchetsPerSample);
               }) {
       centreWithSize(400, 300);
       setVisible(true);

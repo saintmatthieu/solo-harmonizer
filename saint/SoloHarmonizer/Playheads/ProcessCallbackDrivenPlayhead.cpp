@@ -3,10 +3,8 @@
 
 namespace saint {
 ProcessCallbackDrivenPlayhead::ProcessCallbackDrivenPlayhead(
-    const AudioConfig &config)
-    : _crotchetsPerSample(
-          (config.crotchetsPerSecond == 0 ? 120.f : config.crotchetsPerSecond) /
-          static_cast<float>(config.samplesPerSecond)) {}
+    float crotchetsPerSample)
+    : _crotchetsPerSample(crotchetsPerSample) {}
 
 void ProcessCallbackDrivenPlayhead::incrementSampleCount(int numSamples) {
   if (!_paused) {

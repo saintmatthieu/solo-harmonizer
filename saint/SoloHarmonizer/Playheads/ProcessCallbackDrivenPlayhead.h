@@ -8,7 +8,7 @@
 namespace saint {
 class ProcessCallbackDrivenPlayhead : public Playhead {
 public:
-  ProcessCallbackDrivenPlayhead(const AudioConfig &config);
+  ProcessCallbackDrivenPlayhead(float crotchetsPerSample);
   void incrementSampleCount(int numSamples) override;
   bool execute(PlayheadCommand) override;
   std::optional<float> getTimeInCrotchets() const override;
