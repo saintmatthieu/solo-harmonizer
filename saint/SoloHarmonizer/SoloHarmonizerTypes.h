@@ -7,6 +7,7 @@ namespace saint {
 
 class JuceAudioPlayHeadProvider;
 class Playhead;
+class SoloHarmonizerEditor;
 
 enum class PlayheadCommand {
   play,

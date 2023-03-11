@@ -6,7 +6,9 @@
 #include "Utils.h"
 
 #include <cassert>
+#include <chrono>
 #include <optional>
+#include <thread>
 
 namespace saint {
 
@@ -25,7 +27,28 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
           std::bind(&SoloHarmonizerVst::_onPlayheadCommand, this, _1))),
       _soloHarmonizer(
           std::make_unique<SoloHarmonizer>(_intervalGetterFactory, *this)),
-      _playheadFactory(std::move(factory)) {}
+      _playheadFactory(std::move(factory)),
+      _editorCallThread(
+          std::bind(&SoloHarmonizerVst::_editorCallThreadFun, this)) {}
+
+SoloHarmonizerVst::~SoloHarmonizerVst() {
+  _runEditorCallThread = false;
+  _editorCallThread.join();
+}
+
+void SoloHarmonizerVst::_editorCallThreadFun() {
+  while (_runEditorCallThread) {
+    const auto time = _timeInCrotchets.load();
+    if (!time.has_value()) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(_editorMutex);
+    for (auto editor : _editors) {
+      editor->updateTimeInCrotchets(*time);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds{50});
+  }
+}
 
 const juce::String SoloHarmonizerVst::getName() const {
   return JucePlugin_Name;
@@ -56,6 +79,7 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
     _soloHarmonizer->processBlock(p, numSamples);
     playhead->mixMetronome(p, numSamples);
     playhead->incrementSampleCount(numSamples);
+    _timeInCrotchets = playhead->getTimeInCrotchets();
   }
   const auto p = buffer.getReadPointer(0);
   for (auto i = 1; i < buffer.getNumChannels(); ++i) {
@@ -65,12 +89,7 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
 }
 
 std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
-  const auto playhead = _playhead;
-  if (playhead) {
-    return playhead->getTimeInCrotchets();
-  } else {
-    return std::nullopt;
-  }
+  return _timeInCrotchets;
 }
 
 juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
@@ -78,7 +97,19 @@ juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
 }
 
 juce::AudioProcessorEditor *SoloHarmonizerVst::createEditor() {
-  return new SoloHarmonizerEditor(*this, *_intervalGetterFactory);
+  const auto editor = new SoloHarmonizerEditor(*this, *_intervalGetterFactory);
+  {
+    std::lock_guard<std::mutex> lock(_editorMutex);
+    _editors.insert(editor);
+  }
+  return editor;
+}
+
+void SoloHarmonizerVst::onEditorDestruction(SoloHarmonizerEditor *editor) {
+  std::lock_guard<std::mutex> lock(_editorMutex);
+  if (_editors.count(editor) > 0u) {
+    _editors.erase(editor);
+  }
 }
 
 void SoloHarmonizerVst::getStateInformation(juce::MemoryBlock &destData) {

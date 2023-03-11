@@ -10,6 +10,8 @@
 
 #include <filesystem>
 #include <memory>
+#include <thread>
+#include <unordered_set>
 
 namespace spdlog {
 class logger;
@@ -21,11 +23,13 @@ class SoloHarmonizerVst : public juce::AudioProcessor,
                           JuceAudioPlayHeadProvider {
 public:
   SoloHarmonizerVst(PlayheadFactory);
+  ~SoloHarmonizerVst() override;
 
   // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
   juce::AudioProcessorEditor *createEditor() override;
+  void onEditorDestruction(SoloHarmonizerEditor *);
 
   // Playhead
   std::optional<float> getTimeInCrotchets() const override;
@@ -62,6 +66,8 @@ private:
   bool _onPlayheadCommand(PlayheadCommand);
   bool _startPlaying();
   bool _stopPlaying();
+  void _editorCallThreadFun();
+  std::atomic<std::optional<float>> _timeInCrotchets;
   const bool _isStandalone;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;
@@ -69,6 +75,10 @@ private:
   const std::unique_ptr<SoloHarmonizer> _soloHarmonizer;
   const PlayheadFactory _playheadFactory;
   std::shared_ptr<Playhead> _playhead;
+  std::unordered_set<SoloHarmonizerEditor *> _editors;
+  std::thread _editorCallThread;
+  bool _runEditorCallThread = true;
+  std::mutex _editorMutex;
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerVst)
 };
 } // namespace saint

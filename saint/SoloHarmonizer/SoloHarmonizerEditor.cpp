@@ -9,8 +9,11 @@ constexpr auto stopTxt = "Stop";
 } // namespace
 
 SoloHarmonizerEditor::SoloHarmonizerEditor(
-    juce::AudioProcessor &p, EditorsFactoryView &intervallerFactory)
-    : AudioProcessorEditor(&p), _intervallerFactoryView(intervallerFactory),
+    SoloHarmonizerVst &soloHarmonizerVst,
+    EditorsFactoryView &intervallerFactory)
+    : AudioProcessorEditor(&soloHarmonizerVst),
+      _soloHarmonizerVst(soloHarmonizerVst),
+      _intervallerFactoryView(intervallerFactory),
       _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
@@ -96,6 +99,10 @@ void SoloHarmonizerEditor::_updateWidgets() {
   _updatePlayButton();
 }
 
+SoloHarmonizerEditor::~SoloHarmonizerEditor() {
+  _soloHarmonizerVst.onEditorDestruction(this);
+}
+
 void SoloHarmonizerEditor::_updatePlayButton() {
   _playButton.setVisible(_intervallerFactoryView.getMidiFile().has_value() &&
                          _intervallerFactoryView.getPlayedTrack().has_value() &&
@@ -124,4 +131,7 @@ void SoloHarmonizerEditor::resized() {
                        GridItem(_playButton).withColumn({1, 3})});
   grid.performLayout(getLocalBounds());
 }
+
+void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {}
+
 } // namespace saint

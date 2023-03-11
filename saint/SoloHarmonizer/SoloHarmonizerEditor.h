@@ -2,6 +2,7 @@
 
 #include "Factory/EditorsFactoryView.h"
 #include "SoloHarmonizerTypes.h"
+#include "SoloHarmonizerVst.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -11,16 +12,20 @@
 namespace saint {
 class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
 public:
-  SoloHarmonizerEditor(juce::AudioProcessor &, EditorsFactoryView &);
+  SoloHarmonizerEditor(SoloHarmonizerVst &, EditorsFactoryView &);
+  ~SoloHarmonizerEditor();
 
   // AudioProcessingEditor
   void paint(juce::Graphics &) override;
   void resized() override;
 
+  void updateTimeInCrotchets(float);
+
 private:
   void _updateWidgets();
   void _updatePlayButton();
 
+  SoloHarmonizerVst &_soloHarmonizerVst;
   EditorsFactoryView &_intervallerFactoryView;
   juce::TextButton _chooseFileButton;
   juce::TextButton _playButton;
