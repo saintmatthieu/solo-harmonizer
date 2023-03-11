@@ -1,4 +1,4 @@
-#include "IntervalGetterFactory.h"
+#include "DefaultMidiFileOwner.h"
 #include "IntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
 #include "IntervalHelper.h"
@@ -123,17 +123,17 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
 }
 } // namespace
 
-IntervalGetterFactory::IntervalGetterFactory(
+DefaultMidiFileOwner::DefaultMidiFileOwner(
     OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable,
     OnPlayheadCommand onPlayheadCommand)
     : _onCrotchetsPerSecondAvailable(onCrotchetsPerSecondAvailable),
       _onPlayheadCommand(onPlayheadCommand) {}
 
-void IntervalGetterFactory::setSampleRate(int sampleRate) {
+void DefaultMidiFileOwner::setSampleRate(int sampleRate) {
   _samplesPerSecond = sampleRate;
 }
 
-void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
+void DefaultMidiFileOwner::setMidiFile(std::filesystem::path path) {
   _juceMidiFile = getJuceMidiFile(path.string());
   _midiFilePath = std::move(path);
   _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
@@ -152,49 +152,48 @@ void IntervalGetterFactory::setMidiFile(std::filesystem::path path) {
   _createIntervalGetterIfAllParametersSet();
 }
 
-std::optional<std::filesystem::path>
-IntervalGetterFactory::getMidiFile() const {
+std::optional<std::filesystem::path> DefaultMidiFileOwner::getMidiFile() const {
   return _midiFilePath;
 }
 
-std::vector<std::string> IntervalGetterFactory::getMidiFileTrackNames() const {
+std::vector<std::string> DefaultMidiFileOwner::getMidiFileTrackNames() const {
   return _trackNames;
 }
 
-void IntervalGetterFactory::setPlayedTrack(int track) {
+void DefaultMidiFileOwner::setPlayedTrack(int track) {
   if (_playedTrack != track) {
     _playedTrack = track;
     _createIntervalGetterIfAllParametersSet();
   }
 }
 
-std::optional<int> IntervalGetterFactory::getPlayedTrack() const {
+std::optional<int> DefaultMidiFileOwner::getPlayedTrack() const {
   return _playedTrack;
 }
 
-void IntervalGetterFactory::setHarmonyTrack(int track) {
+void DefaultMidiFileOwner::setHarmonyTrack(int track) {
   if (_harmonyTrack != track) {
     _harmonyTrack = track;
     _createIntervalGetterIfAllParametersSet();
   }
 }
 
-std::optional<int> IntervalGetterFactory::getHarmonyTrack() const {
+std::optional<int> DefaultMidiFileOwner::getHarmonyTrack() const {
   return _harmonyTrack;
 }
 
-const std::vector<uint8_t> &IntervalGetterFactory::getState() const {
+const std::vector<uint8_t> &DefaultMidiFileOwner::getState() const {
   return _state;
 }
 
-void IntervalGetterFactory::setState(std::vector<uint8_t>) {}
+void DefaultMidiFileOwner::setState(std::vector<uint8_t>) {}
 
-bool IntervalGetterFactory::hasIntervalGetter() const {
+bool DefaultMidiFileOwner::hasIntervalGetter() const {
   return _intervalGetter.use_count() > 0;
 }
 
 std::shared_ptr<IntervalGetter>
-IntervalGetterFactory::getIntervalGetter() const {
+DefaultMidiFileOwner::getIntervalGetter() const {
   return _intervalGetter;
 }
 
@@ -220,7 +219,7 @@ std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
 }
 } // namespace
 
-void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
+void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||
       !_samplesPerSecond || !_crotchetsPerSecond) {
     return;
@@ -251,20 +250,20 @@ void IntervalGetterFactory::_createIntervalGetterIfAllParametersSet() {
   }
 }
 
-std::optional<int> IntervalGetterFactory::getTicksPerCrotchet() const {
+std::optional<int> DefaultMidiFileOwner::getTicksPerCrotchet() const {
   return _ticksPerCrotchet;
 }
 
-std::optional<float> IntervalGetterFactory::getCrotchetsPerSecond() const {
+std::optional<float> DefaultMidiFileOwner::getCrotchetsPerSecond() const {
   return _crotchetsPerSecond;
 }
 
 std::optional<float>
-IntervalGetterFactory::getLowestPlayedTrackHarmonizedFrequency() const {
+DefaultMidiFileOwner::getLowestPlayedTrackHarmonizedFrequency() const {
   return _lowestPlayedTrackHarmonizedFrequency;
 }
 
-bool IntervalGetterFactory::execute(PlayheadCommand command) {
+bool DefaultMidiFileOwner::execute(PlayheadCommand command) {
   return _onPlayheadCommand(command);
 }
 

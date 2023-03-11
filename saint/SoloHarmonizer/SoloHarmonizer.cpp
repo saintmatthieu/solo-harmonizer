@@ -1,9 +1,7 @@
 #include "SoloHarmonizer.h"
-#include "Factory/IntervalGetterFactory.h"
-#include "IntervalTypes.h"
-#include "SoloHarmonizerEditor.h"
+#include "MidiFileOwner.h"
 #include "SoloHarmonizerHelper.h"
-#include "rubberband/RubberBandStretcher.h"
+
 #include "spdlog/common.h"
 #include "spdlog/logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -13,10 +11,9 @@ namespace {
 static std::atomic<int> instanceCounter = 0;
 } // namespace
 
-SoloHarmonizer::SoloHarmonizer(
-    std::shared_ptr<ProcessorsFactoryView> processorsFactoryView,
-    Playhead &playhead)
-    : _processorsFactoryView(std::move(processorsFactoryView)),
+SoloHarmonizer::SoloHarmonizer(std::shared_ptr<MidiFileOwner> midiFileOwner,
+                               Playhead &playhead)
+    : _midiFileOwner(std::move(midiFileOwner)),
       _loggerName(std::string{"SoloHarmonizer_"} +
                   std::to_string(instanceCounter++)),
       _logger(spdlog::basic_logger_mt(
@@ -32,8 +29,7 @@ void SoloHarmonizer::prepareToPlay(int sampleRate, int samplesPerBlock) {
   _pitchShifter = DavidCNAntonia::IPitchShifter::createInstance(
       1, static_cast<double>(sampleRate), samplesPerBlock);
   _pitchDetector = PitchDetector::createInstance(
-      sampleRate,
-      _processorsFactoryView->getLowestPlayedTrackHarmonizedFrequency());
+      sampleRate, _midiFileOwner->getLowestPlayedTrackHarmonizedFrequency());
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }
@@ -52,10 +48,10 @@ void SoloHarmonizer::setSemitoneShift(float value) {
 
 void SoloHarmonizer::processBlock(float *block, int size) {
   _logger->trace("processBlock");
-  if (!_processorsFactoryView->hasIntervalGetter()) {
+  if (!_midiFileOwner->hasIntervalGetter()) {
     return;
   }
-  const auto intervalGetter = _processorsFactoryView->getIntervalGetter();
+  const auto intervalGetter = _midiFileOwner->getIntervalGetter();
   if (!intervalGetter) {
     return;
   }

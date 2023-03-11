@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../SoloHarmonizerTypes.h"
-#include "EditorsFactoryView.h"
 #include "IntervalGetter.h"
 #include "IntervalTypes.h"
-#include "ProcessorsFactoryView.h"
+#include "MidiFileOwner.h"
+#include "SoloHarmonizerTypes.h"
+
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
@@ -13,13 +13,12 @@ namespace saint {
 using OnCrotchetsPerSecondAvailable = std::function<void(float)>;
 using OnPlayheadCommand = std::function<bool(PlayheadCommand)>;
 
-class IntervalGetterFactory : public EditorsFactoryView,
-                              public ProcessorsFactoryView {
+class DefaultMidiFileOwner : public MidiFileOwner {
 public:
-  IntervalGetterFactory(OnCrotchetsPerSecondAvailable, OnPlayheadCommand);
+  DefaultMidiFileOwner(OnCrotchetsPerSecondAvailable, OnPlayheadCommand);
   void setSampleRate(int);
 
-  // EditorsFactoryView
+  // MidiFileOwner
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
   std::vector<std::string> getMidiFileTrackNames() const override;
@@ -29,8 +28,6 @@ public:
   std::optional<int> getHarmonyTrack() const override;
   std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
   bool execute(PlayheadCommand) override;
-
-  // ProcessorsFactoryView
   const std::vector<uint8_t> &getState() const override;
   void setState(std::vector<uint8_t>) override;
   bool hasIntervalGetter() const override;

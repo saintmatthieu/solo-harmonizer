@@ -1,5 +1,4 @@
 #include "SoloHarmonizerVst.h"
-#include "Factory/IntervalGetterFactory.h"
 #include "Playheads/HostDrivenPlayhead.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"
@@ -21,12 +20,11 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
       _isStandalone(wrapperType ==
                     juce::AudioProcessor::wrapperType_Standalone),
-      _intervalGetterFactory(std::make_shared<IntervalGetterFactory>(
+      _midiFileOwner(std::make_shared<DefaultMidiFileOwner>(
           std::bind(&SoloHarmonizerVst::_onCrotchetsPerSecondAvailable, this,
                     _1),
           std::bind(&SoloHarmonizerVst::_onPlayheadCommand, this, _1))),
-      _soloHarmonizer(
-          std::make_unique<SoloHarmonizer>(_intervalGetterFactory, *this)),
+      _soloHarmonizer(std::make_unique<SoloHarmonizer>(_midiFileOwner, *this)),
       _playheadFactory(std::move(factory)),
       _editorCallThread(
           std::bind(&SoloHarmonizerVst::_editorCallThreadFun, this)) {}
@@ -56,7 +54,7 @@ const juce::String SoloHarmonizerVst::getName() const {
 
 void SoloHarmonizerVst::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _samplesPerSecond = static_cast<int>(sampleRate);
-  _intervalGetterFactory->setSampleRate(*_samplesPerSecond);
+  _midiFileOwner->setSampleRate(*_samplesPerSecond);
   _soloHarmonizer->prepareToPlay(*_samplesPerSecond, samplesPerBlock);
 }
 
@@ -97,7 +95,7 @@ juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
 }
 
 juce::AudioProcessorEditor *SoloHarmonizerVst::createEditor() {
-  const auto editor = new SoloHarmonizerEditor(*this, *_intervalGetterFactory);
+  const auto editor = new SoloHarmonizerEditor(*this, *_midiFileOwner);
   {
     std::lock_guard<std::mutex> lock(_editorMutex);
     _editors.insert(editor);

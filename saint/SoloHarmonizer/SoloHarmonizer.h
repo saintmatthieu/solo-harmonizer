@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DavidCNAntonia/IPitchShifter.h"
-#include "Factory/ProcessorsFactoryView.h"
+#include "MidiFileOwner.h"
 #include "PitchDetector.h"
 #include "Playhead.h"
 
@@ -10,7 +10,7 @@
 namespace saint {
 class SoloHarmonizer {
 public:
-  SoloHarmonizer(std::shared_ptr<ProcessorsFactoryView>, Playhead &);
+  SoloHarmonizer(std::shared_ptr<MidiFileOwner>, Playhead &);
   ~SoloHarmonizer();
 
   void setSemitoneShift(float value);
@@ -21,7 +21,7 @@ public:
   void releaseResources();
 
 private:
-  const std::shared_ptr<ProcessorsFactoryView> _processorsFactoryView;
+  const std::shared_ptr<MidiFileOwner> _midiFileOwner;
   const std::string _loggerName;
   const std::shared_ptr<spdlog::logger> _logger;
   Playhead &_playhead;

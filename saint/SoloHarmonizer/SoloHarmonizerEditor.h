@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Factory/EditorsFactoryView.h"
+#include "MidiFileOwner.h"
 #include "SoloHarmonizerTypes.h"
 #include "SoloHarmonizerVst.h"
 
@@ -12,8 +12,8 @@
 namespace saint {
 class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
 public:
-  SoloHarmonizerEditor(SoloHarmonizerVst &, EditorsFactoryView &);
-  ~SoloHarmonizerEditor();
+  SoloHarmonizerEditor(SoloHarmonizerVst &, MidiFileOwner &);
+  ~SoloHarmonizerEditor() override;
 
   // AudioProcessingEditor
   void paint(juce::Graphics &) override;
@@ -26,7 +26,7 @@ private:
   void _updatePlayButton();
 
   SoloHarmonizerVst &_soloHarmonizerVst;
-  EditorsFactoryView &_intervallerFactoryView;
+  MidiFileOwner &_midiFileOwner;
   juce::TextButton _chooseFileButton;
   juce::TextButton _playButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;

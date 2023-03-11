@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Factory/IntervalGetterFactory.h"
+#include "DefaultMidiFileOwner.h"
 #include "JuceAudioPlayHeadProvider.h"
 #include "Playhead.h"
 #include "SoloHarmonizer.h"
@@ -71,7 +71,7 @@ private:
   const bool _isStandalone;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;
-  const std::shared_ptr<IntervalGetterFactory> _intervalGetterFactory;
+  const std::shared_ptr<DefaultMidiFileOwner> _midiFileOwner;
   const std::unique_ptr<SoloHarmonizer> _soloHarmonizer;
   const PlayheadFactory _playheadFactory;
   std::shared_ptr<Playhead> _playhead;

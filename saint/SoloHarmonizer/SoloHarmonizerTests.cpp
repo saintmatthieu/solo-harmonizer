@@ -1,4 +1,4 @@
-#include "Factory/IntervalGetterFactory.h"
+#include "MidiFileOwner.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
 #include "Utils.h"
@@ -42,7 +42,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   prependDelay(wav);
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
-  const auto factory = std::make_shared<IntervalGetterFactory>(
+  const auto factory = std::make_shared<MidiFileOwner>(
       onCrotchetsPerSecondAvailable, onPlayheadCommand);
   factory->setSampleRate(sampleRate);
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));

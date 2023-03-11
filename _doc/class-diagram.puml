@@ -3,13 +3,14 @@
 hide fields
 hide SoloHarmonizer methods
 hide SoloHarmonizerEditor methods
-hide IntervalGetterFactory methods
 hide juce_AudioPlayhead methods
 hide Playhead methods
 hide SoloHarmonizerVst methods
 hide ProcessCallbackDrivenPlayhead methods
 hide HostDrivenPlayhead methods
 hide IntervalGetter methods
+hide PositionGetter methods
+hide MidiFileOwner methods
 
 abstract class Playhead
 class SoloHarmonizer
@@ -17,42 +18,29 @@ class SoloHarmonizerEditor
 class SoloHarmonizerVst
 class ProcessCallbackDrivenPlayhead
 class HostDrivenPlayhead
+class PositionGetter
 
-abstract class EditorsFactoryView {
-  setMidiFile(path)
-  getMidiFile(): optional<path>
-  getMidiFileTrackNames(): vector<string>
-  setPlayedTrack(int)
-  getPlayedTrack(): optional<int>
-  setHarmonyTrack(int)
-  getHarmonyTrack(): optional<int>
-}
+abstract class MidiFileOwner
 
-abstract class ProcessorsFactoryView {
-  getState(): const vector<uint8_t>&
-  setState(vector<uint8_t>)
-  hasIntervalGetter()
-  getIntervalGetter(): shared_ptr<IntervalGetter>
-}
-
-class IntervalGetterFactory
 class IntervalGetter
+class PositionGetter
 
-SoloHarmonizerVst *- IntervalGetterFactory
+SoloHarmonizerVst *- MidiFileOwner
 SoloHarmonizerVst *-- SoloHarmonizer
-SoloHarmonizerVst *.. ProcessCallbackDrivenPlayhead
-SoloHarmonizerVst *.. HostDrivenPlayhead
+ProcessCallbackDrivenPlayhead .* SoloHarmonizerVst
+SoloHarmonizerVst *. HostDrivenPlayhead
 SoloHarmonizerEditor -o SoloHarmonizer
-SoloHarmonizer o-- ProcessorsFactoryView
-SoloHarmonizerEditor o-- EditorsFactoryView
+SoloHarmonizer o-- MidiFileOwner
+SoloHarmonizerEditor o-- MidiFileOwner
 
-EditorsFactoryView <|-- IntervalGetterFactory
-ProcessorsFactoryView <|-- IntervalGetterFactory
 SoloHarmonizer o. IntervalGetter
-IntervalGetter --* IntervalGetterFactory
+MidiFileOwner *- IntervalGetter
+SoloHarmonizerEditor o. PositionGetter
+PositionGetter -* MidiFileOwner
 
-juce_AudioPlayhead -o SoloHarmonizerVst
-SoloHarmonizerVst -|> Playhead
+SoloHarmonizerVst o-- juce_AudioPlayhead
+SoloHarmonizerVst o.. SoloHarmonizerEditor
+Playhead <|-- SoloHarmonizerVst
 Playhead <|-- ProcessCallbackDrivenPlayhead
 Playhead <|-- HostDrivenPlayhead
 Playhead --o SoloHarmonizer

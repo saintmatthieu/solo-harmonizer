@@ -8,12 +8,10 @@ constexpr auto playTxt = "Play";
 constexpr auto stopTxt = "Stop";
 } // namespace
 
-SoloHarmonizerEditor::SoloHarmonizerEditor(
-    SoloHarmonizerVst &soloHarmonizerVst,
-    EditorsFactoryView &intervallerFactory)
+SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
+                                           MidiFileOwner &intervallerFactory)
     : AudioProcessorEditor(&soloHarmonizerVst),
-      _soloHarmonizerVst(soloHarmonizerVst),
-      _intervallerFactoryView(intervallerFactory),
+      _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(intervallerFactory),
       _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
@@ -34,9 +32,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
     box.onChange = [&box, trackType, this]() {
       const auto selectedTrack = box.getSelectedId();
       if (trackType == TrackType::played) {
-        _intervallerFactoryView.setPlayedTrack(selectedTrack);
+        _midiFileOwner.setPlayedTrack(selectedTrack);
       } else {
-        _intervallerFactoryView.setHarmonyTrack(selectedTrack);
+        _midiFileOwner.setHarmonyTrack(selectedTrack);
       }
       _updatePlayButton();
     };
@@ -52,7 +50,7 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
     if (fileChooser.browseForFileToOpen()) {
       const std::filesystem::path path =
           fileChooser.getResult().getFullPathName().toStdString();
-      _intervallerFactoryView.setMidiFile(path);
+      _midiFileOwner.setMidiFile(path);
       _updateWidgets();
     }
   };
@@ -60,9 +58,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
 
   _playButton.onClick = [this]() {
     if (_playButton.getButtonText() == playTxt &&
-        _intervallerFactoryView.execute(PlayheadCommand::play)) {
+        _midiFileOwner.execute(PlayheadCommand::play)) {
       _playButton.setButtonText(stopTxt);
-    } else if (_intervallerFactoryView.execute(PlayheadCommand::stop)) {
+    } else if (_midiFileOwner.execute(PlayheadCommand::stop)) {
       _playButton.setButtonText(playTxt);
     }
   };
@@ -72,8 +70,8 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(
 }
 
 void SoloHarmonizerEditor::_updateWidgets() {
-  const auto midiFilePath = _intervallerFactoryView.getMidiFile();
-  const auto trackNames = _intervallerFactoryView.getMidiFileTrackNames();
+  const auto midiFilePath = _midiFileOwner.getMidiFile();
+  const auto trackNames = _midiFileOwner.getMidiFileTrackNames();
   _chooseFileButton.setButtonText(
       midiFilePath ? midiFilePath->filename().string() : chooseFileButtonTxt);
   _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
@@ -90,10 +88,10 @@ void SoloHarmonizerEditor::_updateWidgets() {
     }
     box.setVisible(!trackNames.empty());
   }
-  if (const auto playedTrack = _intervallerFactoryView.getPlayedTrack()) {
+  if (const auto playedTrack = _midiFileOwner.getPlayedTrack()) {
     _comboBoxes[playedTrackTypeIndex].setSelectedId(*playedTrack);
   }
-  if (const auto harmonyTrack = _intervallerFactoryView.getHarmonyTrack()) {
+  if (const auto harmonyTrack = _midiFileOwner.getHarmonyTrack()) {
     _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
   _updatePlayButton();
@@ -104,9 +102,9 @@ SoloHarmonizerEditor::~SoloHarmonizerEditor() {
 }
 
 void SoloHarmonizerEditor::_updatePlayButton() {
-  _playButton.setVisible(_intervallerFactoryView.getMidiFile().has_value() &&
-                         _intervallerFactoryView.getPlayedTrack().has_value() &&
-                         _intervallerFactoryView.getHarmonyTrack().has_value());
+  _playButton.setVisible(_midiFileOwner.getMidiFile().has_value() &&
+                         _midiFileOwner.getPlayedTrack().has_value() &&
+                         _midiFileOwner.getHarmonyTrack().has_value());
 }
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {

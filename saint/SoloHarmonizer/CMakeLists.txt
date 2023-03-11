@@ -2,7 +2,7 @@ add_library(SoloHarmonizer)
 
 target_sources(SoloHarmonizer
   PUBLIC
-    Factory/IntervalGetterFactory.cpp
+    DefaultMidiFileOwner.cpp
     Playheads/HostDrivenPlayhead.cpp
     Playheads/ProcessCallbackDrivenPlayhead.cpp
     SoloHarmonizerEditor.cpp
