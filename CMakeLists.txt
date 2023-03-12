@@ -10,9 +10,14 @@ project(SoloHarmonizer VERSION 0.0.1)
 
 set(JuceLibDeps_TestUtils
     juce::juce_audio_utils
+    juce::juce_audio_formats
 )
 set(JuceLibDeps_DavidCNAntonia
     juce::juce_dsp
+    juce::juce_audio_basics
+)
+set(JuceLibDeps_MidiFileOwner
+    ${JuceLibDeps_IntervalGetter}
     juce::juce_audio_basics
 )
 set(JuceLibDeps_PitchDetector

@@ -1,6 +1,7 @@
-#include "MidiFileOwner.h"
+#include "DefaultMidiFileOwner.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
+#include "SoloHarmonizerTypes.h"
 #include "Utils.h"
 #include "testUtils.h"
 
@@ -42,7 +43,7 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   prependDelay(wav);
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
-  const auto factory = std::make_shared<MidiFileOwner>(
+  const auto factory = std::make_shared<DefaultMidiFileOwner>(
       onCrotchetsPerSecondAvailable, onPlayheadCommand);
   factory->setSampleRate(sampleRate);
   factory->setMidiFile(fs::absolute("./saint/_assets/Les_Petits_Poissons.mid"));

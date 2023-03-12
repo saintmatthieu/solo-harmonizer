@@ -2,7 +2,23 @@
 
 #include <optional>
 
+namespace juce {
+class MidiFile;
+class MidiMessage;
+class MidiMessageSequence;
+} // namespace juce
+
 namespace saint {
+
+class IntervalGetter;
+class PositionGetter;
+
+enum class PlayheadCommand {
+  play,
+  pause,
+  stop,
+};
+
 struct PlayedNote {
   int noteNumber;
   // If not present then no harmonization.
@@ -23,5 +39,25 @@ struct MidiNoteMsg {
   int tick; // quantized
   bool isNoteOn;
   int noteNumber;
+};
+
+struct Fraction {
+  int num;
+  int den;
+};
+bool operator==(const Fraction &, const Fraction &);
+bool operator!=(const Fraction &, const Fraction &);
+
+struct Position {
+  int barIndex;
+  float beatIndex;
+};
+bool operator==(const Position &, const Position &);
+bool operator!=(const Position &, const Position &);
+
+struct TimeSignaturePosition {
+  int barIndex;
+  float crotchet;
+  Fraction timeSignature;
 };
 } // namespace saint

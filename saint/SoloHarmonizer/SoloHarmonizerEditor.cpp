@@ -1,4 +1,5 @@
 #include "SoloHarmonizerEditor.h"
+#include "PositionGetter.h"
 #include "SoloHarmonizerTypes.h"
 
 namespace saint {
@@ -107,6 +108,21 @@ void SoloHarmonizerEditor::_updatePlayButton() {
                          _midiFileOwner.getHarmonyTrack().has_value());
 }
 
+void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
+  if (!_midiFileOwner.hasPositionGetter()) {
+    return;
+  }
+  const auto positionGetter = _midiFileOwner.getPositionGetter();
+  if (!positionGetter) {
+    return;
+  }
+  const auto position = positionGetter->getPosition(crotchets);
+  if (_previousPosition == position) {
+    return;
+  }
+  _previousPosition = position;
+}
+
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
   // (Our component is opaque, so we must completely fill the background with a
   // solid colour)
@@ -129,7 +145,4 @@ void SoloHarmonizerEditor::resized() {
                        GridItem(_playButton).withColumn({1, 3})});
   grid.performLayout(getLocalBounds());
 }
-
-void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {}
-
 } // namespace saint

@@ -1,4 +1,5 @@
 #include "SoloHarmonizer.h"
+#include "IntervalGetter.h"
 #include "MidiFileOwner.h"
 #include "SoloHarmonizerHelper.h"
 

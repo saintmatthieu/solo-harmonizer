@@ -94,13 +94,17 @@ juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
   return getPlayHead();
 }
 
-juce::AudioProcessorEditor *SoloHarmonizerVst::createEditor() {
+SoloHarmonizerEditor *SoloHarmonizerVst::createSoloHarmonizerEditor() {
   const auto editor = new SoloHarmonizerEditor(*this, *_midiFileOwner);
   {
     std::lock_guard<std::mutex> lock(_editorMutex);
     _editors.insert(editor);
   }
   return editor;
+}
+
+juce::AudioProcessorEditor *SoloHarmonizerVst::createEditor() {
+  return createSoloHarmonizerEditor();
 }
 
 void SoloHarmonizerVst::onEditorDestruction(SoloHarmonizerEditor *editor) {
@@ -127,10 +131,6 @@ void SoloHarmonizerVst::_onCrotchetsPerSecondAvailable(
 }
 
 bool SoloHarmonizerVst::_onPlayheadCommand(PlayheadCommand command) {
-  if (!_crotchetsPerSecond.has_value() || !_samplesPerSecond.has_value()) {
-    assert(false);
-    return false;
-  }
   switch (command) {
   case PlayheadCommand::play:
     return _startPlaying();
@@ -144,14 +144,9 @@ bool SoloHarmonizerVst::_onPlayheadCommand(PlayheadCommand command) {
 }
 
 bool SoloHarmonizerVst::_startPlaying() {
-  if (!_samplesPerSecond.has_value() || !_crotchetsPerSecond.has_value()) {
-    return false;
-  }
-  const auto crotchetsPerSample =
-      utils::getCrotchetsPerSample(*_crotchetsPerSecond, *_samplesPerSecond);
-  _playhead = _playheadFactory(_isStandalone, *this, crotchetsPerSample,
-                               *_samplesPerSecond);
-  return true;
+  _playhead = _playheadFactory(_isStandalone, *this, _crotchetsPerSecond,
+                               _samplesPerSecond);
+  return _playhead != nullptr;
 }
 
 bool SoloHarmonizerVst::_stopPlaying() {
@@ -163,17 +158,22 @@ bool SoloHarmonizerVst::_stopPlaying() {
 // This creates new instances of the plugin..
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
   using namespace saint;
-  PlayheadFactory factory{
-      [](bool mustSetPpqPosition,
-         const JuceAudioPlayHeadProvider &playheadProvider,
-         float crotchetsPerSample,
-         int samplesPerSecond) -> std::shared_ptr<Playhead> {
-        if (mustSetPpqPosition) {
-          return std::make_shared<ProcessCallbackDrivenPlayhead>(
-              samplesPerSecond, crotchetsPerSample);
-        } else {
-          return std::make_shared<HostDrivenPlayhead>(playheadProvider);
-        }
-      }};
+  PlayheadFactory factory{[](bool mustSetPpqPosition,
+                             const JuceAudioPlayHeadProvider &playheadProvider,
+                             const std::optional<float> &crotchetsPerSecond,
+                             const std::optional<int> &samplesPerSecond)
+                              -> std::shared_ptr<Playhead> {
+    if (mustSetPpqPosition) {
+      if (!crotchetsPerSecond.has_value() || samplesPerSecond.has_value()) {
+        return nullptr;
+      }
+      const auto crotchetsPerSample =
+          utils::getCrotchetsPerSample(*crotchetsPerSecond, *samplesPerSecond);
+      return std::make_shared<ProcessCallbackDrivenPlayhead>(
+          *samplesPerSecond, crotchetsPerSample);
+    } else {
+      return std::make_shared<HostDrivenPlayhead>(playheadProvider);
+    }
+  }};
   return new SoloHarmonizerVst(std::move(factory));
 }

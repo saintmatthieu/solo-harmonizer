@@ -1,7 +1,6 @@
 add_library(IntervalGetter
   IntervalGetter.cpp
   IntervalHelper.cpp
-  IntervalTypes.cpp
 )
 
 target_include_directories(IntervalGetter
@@ -12,11 +11,17 @@ target_include_directories(IntervalGetter
 target_link_libraries(IntervalGetter
   PUBLIC
     TestUtils
+    Utils
 )
 
 add_executable(IntervalGetterTests
   IntervalGetterTests.cpp
   IntervalHelperTests.cpp
+)
+
+target_include_directories(IntervalGetterTests
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/_thirdParty/asiosdk/common # Needed by JUCE
 )
 
 target_link_libraries(IntervalGetterTests

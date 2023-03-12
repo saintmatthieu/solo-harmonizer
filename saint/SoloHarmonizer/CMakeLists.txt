@@ -2,12 +2,10 @@ add_library(SoloHarmonizer)
 
 target_sources(SoloHarmonizer
   PUBLIC
-    DefaultMidiFileOwner.cpp
     Playheads/HostDrivenPlayhead.cpp
     Playheads/ProcessCallbackDrivenPlayhead.cpp
-    SoloHarmonizerEditor.cpp
-    SoloHarmonizerHelper.cpp
     SoloHarmonizer.cpp
+    SoloHarmonizerHelper.cpp
 )
 
 target_include_directories(SoloHarmonizer
@@ -20,6 +18,7 @@ target_include_directories(SoloHarmonizer
 target_link_libraries(SoloHarmonizer
   PUBLIC
     IntervalGetter
+    MidiFileOwner
     PitchDetector
     spdlog
     DavidCNAntonia
@@ -45,7 +44,9 @@ juce_add_plugin(SoloHarmonizerVst
 
 target_sources(SoloHarmonizerVst
     PRIVATE
-        SoloHarmonizerVst.cpp)
+        SoloHarmonizerEditor.cpp
+        SoloHarmonizerVst.cpp
+)
 
 target_compile_definitions(SoloHarmonizerVst
     PUBLIC
@@ -53,7 +54,7 @@ target_compile_definitions(SoloHarmonizerVst
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
         JUCE_VST3_CAN_REPLACE_VST2=0)
-        
+
 target_include_directories(SoloHarmonizerVst
     PUBLIC
         ${CMAKE_SOURCE_DIR}/JUCE/modules
@@ -75,6 +76,11 @@ add_executable(SoloHarmonizerTests
     Playheads/ProcessCallbackDrivenPlayheadTests.cpp
 )
 
+target_include_directories(SoloHarmonizerTests
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/_thirdParty/asiosdk/common # Needed by JUCE
+)
+
 target_link_libraries(SoloHarmonizerTests
     PRIVATE
         SoloHarmonizer
@@ -83,6 +89,7 @@ target_link_libraries(SoloHarmonizerTests
         gmock
         ${JuceLibDeps_SoloHarmonizer}
         ${JuceLibDeps_TestUtils}
+        ${JuceLibDeps_MidiFileOwner}
 )
 
 add_executable(SoloHarmonizerEditorTestApp
@@ -92,5 +99,6 @@ add_executable(SoloHarmonizerEditorTestApp
 target_link_libraries(SoloHarmonizerEditorTestApp
     PRIVATE
         SoloHarmonizerVst
+        gmock
         ${JuceLibDeps_SoloHarmonizerVst}
 )

@@ -1,12 +1,11 @@
 #pragma once
 
-#include "IntervalGetter.h"
-#include "IntervalTypes.h"
+#include "CommonTypes.h"
 #include "MidiFileOwner.h"
-#include "SoloHarmonizerTypes.h"
-
 
 #include <juce_audio_basics/juce_audio_basics.h>
+
+#include <functional>
 
 namespace saint {
 
@@ -32,6 +31,8 @@ public:
   void setState(std::vector<uint8_t>) override;
   bool hasIntervalGetter() const override;
   std::shared_ptr<IntervalGetter> getIntervalGetter() const override;
+  bool hasPositionGetter() const override;
+  std::shared_ptr<PositionGetter> getPositionGetter() const override;
 
   // For testing
   std::optional<int> getTicksPerCrotchet() const;
@@ -53,5 +54,6 @@ private:
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
   std::vector<uint8_t> _state;
   std::shared_ptr<IntervalGetter> _intervalGetter;
+  std::shared_ptr<PositionGetter> _positionGetter;
 };
 } // namespace saint

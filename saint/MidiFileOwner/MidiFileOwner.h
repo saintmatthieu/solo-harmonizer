@@ -1,7 +1,6 @@
 #pragma once
 
-#include "IntervalGetter.h"
-#include "SoloHarmonizerTypes.h"
+#include "CommonTypes.h"
 
 #include <filesystem>
 #include <optional>
@@ -22,6 +21,8 @@ public:
   virtual void setState(std::vector<uint8_t>) = 0;
   virtual bool hasIntervalGetter() const = 0;
   virtual std::shared_ptr<IntervalGetter> getIntervalGetter() const = 0;
+  virtual bool hasPositionGetter() const = 0;
+  virtual std::shared_ptr<PositionGetter> getPositionGetter() const = 0;
   virtual std::optional<float>
   getLowestPlayedTrackHarmonizedFrequency() const = 0;
 };

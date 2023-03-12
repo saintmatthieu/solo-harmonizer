@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IntervalTypes.h"
+#include "CommonTypes.h"
 
 #include <vector>
 

@@ -35,3 +35,8 @@ target_link_libraries(PitchDetectorImplTests
     gtest_main
     gmock
 )
+
+target_include_directories(PitchDetectorImplTests	
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/_thirdParty/asiosdk/common # Needed by JUCE
+)

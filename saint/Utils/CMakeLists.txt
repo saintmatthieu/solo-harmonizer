@@ -2,6 +2,7 @@ add_library(Utils)
 
 target_sources(Utils
   PUBLIC
+    CommonTypes.cpp
     Utils.cpp
 )
 

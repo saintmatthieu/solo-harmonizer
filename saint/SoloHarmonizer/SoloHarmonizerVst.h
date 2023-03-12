@@ -28,8 +28,8 @@ public:
   // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
-  juce::AudioProcessorEditor *createEditor() override;
   void onEditorDestruction(SoloHarmonizerEditor *);
+  SoloHarmonizerEditor *createSoloHarmonizerEditor();
 
   // Playhead
   std::optional<float> getTimeInCrotchets() const override;
@@ -38,6 +38,7 @@ public:
   juce::AudioPlayHead *getJuceAudioPlayHead() const override;
 
 private:
+  juce::AudioProcessorEditor *createEditor() override;
   void releaseResources() override;
   bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
 

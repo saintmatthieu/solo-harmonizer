@@ -1,7 +1,7 @@
 #pragma once
 
+#include "CommonTypes.h"
 #include "IntervalGetterDebugCb.h"
-#include "IntervalTypes.h"
 
 #include <vector>
 

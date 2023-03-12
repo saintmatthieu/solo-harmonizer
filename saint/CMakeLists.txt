@@ -1,5 +1,6 @@
-add_subdirectory(PitchDetector)
 add_subdirectory(IntervalGetter)
+add_subdirectory(MidiFileOwner)
+add_subdirectory(PitchDetector)
 add_subdirectory(SoloHarmonizer)
 add_subdirectory(TestUtils)
 add_subdirectory(Utils)

@@ -31,6 +31,7 @@ private:
   juce::TextButton _playButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
   const juce::Colour _chooseFileButtonDefaultColour;
+  std::optional<Position> _previousPosition;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };
