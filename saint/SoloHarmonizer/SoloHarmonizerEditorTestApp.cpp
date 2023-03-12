@@ -30,7 +30,7 @@ public:
                  const std::optional<int>) -> std::shared_ptr<Playhead> {
                 return std::shared_ptr<Playhead>{new MockPlayhead()};
               }) {
-      centreWithSize(400, 600);
+      centreWithSize(400, 700);
       setVisible(true);
       constexpr auto resizeToFitWhenContentChangesSize = true;
       _openEditorButton.setSize(400, 100);
@@ -65,7 +65,7 @@ public:
     }
 
     void textEditorReturnKeyPressed(juce::TextEditor &) override {
-      if (!_sut) {
+      if (!_sut || _timeInCrotchetsInputEditor.getText().isEmpty()) {
         return;
       }
       const auto time =

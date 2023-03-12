@@ -6,7 +6,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["--gtest_filter=*ProcessCallbackDrivenPlayhead*"],
+      "args": ["--gtest_filter=*"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"

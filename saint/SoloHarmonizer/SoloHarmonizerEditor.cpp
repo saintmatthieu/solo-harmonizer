@@ -67,6 +67,12 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   };
   addChildComponent(_playButton);
 
+  _barNumberDisplay.setEnabled(false);
+  _beatNumberDisplay.setEnabled(false);
+
+  addAndMakeVisible(_barNumberDisplay);
+  addAndMakeVisible(_beatNumberDisplay);
+
   _updateWidgets();
 }
 
@@ -108,6 +114,19 @@ void SoloHarmonizerEditor::_updatePlayButton() {
                          _midiFileOwner.getHarmonyTrack().has_value());
 }
 
+bool SoloHarmonizerEditor::RoundedPosition::operator==(
+    const RoundedPosition &other) const {
+  return std::tie(barIndex, beatIndex) ==
+         std::tie(other.barIndex, other.beatIndex);
+}
+
+SoloHarmonizerEditor::RoundedPosition &
+SoloHarmonizerEditor::RoundedPosition::operator=(const RoundedPosition &other) {
+  barIndex = other.barIndex;
+  beatIndex = other.beatIndex;
+  return *this;
+}
+
 void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   if (!_midiFileOwner.hasPositionGetter()) {
     return;
@@ -117,10 +136,16 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
     return;
   }
   const auto position = positionGetter->getPosition(crotchets);
-  if (_previousPosition == position) {
+  const RoundedPosition roundedPosition{position.barIndex,
+                                        static_cast<int>(position.beatIndex)};
+  if (_previousPosition == roundedPosition) {
     return;
   }
-  _previousPosition = position;
+  _barNumberDisplay.setButtonText(std::to_string(roundedPosition.barIndex + 1));
+  _beatNumberDisplay.setButtonText(
+      std::to_string(roundedPosition.beatIndex + 1));
+  _previousPosition = roundedPosition;
+  repaint();
 }
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
@@ -136,13 +161,14 @@ void SoloHarmonizerEditor::resized() {
   grid.rowGap = 20_px;
   grid.columnGap = 20_px;
   using Track = Grid::TrackInfo;
-  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr)};
+  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr)};
   grid.templateColumns = {Track(1_fr), Track(1_fr)};
   grid.autoColumns = Track(1_fr);
   grid.autoRows = Track(1_fr);
-  grid.items.addArray({GridItem(_chooseFileButton).withColumn({1, 3}),
-                       GridItem(_comboBoxes[0]), GridItem(_comboBoxes[1]),
-                       GridItem(_playButton).withColumn({1, 3})});
+  grid.items.addArray(
+      {GridItem(_chooseFileButton).withColumn({1, 3}), GridItem(_comboBoxes[0]),
+       GridItem(_comboBoxes[1]), GridItem(_playButton).withColumn({1, 3}),
+       GridItem(_barNumberDisplay), GridItem(_beatNumberDisplay)});
   grid.performLayout(getLocalBounds());
 }
 } // namespace saint

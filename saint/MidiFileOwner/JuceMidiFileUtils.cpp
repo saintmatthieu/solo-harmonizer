@@ -125,6 +125,7 @@ std::vector<TimeSignaturePosition>
 getTimeSignatures(const juce::MidiFile &midiFile) {
   std::vector<TimeSignaturePosition> positions;
   auto barIndex = 0;
+  auto barCrotchet = 0.f;
   auto crotchetsPerBar = 4.f;
   const juce::MidiMessageSequence *firstTrack = midiFile.getTrack(0);
   const auto ticksPerCrotchet = getTicksPerCrotchet(midiFile);
@@ -134,14 +135,17 @@ getTimeSignatures(const juce::MidiFile &midiFile) {
       continue;
     }
     TimeSignaturePosition position;
-    position.crotchet = static_cast<float>(msg.getTimeStamp()) /
-                        static_cast<float>(ticksPerCrotchet);
+    position.crotchet = std::roundf(static_cast<float>(msg.getTimeStamp()) /
+                                    static_cast<float>(ticksPerCrotchet) * 4) /
+                        4;
     msg.getTimeSignatureInfo(position.timeSignature.num,
                              position.timeSignature.den);
-    barIndex += static_cast<int>(position.crotchet / crotchetsPerBar);
+    barIndex +=
+        static_cast<int>((position.crotchet - barCrotchet) / crotchetsPerBar);
     position.barIndex = barIndex;
     crotchetsPerBar =
         4.f * position.timeSignature.num / position.timeSignature.den;
+    barCrotchet = position.crotchet;
     positions.push_back(position);
   }
   return positions;

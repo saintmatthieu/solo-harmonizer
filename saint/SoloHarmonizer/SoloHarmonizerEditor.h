@@ -25,13 +25,22 @@ private:
   void _updateWidgets();
   void _updatePlayButton();
 
+  struct RoundedPosition {
+    int barIndex;
+    int beatIndex;
+    bool operator==(const RoundedPosition &other) const;
+    RoundedPosition &operator=(const RoundedPosition &other);
+  };
+
   SoloHarmonizerVst &_soloHarmonizerVst;
   MidiFileOwner &_midiFileOwner;
   juce::TextButton _chooseFileButton;
   juce::TextButton _playButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
   const juce::Colour _chooseFileButtonDefaultColour;
-  std::optional<Position> _previousPosition;
+  std::optional<RoundedPosition> _previousPosition;
+  juce::TextButton _barNumberDisplay;
+  juce::TextButton _beatNumberDisplay;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };

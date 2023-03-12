@@ -22,8 +22,8 @@ Position PositionGetter::getPosition(float crotchet) const {
       [crotchet](const TimeSignaturePosition &pos) {
         return pos.crotchet > crotchet;
       }));
-  const auto crotchetsFromSigBar = sigBarIt->crotchet - crotchet;
-  const auto sigBar = sigBarIt->barIndex + 1;
+  const auto crotchetsFromSigBar = crotchet - sigBarIt->crotchet;
+  const auto sigBar = sigBarIt->barIndex;
   const auto &sig = sigBarIt->timeSignature;
   const auto crotchetsPerBar = 4.f * sig.num / sig.den;
   const auto barsFromSigBar =
