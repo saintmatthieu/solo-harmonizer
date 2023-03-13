@@ -1,5 +1,6 @@
 #include "IntervalGetterDebugCb.h"
 
+#include "WavFileWriter.h"
 #include "testUtils.h"
 
 namespace saint {

@@ -11,7 +11,6 @@ namespace testUtils {
 
 namespace fs = std::filesystem;
 
-namespace {
 std::unique_ptr<juce::AudioFormatWriter> getJuceWavFileWriter(fs::path path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
@@ -22,26 +21,6 @@ std::unique_ptr<juce::AudioFormatWriter> getJuceWavFileWriter(fs::path path) {
       new juce::FileOutputStream(juce::File(path.string())), 44100.0, 1, 16, {},
       0));
   return writer;
-}
-} // namespace
-
-WavFileWriter::WavFileWriter(const fs::path &path)
-    : _juceWriter(getJuceWavFileWriter(path)) {}
-
-bool WavFileWriter::write(const float *audio, int size) {
-  std::vector<const float *> channels(1);
-  channels[0] = audio;
-  return _juceWriter->writeFromFloatArrays(channels.data(), 1, size);
-}
-
-bool WavFileWriter::write(const std::vector<float> &audio) {
-  return write(audio.data(), static_cast<int>(audio.size()));
-}
-
-bool WavFileWriter::write(float value, int size) {
-  std::vector<float> audio(size);
-  std::fill(audio.begin(), audio.end(), value);
-  return write(audio);
 }
 
 void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt) {
@@ -64,7 +43,7 @@ std::string getInputFilePath() {
 
 std::string getOutDir() { return "C:/Users/saint/Downloads/"; }
 
-std::unique_ptr<juce::AudioFormatReader> getWavFileReader(fs::path path) {
+std::unique_ptr<juce::AudioFormatReader> getJuceWavFileReader(fs::path path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatReader> reader;
   reader.reset(format.createReaderFor(
@@ -74,7 +53,7 @@ std::unique_ptr<juce::AudioFormatReader> getWavFileReader(fs::path path) {
 
 std::vector<float> fromWavFile(std::optional<fs::path> pathOpt) {
   const auto reader =
-      getWavFileReader(pathOpt ? *pathOpt : fs::path{getInputFilePath()});
+      getJuceWavFileReader(pathOpt ? *pathOpt : fs::path{getInputFilePath()});
   std::vector<float> audio((size_t)reader->lengthInSamples);
   const auto pData = audio.data();
   reader->read(&pData, 1, 0, (int)reader->lengthInSamples);

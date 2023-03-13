@@ -12,6 +12,9 @@
 namespace saint {
 class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
 public:
+  static constexpr auto width = 400;
+  static constexpr auto height = 300;
+
   SoloHarmonizerEditor(SoloHarmonizerVst &, MidiFileOwner &);
   ~SoloHarmonizerEditor() override;
 

@@ -1,4 +1,5 @@
 #include "PitchDetectorDebugCb.h"
+#include "WavFileWriter.h"
 #include "testUtils.h"
 
 namespace saint {

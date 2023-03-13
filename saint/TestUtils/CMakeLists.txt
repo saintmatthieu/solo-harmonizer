@@ -5,6 +5,8 @@ target_sources(TestUtils
     testUtils.cpp
     IntervalGetterDebugCb.cpp
     PitchDetectorDebugCb.cpp
+    WavFileReader.cpp
+    WavFileWriter.cpp
 )
 
 target_compile_definitions(TestUtils

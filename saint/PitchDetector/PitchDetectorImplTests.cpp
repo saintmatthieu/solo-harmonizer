@@ -35,9 +35,9 @@ TEST(PitchDetectorImpl, firstPfftBinIsDcAndNyquist) {
 TEST(PitchDetectorImpl, stuff) {
   const auto debugCb = testUtils::getPitchDetectorDebugCb();
   constexpr auto blockSize = 512;
-  // const auto src = testUtils::getWavFileReader(
+  // const auto src = testUtils::getJuceWavFileReader(
   //     "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
-  const auto src = testUtils::getWavFileReader(
+  const auto src = testUtils::getJuceWavFileReader(
       fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
   PitchDetectorImpl sut(44100, 83.f, std::move(debugCb));
   for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {

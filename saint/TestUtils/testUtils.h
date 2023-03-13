@@ -13,21 +13,13 @@ std::vector<float>
 fromWavFile(std::optional<std::filesystem::path> path = std::nullopt);
 
 std::unique_ptr<juce::AudioFormatReader>
-getWavFileReader(std::filesystem::path pathOpt);
+getJuceWavFileReader(std::filesystem::path pathOpt);
+
+std::unique_ptr<juce::AudioFormatWriter>
+getJuceWavFileWriter(std::filesystem::path path);
 
 void toWavFile(const float *audio, size_t N,
                std::optional<std::filesystem::path> pathOpt = std::nullopt);
-
-class WavFileWriter {
-public:
-  WavFileWriter(const std::filesystem::path &path);
-  bool write(const float *, int);
-  bool write(const std::vector<float> &);
-  bool write(float value, int xTimes);
-
-private:
-  const std::unique_ptr<juce::AudioFormatWriter> _juceWriter;
-};
 
 std::string getInputFilePath();
 std::string getOutDir();
