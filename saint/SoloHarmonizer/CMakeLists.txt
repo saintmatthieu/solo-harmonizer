@@ -59,6 +59,7 @@ target_include_directories(SoloHarmonizerVst
     PUBLIC
         ${CMAKE_SOURCE_DIR}/JUCE/modules
         ${CMAKE_SOURCE_DIR}/_thirdParty/asiosdk/common # Needed by JUCE
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(SoloHarmonizerVst
@@ -90,15 +91,4 @@ target_link_libraries(SoloHarmonizerTests
         ${JuceLibDeps_SoloHarmonizer}
         ${JuceLibDeps_TestUtils}
         ${JuceLibDeps_MidiFileOwner}
-)
-
-add_executable(SoloHarmonizerEditorTestApp
-    SoloHarmonizerEditorTestApp.cpp
-)
-
-target_link_libraries(SoloHarmonizerEditorTestApp
-    PRIVATE
-        SoloHarmonizerVst
-        gmock
-        ${JuceLibDeps_SoloHarmonizerVst}
 )
