@@ -37,14 +37,13 @@ SoloHarmonizerVst::~SoloHarmonizerVst() {
 void SoloHarmonizerVst::_editorCallThreadFun() {
   while (_runEditorCallThread) {
     const auto time = _timeInCrotchets.load();
-    if (!time.has_value()) {
-      return;
+    if (time.has_value()) {
+      std::lock_guard<std::mutex> lock(_editorMutex);
+      for (auto editor : _editors) {
+        editor->updateTimeInCrotchets(*time);
+      }
     }
-    std::lock_guard<std::mutex> lock(_editorMutex);
-    for (auto editor : _editors) {
-      editor->updateTimeInCrotchets(*time);
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds{50});
+    std::this_thread::sleep_for(std::chrono::milliseconds{ 50 });
   }
 }
 
