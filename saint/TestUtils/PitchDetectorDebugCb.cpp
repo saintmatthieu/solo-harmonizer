@@ -38,7 +38,7 @@ PitchDetectorDebugCb getPitchDetectorDebugCb() {
                                 makeOlapMetricWriters(1)};
   return [first = true,
           metricWriters](const PitchDetectorDebugCbArgs &args) mutable {
-    for (const auto anal : args.anal) {
+    for (const auto &anal : args.anal) {
       std::vector<float> truncatedXcorr(anal.windowSize);
       std::copy(anal.xcor.begin(), anal.xcor.begin() + anal.windowSize / 2,
                 truncatedXcorr.begin());

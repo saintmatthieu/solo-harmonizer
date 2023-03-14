@@ -13,7 +13,7 @@ PitchShifter::PitchShifter(
     int numChannels, double sampleRate, int samplesPerBlock,
     std::optional<RubberBand::RubberBandStretcher::Options> opts) {
   rubberband = std::make_unique<RubberBand::RubberBandStretcher>(
-      sampleRate, numChannels, opts ? *opts : defaultOptions, 1.0, 1.0);
+      static_cast<size_t>(sampleRate), numChannels, opts ? *opts : defaultOptions, 1.0, 1.0);
 
   initLatency = (int)rubberband->getLatency();
   maxSamples = sampleRate / 1000.0 * 4.0;

@@ -47,7 +47,7 @@ int getWindowSizeSamples(int sampleRate,
   // autocorrelation requires there to be at least two periods within the
   // window, against 1 for a spectrum reading.
   const auto windowSizeMs = 1000 * 3.5 / freq;
-  return windowSizeMs * sampleRate / 1000;
+  return static_cast<int>(windowSizeMs * sampleRate / 1000);
 }
 
 std::vector<float> getAnalysisWindow(int windowSize) {
@@ -122,8 +122,8 @@ PitchDetectorImpl::PitchDetectorImpl(
     : _sampleRate(sampleRate), _debugCb(std::move(debugCb)),
       _window(getAnalysisWindow(
           getWindowSizeSamples(sampleRate, leastFrequencyToDetect))),
-      _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
+      _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _lastSearchIndex(
           std::min(_fftSize / 2, static_cast<int>(sampleRate / 70))),
       _windowXcor(getWindowXCorr(_fwdFft, _window, _lpWindow)) {

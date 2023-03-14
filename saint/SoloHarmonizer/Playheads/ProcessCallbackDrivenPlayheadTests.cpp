@@ -1,4 +1,5 @@
 #include "ProcessCallbackDrivenPlayhead.h"
+#include "WavFileWriter.h"
 #include "testUtils.h"
 
 #include <gtest/gtest.h>
