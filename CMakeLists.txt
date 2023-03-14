@@ -5,15 +5,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED -DJUCE_ASIO -DJucePlugin_PreferredChannelConfigurations={1,2})
-set(SAINT_ANNOYING_WARNINGS
-    -Wno-implicit-int-float-conversion
-    -Wno-implicit-int-float-conversion
-    -Wno-sign-compare
-    -Wno-sign-conversion
-    -Wno-shorten-64-to-32
-    -Wno-switch-enum
-    -Wno-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp)
-)
+
+# just if(MSVC) didn't work for me (wasn't true, even with a VS generator)
+string(FIND ${CMAKE_GENERATOR} "Visual Studio" SAINT_VS_GEN_INDEX)
+if(SAINT_VS_GEN_INDEX EQUAL -1)
+    message("saint: Using non-VS generator")
+    set(SAINT_ANNOYING_WARNINGS
+        ${SAINT_W}no-implicit-int-float-conversion
+        ${SAINT_W}no-implicit-int-float-conversion
+        ${SAINT_W}no-sign-compare
+        ${SAINT_W}no-sign-conversion
+        ${SAINT_W}no-shorten-64-to-32
+        ${SAINT_W}no-switch-enum
+        ${SAINT_W}no-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp)
+    )
+else()
+    message("saint: Using some VS generator")
+endif(MSVC)
 
 project(SoloHarmonizer VERSION 0.0.1)
 
@@ -74,8 +82,6 @@ target_compile_options(pf_conv_dispatcher PRIVATE -w)
 target_compile_options(pf_conv_arch_none PRIVATE -w)
 target_compile_options(pf_conv_arch_dflt PRIVATE -w)
 target_compile_options(pf_conv_arch_avx2 PRIVATE -w)
-target_compile_options(pf_conv_arch_sse4 PRIVATE -w)
-target_compile_options(pf_conv_arch_sse3 PRIVATE -w)
 target_compile_options(pf_conv_arch_avx PRIVATE -w)
 target_compile_options(gmock_main PRIVATE -w)
 target_compile_options(FFTPACK_DOUBLE PRIVATE -w)
@@ -88,3 +94,7 @@ target_compile_options(gtest PRIVATE -w)
 target_compile_options(gmock PRIVATE -w)
 target_compile_options(FFTPACK_FLOAT PRIVATE -w)
 target_compile_options(spdlog PRIVATE -w)
+if (SAINT_VS_GEN_INDEX EQUAL -1)
+    target_compile_options(pf_conv_arch_sse4 PRIVATE -w)
+    target_compile_options(pf_conv_arch_sse3 PRIVATE -w)
+endif()

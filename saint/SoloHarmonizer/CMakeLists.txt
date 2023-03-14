@@ -44,6 +44,10 @@ juce_add_plugin(SoloHarmonizerVst
     FORMATS VST3 Standalone                     # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
     PRODUCT_NAME "Solo Harmonizer")        # The name of the final executable, which can differ from the target name
 
+target_compile_options(SoloHarmonizerVst PRIVATE ${SAINT_ANNOYING_WARNINGS})
+target_compile_options(SoloHarmonizerVst_VST3 PRIVATE ${SAINT_ANNOYING_WARNINGS})
+target_compile_options(SoloHarmonizerVst_Standalone PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_sources(SoloHarmonizerVst
     PRIVATE
         SoloHarmonizerEditor.cpp
