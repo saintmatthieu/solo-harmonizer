@@ -3,6 +3,8 @@ add_library(IntervalGetter
   IntervalHelper.cpp
 )
 
+target_compile_options(IntervalGetter PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_include_directories(IntervalGetter
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -18,6 +20,8 @@ add_executable(IntervalGetterTests
   IntervalGetterTests.cpp
   IntervalHelperTests.cpp
 )
+
+target_compile_options(IntervalGetterTests PRIVATE ${SAINT_ANNOYING_WARNINGS})
 
 target_include_directories(IntervalGetterTests
   PRIVATE

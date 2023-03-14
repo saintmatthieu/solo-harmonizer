@@ -1,5 +1,7 @@
 add_library(TestUtils)
 
+target_compile_options(TestUtils PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_sources(TestUtils
   PUBLIC
     testUtils.cpp

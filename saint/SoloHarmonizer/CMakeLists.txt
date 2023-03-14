@@ -1,5 +1,7 @@
 add_library(SoloHarmonizer)
 
+target_compile_options(SoloHarmonizer PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_sources(SoloHarmonizer
   PUBLIC
     Playheads/HostDrivenPlayhead.cpp
@@ -76,6 +78,8 @@ add_executable(SoloHarmonizerTests
     SoloHarmonizerTests.cpp
     Playheads/ProcessCallbackDrivenPlayheadTests.cpp
 )
+
+target_compile_options(SoloHarmonizerTests PRIVATE ${SAINT_ANNOYING_WARNINGS})
 
 target_include_directories(SoloHarmonizerTests
   PRIVATE

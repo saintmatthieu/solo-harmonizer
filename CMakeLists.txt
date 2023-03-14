@@ -5,12 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED -DJUCE_ASIO -DJucePlugin_PreferredChannelConfigurations={1,2})
-add_compile_options(
-    -Wno-implicit-int-float-conversion 
-    -Wno-sign-compare 
-    -Wno-sign-conversion 
+set(SAINT_ANNOYING_WARNINGS
+    -Wno-implicit-int-float-conversion
+    -Wno-implicit-int-float-conversion
+    -Wno-sign-compare
+    -Wno-sign-conversion
     -Wno-shorten-64-to-32
-    -Wno-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp
+    -Wno-switch-enum
+    -Wno-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp)
 )
 
 project(SoloHarmonizer VERSION 0.0.1)
@@ -46,8 +48,9 @@ add_subdirectory(rubberband-wrapper)
 add_subdirectory(googletest)
 add_subdirectory(JUCE)
 add_subdirectory(spdlog)
-
 add_subdirectory(pffft)
+add_subdirectory(saint)
+
 # Below are all PFFFT test executables we don't want to compile.
 # It would be great to be able to remove these targets without modifying the fft repo, haven't found out how.
 set_target_properties(
@@ -85,5 +88,3 @@ target_compile_options(gtest PRIVATE -w)
 target_compile_options(gmock PRIVATE -w)
 target_compile_options(FFTPACK_FLOAT PRIVATE -w)
 target_compile_options(spdlog PRIVATE -w)
-
-add_subdirectory(saint)

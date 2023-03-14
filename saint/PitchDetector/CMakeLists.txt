@@ -1,5 +1,7 @@
 add_library(PitchDetector)
 
+target_compile_options(PitchDetector PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_sources(PitchDetector
   PUBLIC
     PitchDetectorImpl.cpp
@@ -27,6 +29,8 @@ target_include_directories(PitchDetector SYSTEM
 add_executable(PitchDetectorImplTests
   PitchDetectorImplTests.cpp
 )
+
+target_compile_options(PitchDetectorImplTests PRIVATE ${SAINT_ANNOYING_WARNINGS})
 
 target_link_libraries(PitchDetectorImplTests
   PRIVATE

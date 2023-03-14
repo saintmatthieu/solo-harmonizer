@@ -4,6 +4,8 @@ add_library(MidiFileOwner
   PositionGetter.cpp
 )
 
+target_compile_options(MidiFileOwner PRIVATE ${SAINT_ANNOYING_WARNINGS})
+
 target_include_directories(MidiFileOwner
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -18,6 +20,8 @@ target_link_libraries(MidiFileOwner
 add_executable(PositionGetterTests
   PositionGetterTests.cpp
 )
+
+target_compile_options(PositionGetterTests PRIVATE ${SAINT_ANNOYING_WARNINGS})
 
 target_link_libraries(PositionGetterTests
   PRIVATE
