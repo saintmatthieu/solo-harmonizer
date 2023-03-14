@@ -19,22 +19,29 @@ FilePlaybackComponent::FilePlaybackComponent(PrepareToPlayFun prepareToPlay,
   _chooseFileButton.onClick = [this]() {
     juce::FileChooser fileChooser("Choose wav file ...", juce::File(), "*.wav");
     if (fileChooser.browseForFileToOpen()) {
-      const std::filesystem::path path =
-          fileChooser.getResult().getFullPathName().toStdString();
-      _wavReader.reset(new testUtils::WavFileReader(path));
+      _wavFilePath = fileChooser.getResult().getFullPathName().toStdString();
       _playButton.setEnabled(true);
     }
   };
 
   _playButton.onClick = [this]() {
-    _prepareToPlay(_wavReader->getSampleRate(), 512);
-    _playbackThread = std::make_unique<std::thread>([this]() {
-      const auto sampleRate = _wavReader->getSampleRate();
+    if (!_wavFilePath.has_value()) {
+      return;
+    }
+    auto wavReader = testUtils::WavFileReader(*_wavFilePath);
+    _prepareToPlay(wavReader.getSampleRate(), 512);
+    if (_playbackThread && _playbackThread->joinable()) {
+      _interruptPlayback = true;
+      _playbackThread->join();
+    }
+    _interruptPlayback = false;
+    _playbackThread = std::make_unique<std::thread>([&]() {
+      const auto sampleRate = wavReader.getSampleRate();
       const auto msPerBlock =
           static_cast<int>(1000.f * 512.f / static_cast<float>(sampleRate));
-      while (_wavReader->getNumSamplesAvailable() > 0) {
+      while (!_interruptPlayback && wavReader.getNumSamplesAvailable() > 0) {
         std::vector<float> audio(512);
-        _wavReader->read(audio.data(), 512);
+        wavReader.read(audio.data(), 512);
         _process(audio);
         std::this_thread::sleep_for(std::chrono::milliseconds(msPerBlock));
       }

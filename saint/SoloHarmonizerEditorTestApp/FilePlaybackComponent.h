@@ -17,7 +17,8 @@ private:
   const ProcessFun _process;
   juce::TextButton _chooseFileButton;
   juce::TextButton _playButton;
-  std::unique_ptr<testUtils::WavFileReader> _wavReader;
+  std::optional<std::filesystem::path> _wavFilePath;
   std::unique_ptr<std::thread> _playbackThread;
+  bool _interruptPlayback = false;
 };
 } // namespace saint

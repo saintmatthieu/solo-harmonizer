@@ -23,6 +23,7 @@ public:
   void resized() override;
 
   void updateTimeInCrotchets(float);
+  void play();
 
 private:
   void _updateWidgets();

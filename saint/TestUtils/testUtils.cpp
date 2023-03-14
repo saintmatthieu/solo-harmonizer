@@ -11,7 +11,8 @@ namespace testUtils {
 
 namespace fs = std::filesystem;
 
-std::unique_ptr<juce::AudioFormatWriter> getJuceWavFileWriter(fs::path path) {
+std::unique_ptr<juce::AudioFormatWriter>
+getJuceWavFileWriter(const fs::path &path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
   if (fs::exists(path)) {
@@ -43,7 +44,8 @@ std::string getInputFilePath() {
 
 std::string getOutDir() { return "C:/Users/saint/Downloads/"; }
 
-std::unique_ptr<juce::AudioFormatReader> getJuceWavFileReader(fs::path path) {
+std::unique_ptr<juce::AudioFormatReader>
+getJuceWavFileReader(const fs::path &path) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatReader> reader;
   reader.reset(format.createReaderFor(

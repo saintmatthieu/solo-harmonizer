@@ -10,9 +10,9 @@ constexpr auto stopTxt = "Stop";
 } // namespace
 
 SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
-                                           MidiFileOwner &intervallerFactory)
+                                           MidiFileOwner &midiFileOwner)
     : AudioProcessorEditor(&soloHarmonizerVst),
-      _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(intervallerFactory),
+      _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(midiFileOwner),
       _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
@@ -147,6 +147,8 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   _previousPosition = roundedPosition;
   repaint();
 }
+
+void SoloHarmonizerEditor::play() { _playButton.triggerClick(); }
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
   // (Our component is opaque, so we must completely fill the background with a

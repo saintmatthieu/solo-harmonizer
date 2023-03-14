@@ -1,8 +1,12 @@
 #include "TestAppMainWindow.h"
 #include "Playhead.h"
+#include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"
+#include "Utils.h"
 
 #include <gmock/gmock.h>
+
+#include <cassert>
 
 namespace saint {
 
@@ -24,22 +28,19 @@ constexpr auto totalHeight =
     FilePlaybackComponent::height + SoloHarmonizerEditor::height;
 } // namespace
 
-class MockPlayhead : public Playhead {
-public:
-  using OptFloat = std::optional<float>;
-  MOCK_METHOD(OptFloat, getTimeInCrotchets, (), (const));
-};
-
 TestAppMainWindow::TestAppMainWindow(juce::String name)
     : DocumentWindow(name, juce::Colours::lightgrey,
                      DocumentWindow::allButtons),
       _openEditorButton("Open Editor"),
-      _harmonizerVst([](bool, const JuceAudioPlayHeadProvider &,
-                        const std::optional<float>,
-                        const std::optional<int>) -> std::shared_ptr<Playhead> {
-        auto playhead = new MockPlayhead();
-        EXPECT_CALL(*playhead, getTimeInCrotchets()).Times(testing::AtLeast(0));
-        return std::shared_ptr<Playhead>{playhead};
+      _harmonizerVst([](bool mustSetPpqPosition,
+                        const JuceAudioPlayHeadProvider &,
+                        const std::optional<float> &crotchetsPerSecond,
+                        const std::optional<int> &samplesPerSecond)
+                         -> std::shared_ptr<Playhead> {
+        assert(mustSetPpqPosition);
+        return std::shared_ptr<Playhead>{new ProcessCallbackDrivenPlayhead(
+            *samplesPerSecond, utils::getCrotchetsPerSample(
+                                   *crotchetsPerSecond, *samplesPerSecond))};
       }),
       _filePlaybackComponent(
           std::bind(&TestAppMainWindow::_prepareToPlay, this, _1, _2),
