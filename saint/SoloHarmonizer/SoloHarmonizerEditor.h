@@ -15,7 +15,7 @@ class SoloHarmonizerEditor : public juce::AudioProcessorEditor,
                              public juce::TextEditor::Listener,
                              public MidiFileOwner::Listener {
 public:
-  static constexpr auto width = 400;
+  static constexpr auto width = 800;
   static constexpr auto height = 300;
 
   SoloHarmonizerEditor(SoloHarmonizerVst &, MidiFileOwner &);
@@ -61,7 +61,7 @@ private:
   juce::TextButton _beatNumberDisplay;
   juce::TextEditor _loopBeginBarEditor;
   juce::TextEditor _loopEndBarEditor;
-  std::unique_ptr<DisplayComponent> _displayComponent;
+  DisplayComponent _displayComponent;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };

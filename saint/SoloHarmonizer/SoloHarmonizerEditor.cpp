@@ -87,9 +87,10 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
 
   _barNumberDisplay.setEnabled(false);
   _beatNumberDisplay.setEnabled(false);
-
   addAndMakeVisible(_barNumberDisplay);
   addAndMakeVisible(_beatNumberDisplay);
+
+  addAndMakeVisible(_displayComponent);
 
   _updateWidgets();
 
@@ -141,11 +142,7 @@ void SoloHarmonizerEditor::_onTextEditorChange(juce::TextEditor &editor) {
 void SoloHarmonizerEditor::_updateTimeSpans(
     const std::vector<IntervalSpan> &spans) {
   juce::MessageManager::getInstance()->callAsync([spans, this]() {
-    if (_displayComponent) {
-      removeChildComponent(_displayComponent.get());
-    }
-    _displayComponent = std::make_unique<DisplayComponent>(spans);
-    addAndMakeVisible(_displayComponent.get());
+    _displayComponent.setTimeSpans(spans);
     _updateLayout();
   });
 }
@@ -199,7 +196,7 @@ void SoloHarmonizerEditor::_updateLayout() {
   using Track = Grid::TrackInfo;
   grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr),
                        Track(1_fr)};
-  grid.templateColumns = {Track(1_fr), Track(1_fr), Track(3_fr)};
+  grid.templateColumns = {Track(1_fr), Track(1_fr), Track(2_fr)};
   grid.items.addArray(
       {GridItem(_chooseFileButton).withRow({1, 2}).withColumn({1, 3}),
        GridItem(_comboBoxes[0]).withRow({2, 3}).withColumn({1, 2}),
@@ -208,11 +205,8 @@ void SoloHarmonizerEditor::_updateLayout() {
        GridItem(_loopBeginBarEditor).withRow({4, 5}).withColumn({1, 2}),
        GridItem(_loopEndBarEditor).withRow({4, 5}).withColumn({2, 3}),
        GridItem(_barNumberDisplay).withRow({5, 6}).withColumn({1, 2}),
-       GridItem(_beatNumberDisplay).withRow({5, 6}).withColumn({2, 3})});
-  if (_displayComponent) {
-    grid.items.add(
-        GridItem(*_displayComponent).withRow({1, 6}).withColumn({3, 4}));
-  }
+       GridItem(_beatNumberDisplay).withRow({5, 6}).withColumn({2, 3}),
+       GridItem(_displayComponent).withRow({1, 6}).withColumn({3, 4})});
   grid.performLayout(getLocalBounds());
 }
 
@@ -250,9 +244,7 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
       [this, barNumberStr, beatNumberStr, crotchets]() {
         _barNumberDisplay.setButtonText(barNumberStr);
         _beatNumberDisplay.setButtonText(beatNumberStr);
-        if (_displayComponent) {
-          _displayComponent->updateTimeInCrotchets(crotchets);
-        }
+        _displayComponent.updateTimeInCrotchets(crotchets);
         repaint();
       });
 }
