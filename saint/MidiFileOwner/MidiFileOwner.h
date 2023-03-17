@@ -23,6 +23,10 @@ public:
   virtual std::optional<int> getPlayedTrack() const = 0;
   virtual void setHarmonyTrack(int) = 0;
   virtual std::optional<int> getHarmonyTrack() const = 0;
+  virtual void setLoopBeginBar(int) = 0;
+  virtual std::optional<int> getLoopBeginBar() const = 0;
+  virtual void setLoopEndBar(int) = 0;
+  virtual std::optional<int> getLoopEndBar() const = 0;
   virtual bool execute(PlayheadCommand) = 0;
   virtual std::vector<char> getState() const = 0;
   virtual void setState(std::vector<char>) = 0;

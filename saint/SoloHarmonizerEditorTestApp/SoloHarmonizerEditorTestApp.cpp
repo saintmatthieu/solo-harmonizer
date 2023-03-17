@@ -13,6 +13,8 @@ public:
   const juce::String getApplicationVersion() override { return "0.0.0"; }
 
   void initialise(const juce::String &) override {
+    juce::AudioProcessor::setTypeOfNextNewPlugin(
+        juce::AudioProcessor::wrapperType_Standalone);
     mainWindow.reset(new TestAppMainWindow("SaintHarmonizer"));
   }
 

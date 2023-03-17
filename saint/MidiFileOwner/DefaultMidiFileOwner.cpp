@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <filesystem>
+#include <iostream>
 #include <iterator>
 #include <string>
 
@@ -58,6 +59,18 @@ std::optional<int> DefaultMidiFileOwner::getHarmonyTrack() const {
   return _harmonyTrack;
 }
 
+void DefaultMidiFileOwner::setLoopBeginBar(int bar) { _loopBeginBar = bar; }
+
+std::optional<int> DefaultMidiFileOwner::getLoopBeginBar() const {
+  return _loopBeginBar;
+}
+
+void DefaultMidiFileOwner::setLoopEndBar(int bar) { _loopEndBar = bar; }
+
+std::optional<int> DefaultMidiFileOwner::getLoopEndBar() const {
+  return _loopEndBar;
+}
+
 namespace {
 void addChildElement(juce::XmlElement &parent, const std::string &name,
                      const std::string &content) {
@@ -74,6 +87,20 @@ std::optional<std::string> getChildText(juce::XmlElement &parent,
     return std::nullopt;
   }
 }
+
+std::optional<int> getIntValue(juce::XmlElement &parent,
+                               const std::string &childName) {
+  if (const auto str = getChildText(parent, childName)) {
+    try {
+      return std::stoi(*str);
+    } catch (...) {
+      // TODO handle
+      return std::nullopt;
+    }
+  } else {
+    return std::nullopt;
+  }
+}
 } // namespace
 
 std::vector<char> DefaultMidiFileOwner::getState() const {
@@ -86,6 +113,12 @@ std::vector<char> DefaultMidiFileOwner::getState() const {
   }
   if (_harmonyTrack.has_value()) {
     addChildElement(state, "HarmonyTrack", std::to_string(*_harmonyTrack));
+  }
+  if (_loopBeginBar.has_value()) {
+    addChildElement(state, "LoopBeginBar", std::to_string(*_loopBeginBar));
+  }
+  if (_loopEndBar.has_value()) {
+    addChildElement(state, "LoopEndBar", std::to_string(*_loopEndBar));
   }
   const auto str = state.toString().toStdString();
   std::vector<char> vec(str.size());
@@ -110,24 +143,24 @@ void DefaultMidiFileOwner::setState(std::vector<char> data) {
       // TODO handle
     }
   }
-  if (const auto playedTrack = getChildText(*newState, "PlayedTrack")) {
-    try {
-      const auto trackNumber = std::stoi(*playedTrack);
-      _setPlayedTrack(trackNumber, false);
-      somethingChanged = true;
-    } catch (...) {
-      // TODO handle
-    }
+  if (const auto playedTrack = getIntValue(*newState, "PlayedTrack")) {
+    _setPlayedTrack(*playedTrack, false);
+    somethingChanged = true;
   }
-  if (const auto harmonyTrack = getChildText(*newState, "HarmonyTrack")) {
-    try {
-      const auto trackNumber = std::stoi(*harmonyTrack);
-      _setHarmonyTrack(trackNumber, false);
-      somethingChanged = true;
-    } catch (...) {
-      // TODO handle
-    }
+  if (const auto harmonyTrack = getIntValue(*newState, "HarmonyTrack")) {
+    _setHarmonyTrack(*harmonyTrack, false);
+    somethingChanged = true;
   }
+  if (const auto loopBeginBar = getIntValue(*newState, "LoopBeginBar")) {
+    setLoopBeginBar(*loopBeginBar);
+    somethingChanged = true;
+  }
+
+  if (const auto loopEndBar = getIntValue(*newState, "LoopEndBar")) {
+    setLoopEndBar(*loopEndBar);
+    somethingChanged = true;
+  }
+
   if (somethingChanged) {
     if (_stateChangeListener) {
       _stateChangeListener->onStateChange();

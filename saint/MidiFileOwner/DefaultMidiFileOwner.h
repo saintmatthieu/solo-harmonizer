@@ -27,6 +27,10 @@ public:
   std::optional<int> getPlayedTrack() const override;
   void setHarmonyTrack(int) override;
   std::optional<int> getHarmonyTrack() const override;
+  void setLoopBeginBar(int) override;
+  std::optional<int> getLoopBeginBar() const override;
+  void setLoopEndBar(int) override;
+  std::optional<int> getLoopEndBar() const override;
   std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
   bool execute(PlayheadCommand) override;
   std::vector<char> getState() const override;
@@ -55,6 +59,8 @@ private:
   std::optional<int> _samplesPerSecond;
   std::optional<int> _playedTrack;
   std::optional<int> _harmonyTrack;
+  std::optional<int> _loopBeginBar;
+  std::optional<int> _loopEndBar;
   std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;

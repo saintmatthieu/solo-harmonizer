@@ -38,6 +38,9 @@ TestAppMainWindow::TestAppMainWindow(juce::String name)
                         const std::optional<int> &samplesPerSecond)
                          -> std::shared_ptr<Playhead> {
         assert(mustSetPpqPosition);
+        if (!samplesPerSecond.has_value() || !crotchetsPerSecond.has_value()) {
+          return nullptr;
+        }
         return std::shared_ptr<Playhead>{new ProcessCallbackDrivenPlayhead(
             *samplesPerSecond, utils::getCrotchetsPerSample(
                                    *crotchetsPerSecond, *samplesPerSecond))};

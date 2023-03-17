@@ -7,6 +7,17 @@ namespace {
 constexpr auto chooseFileButtonTxt = "Choose MIDI file ...";
 constexpr auto playTxt = "Play";
 constexpr auto stopTxt = "Stop";
+
+void initBarInputEditor(juce::TextEditor &editor,
+                        const std::string &textToShowWhenEmpty,
+                        juce::TextEditor::Listener *listener) {
+  editor.setTextToShowWhenEmpty(textToShowWhenEmpty,
+                                juce::Colours::whitesmoke.withAlpha(0.5f));
+  editor.setInputFilter(
+      new juce::TextEditor::LengthAndCharacterRestriction(0, "0123456789"),
+      true);
+  editor.addListener(listener);
+}
 } // namespace
 
 SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
@@ -15,7 +26,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
       _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(midiFileOwner),
       _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
       _chooseFileButtonDefaultColour(
-          _chooseFileButton.findColour(juce::TextButton::buttonColourId)) {
+          _chooseFileButton.findColour(juce::TextButton::buttonColourId)),
+      _loopBeginBarEditor("loopBeginBarEditor"),
+      _loopEndBarEditor("loopEndBarEditor") {
 
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
@@ -67,6 +80,11 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   };
   addChildComponent(_playButton);
 
+  initBarInputEditor(_loopBeginBarEditor, "Loop begin (bar)", this);
+  initBarInputEditor(_loopEndBarEditor, "Loop end (bar)", this);
+  addAndMakeVisible(_loopBeginBarEditor);
+  addAndMakeVisible(_loopEndBarEditor);
+
   _barNumberDisplay.setEnabled(false);
   _beatNumberDisplay.setEnabled(false);
 
@@ -84,6 +102,32 @@ SoloHarmonizerEditor::~SoloHarmonizerEditor() {
 }
 
 void SoloHarmonizerEditor::onStateChange() { _updateWidgets(); }
+
+void SoloHarmonizerEditor::textEditorReturnKeyPressed(
+    juce::TextEditor &editor) {
+  _onTextEditorChange(editor);
+}
+
+void SoloHarmonizerEditor::textEditorFocusLost(juce::TextEditor &editor) {
+  _onTextEditorChange(editor);
+}
+
+void SoloHarmonizerEditor::_onTextEditorChange(juce::TextEditor &editor) {
+  const auto name = editor.getName();
+  try {
+    const auto valueStr = editor.getTextValue().toString().toStdString();
+    const auto barNumber = std::stoi(valueStr);
+    if (name == "loopBeginBarEditor") {
+      _midiFileOwner.setLoopBeginBar(barNumber);
+    } else if (name == "loopEndBarEditor") {
+      _midiFileOwner.setLoopEndBar(barNumber);
+    } else {
+      assert(false);
+    }
+  } catch (...) {
+    // TODO handle
+  }
+}
 
 void SoloHarmonizerEditor::_updateWidgets() {
   const auto midiFilePath = _midiFileOwner.getMidiFile();
@@ -110,6 +154,13 @@ void SoloHarmonizerEditor::_updateWidgets() {
   if (const auto harmonyTrack = _midiFileOwner.getHarmonyTrack()) {
     _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
+
+  const auto loopBeginBar = _midiFileOwner.getLoopBeginBar();
+  _loopBeginBarEditor.setText(loopBeginBar ? std::to_string(*loopBeginBar)
+                                           : "");
+  const auto loopEndBar = _midiFileOwner.getLoopEndBar();
+  _loopEndBarEditor.setText(loopEndBar ? std::to_string(*loopEndBar) : "");
+
   _updatePlayButton();
 }
 
@@ -175,6 +226,7 @@ void SoloHarmonizerEditor::resized() {
   grid.items.addArray(
       {GridItem(_chooseFileButton).withColumn({1, 3}), GridItem(_comboBoxes[0]),
        GridItem(_comboBoxes[1]), GridItem(_playButton).withColumn({1, 3}),
+       GridItem(_loopBeginBarEditor), GridItem(_loopEndBarEditor),
        GridItem(_barNumberDisplay), GridItem(_beatNumberDisplay)});
   grid.performLayout(getLocalBounds());
 }

@@ -11,6 +11,7 @@
 
 namespace saint {
 class SoloHarmonizerEditor : public juce::AudioProcessorEditor,
+                             public juce::TextEditor::Listener,
                              public MidiFileOwner::Listener {
 public:
   static constexpr auto width = 400;
@@ -29,6 +30,12 @@ public:
 private:
   // MidiFileOwner::Listener
   void onStateChange() override;
+
+  // juce::TextEditor::Listener
+  void textEditorReturnKeyPressed(juce::TextEditor &) override;
+  void textEditorFocusLost(juce::TextEditor &) override;
+
+  void _onTextEditorChange(juce::TextEditor &);
 
   void _updateWidgets();
   void _updatePlayButton();
@@ -49,6 +56,8 @@ private:
   std::optional<RoundedPosition> _previousPosition;
   juce::TextButton _barNumberDisplay;
   juce::TextButton _beatNumberDisplay;
+  juce::TextEditor _loopBeginBarEditor;
+  juce::TextEditor _loopEndBarEditor;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };
