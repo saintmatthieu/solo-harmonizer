@@ -16,9 +16,9 @@ using OnPlayheadCommand = std::function<bool(PlayheadCommand)>;
 class DefaultMidiFileOwner : public MidiFileOwner {
 public:
   DefaultMidiFileOwner(OnCrotchetsPerSecondAvailable, OnPlayheadCommand);
-  void setSampleRate(int);
 
   // MidiFileOwner
+  void setSampleRate(int) override;
   void setStateChangeListener(Listener *) override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;

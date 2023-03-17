@@ -1,4 +1,5 @@
 #include "SoloHarmonizerVst.h"
+#include "DefaultMidiFileOwner.h"
 #include "Playheads/HostDrivenPlayhead.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizerEditor.h"

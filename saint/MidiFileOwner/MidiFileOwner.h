@@ -15,6 +15,8 @@ public:
   };
 
   virtual ~MidiFileOwner() = default;
+  virtual void setSampleRate(int) = 0; // This is needed for a debug feature. A
+                                       // better could probably be found.
   virtual void setStateChangeListener(Listener *) = 0;
   virtual void setMidiFile(std::filesystem::path) = 0;
   virtual std::optional<std::filesystem::path> getMidiFile() const = 0;
