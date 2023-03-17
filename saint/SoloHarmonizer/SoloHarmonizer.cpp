@@ -76,8 +76,4 @@ void SoloHarmonizer::processBlock(float *block, int size) {
   channels[0] = block;
   _pitchShifter->processBuffer(channels.data(), 1, size);
 }
-
-std::vector<uint8_t> SoloHarmonizer::getState() const { return {}; }
-
-void SoloHarmonizer::setState(std::vector<uint8_t>) {}
 } // namespace saint

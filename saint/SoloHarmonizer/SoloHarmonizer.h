@@ -16,8 +16,6 @@ public:
   void setSemitoneShift(float value);
   void prepareToPlay(int sampleRate, int samplesPerBlock);
   void processBlock(float *, int size);
-  std::vector<uint8_t> getState() const;
-  void setState(std::vector<uint8_t>);
   void releaseResources();
 
 private:

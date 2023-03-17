@@ -10,7 +10,8 @@
 #include <functional>
 
 namespace saint {
-class SoloHarmonizerEditor : public juce::AudioProcessorEditor {
+class SoloHarmonizerEditor : public juce::AudioProcessorEditor,
+                             public MidiFileOwner::Listener {
 public:
   static constexpr auto width = 400;
   static constexpr auto height = 300;
@@ -26,6 +27,9 @@ public:
   void play();
 
 private:
+  // MidiFileOwner::Listener
+  void onStateChange() override;
+
   void _updateWidgets();
   void _updatePlayButton();
 

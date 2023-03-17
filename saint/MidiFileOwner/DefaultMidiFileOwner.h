@@ -4,6 +4,7 @@
 #include "MidiFileOwner.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_audio_processors/juce_audio_processors.h>
 
 #include <functional>
 
@@ -18,6 +19,7 @@ public:
   void setSampleRate(int);
 
   // MidiFileOwner
+  void setStateChangeListener(Listener *) override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
   std::vector<std::string> getMidiFileTrackNames() const override;
@@ -27,8 +29,8 @@ public:
   std::optional<int> getHarmonyTrack() const override;
   std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
   bool execute(PlayheadCommand) override;
-  const std::vector<uint8_t> &getState() const override;
-  void setState(std::vector<uint8_t>) override;
+  std::vector<char> getState() const override;
+  void setState(std::vector<char>) override;
   bool hasIntervalGetter() const override;
   std::shared_ptr<IntervalGetter> getIntervalGetter() const override;
   bool hasPositionGetter() const override;
@@ -39,6 +41,10 @@ public:
   std::optional<float> getCrotchetsPerSecond() const;
 
 private:
+  void _setMidiFile(std::filesystem::path,
+                    bool createIntervalGetterIfAllParametersSet);
+  void _setPlayedTrack(int, bool createIntervalGetterIfAllParametersSet);
+  void _setHarmonyTrack(int, bool createIntervalGetterIfAllParametersSet);
   void _createIntervalGetterIfAllParametersSet();
   const OnCrotchetsPerSecondAvailable _onCrotchetsPerSecondAvailable;
   const OnPlayheadCommand _onPlayheadCommand;
@@ -52,8 +58,8 @@ private:
   std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
-  std::vector<uint8_t> _state;
   std::shared_ptr<IntervalGetter> _intervalGetter;
   std::shared_ptr<PositionGetter> _positionGetter;
+  Listener *_stateChangeListener = nullptr;
 };
 } // namespace saint

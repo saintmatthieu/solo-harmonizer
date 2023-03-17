@@ -8,7 +8,10 @@
 #include "Utils.h"
 
 #include <algorithm>
+#include <cassert>
+#include <filesystem>
 #include <iterator>
+#include <string>
 
 namespace saint {
 
@@ -22,27 +25,13 @@ void DefaultMidiFileOwner::setSampleRate(int sampleRate) {
   _samplesPerSecond = sampleRate;
 }
 
+void DefaultMidiFileOwner::setStateChangeListener(Listener *listener) {
+  assert(_stateChangeListener != listener);
+  _stateChangeListener = listener;
+}
+
 void DefaultMidiFileOwner::setMidiFile(std::filesystem::path path) {
-  _juceMidiFile = getJuceMidiFile(path.string());
-  _midiFilePath = std::move(path);
-  _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
-                              : std::vector<std::string>{};
-  _ticksPerCrotchet =
-      _juceMidiFile
-          ? std::optional<int>{saint::getTicksPerCrotchet(*_juceMidiFile)}
-          : std::optional<int>{};
-  _crotchetsPerSecond = _juceMidiFile
-                            ? extractCrotchetsPerSecond(*_juceMidiFile)
-                            : std::optional<float>{};
-  if (_crotchetsPerSecond.has_value()) {
-    _onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
-  }
-  if (_juceMidiFile && _ticksPerCrotchet) {
-    auto timeSignaturePositions = getTimeSignatures(*_juceMidiFile);
-    _positionGetter =
-        std::make_shared<PositionGetter>(std::move(timeSignaturePositions));
-  }
-  _createIntervalGetterIfAllParametersSet();
+  _setMidiFile(std::move(path), true);
 }
 
 std::optional<std::filesystem::path> DefaultMidiFileOwner::getMidiFile() const {
@@ -54,10 +43,7 @@ std::vector<std::string> DefaultMidiFileOwner::getMidiFileTrackNames() const {
 }
 
 void DefaultMidiFileOwner::setPlayedTrack(int track) {
-  if (_playedTrack != track) {
-    _playedTrack = track;
-    _createIntervalGetterIfAllParametersSet();
-  }
+  _setPlayedTrack(track, true);
 }
 
 std::optional<int> DefaultMidiFileOwner::getPlayedTrack() const {
@@ -65,21 +51,89 @@ std::optional<int> DefaultMidiFileOwner::getPlayedTrack() const {
 }
 
 void DefaultMidiFileOwner::setHarmonyTrack(int track) {
-  if (_harmonyTrack != track) {
-    _harmonyTrack = track;
-    _createIntervalGetterIfAllParametersSet();
-  }
+  _setHarmonyTrack(track, true);
 }
 
 std::optional<int> DefaultMidiFileOwner::getHarmonyTrack() const {
   return _harmonyTrack;
 }
 
-const std::vector<uint8_t> &DefaultMidiFileOwner::getState() const {
-  return _state;
+namespace {
+void addChildElement(juce::XmlElement &parent, const std::string &name,
+                     const std::string &content) {
+  auto child = new juce::XmlElement(juce::String{name});
+  child->addTextElement(content);
+  parent.prependChildElement(child);
 }
 
-void DefaultMidiFileOwner::setState(std::vector<uint8_t>) {}
+std::optional<std::string> getChildText(juce::XmlElement &parent,
+                                        const std::string &name) {
+  if (auto el = parent.getChildByName(name)) {
+    return el->getAllSubText().toStdString();
+  } else {
+    return std::nullopt;
+  }
+}
+} // namespace
+
+std::vector<char> DefaultMidiFileOwner::getState() const {
+  juce::XmlElement state{"SoloHarmonizerState"};
+  if (_midiFilePath) {
+    addChildElement(state, "MidiFile", _midiFilePath->string());
+  }
+  if (_playedTrack.has_value()) {
+    addChildElement(state, "PlayedTrack", std::to_string(*_playedTrack));
+  }
+  if (_harmonyTrack.has_value()) {
+    addChildElement(state, "HarmonyTrack", std::to_string(*_harmonyTrack));
+  }
+  const auto str = state.toString().toStdString();
+  std::vector<char> vec(str.size());
+  std::copy(str.begin(), str.end(), vec.begin());
+  return vec;
+}
+
+void DefaultMidiFileOwner::setState(std::vector<char> data) {
+  std::string str{data.data()};
+  auto newState = juce::parseXML(str);
+  if (!newState) {
+    // TODO handle
+    return;
+  }
+  auto somethingChanged = false;
+  if (const auto pathStr = getChildText(*newState, "MidiFile")) {
+    const std::filesystem::path path{*pathStr};
+    if (std::filesystem::exists(path)) {
+      _setMidiFile(path, false);
+      somethingChanged = true;
+    } else {
+      // TODO handle
+    }
+  }
+  if (const auto playedTrack = getChildText(*newState, "PlayedTrack")) {
+    try {
+      const auto trackNumber = std::stoi(*playedTrack);
+      _setPlayedTrack(trackNumber, false);
+      somethingChanged = true;
+    } catch (...) {
+      // TODO handle
+    }
+  }
+  if (const auto harmonyTrack = getChildText(*newState, "HarmonyTrack")) {
+    try {
+      const auto trackNumber = std::stoi(*harmonyTrack);
+      _setHarmonyTrack(trackNumber, false);
+      somethingChanged = true;
+    } catch (...) {
+      // TODO handle
+    }
+  }
+  if (somethingChanged) {
+    if (_stateChangeListener) {
+      _stateChangeListener->onStateChange();
+    }
+  }
+}
 
 bool DefaultMidiFileOwner::hasIntervalGetter() const {
   return _intervalGetter.use_count() > 0;
@@ -120,6 +174,52 @@ std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
   }
 }
 } // namespace
+
+void DefaultMidiFileOwner::_setMidiFile(
+    std::filesystem::path path, bool createIntervalGetterIfAllParametersSet) {
+  _juceMidiFile = getJuceMidiFile(path.string());
+  _midiFilePath = std::move(path);
+  _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
+                              : std::vector<std::string>{};
+  _ticksPerCrotchet =
+      _juceMidiFile
+          ? std::optional<int>{saint::getTicksPerCrotchet(*_juceMidiFile)}
+          : std::optional<int>{};
+  _crotchetsPerSecond = _juceMidiFile
+                            ? extractCrotchetsPerSecond(*_juceMidiFile)
+                            : std::optional<float>{};
+  if (_crotchetsPerSecond.has_value()) {
+    _onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
+  }
+  if (_juceMidiFile && _ticksPerCrotchet) {
+    auto timeSignaturePositions = getTimeSignatures(*_juceMidiFile);
+    _positionGetter =
+        std::make_shared<PositionGetter>(std::move(timeSignaturePositions));
+  }
+  if (createIntervalGetterIfAllParametersSet) {
+    _createIntervalGetterIfAllParametersSet();
+  }
+}
+
+void DefaultMidiFileOwner::_setPlayedTrack(
+    int track, bool createIntervalGetterIfAllParametersSet) {
+  if (_playedTrack != track) {
+    _playedTrack = track;
+    if (createIntervalGetterIfAllParametersSet) {
+      _createIntervalGetterIfAllParametersSet();
+    }
+  }
+}
+
+void DefaultMidiFileOwner::_setHarmonyTrack(
+    int track, bool createIntervalGetterIfAllParametersSet) {
+  if (_harmonyTrack != track) {
+    _harmonyTrack = track;
+    if (createIntervalGetterIfAllParametersSet) {
+      _createIntervalGetterIfAllParametersSet();
+    }
+  }
+}
 
 void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||

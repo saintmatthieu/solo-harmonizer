@@ -43,7 +43,7 @@ void SoloHarmonizerVst::_editorCallThreadFun() {
         editor->updateTimeInCrotchets(*time);
       }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds{ 50 });
+    std::this_thread::sleep_for(std::chrono::milliseconds{50});
   }
 }
 
@@ -114,14 +114,13 @@ void SoloHarmonizerVst::onEditorDestruction(SoloHarmonizerEditor *editor) {
 }
 
 void SoloHarmonizerVst::getStateInformation(juce::MemoryBlock &destData) {
-  const auto &vectorView = _soloHarmonizer->getState();
-  destData.append(vectorView.data(), vectorView.size());
+  const auto &state = _midiFileOwner->getState();
+  destData.append(state.data(), state.size());
 }
 
-void SoloHarmonizerVst::setStateInformation(const void *data, int sizeInBytes) {
-  const auto uint8Data = static_cast<const uint8_t *>(data);
-  const std::vector<uint8_t> vectorView{uint8Data, uint8Data + sizeInBytes};
-  _soloHarmonizer->setState(vectorView);
+void SoloHarmonizerVst::setStateInformation(const void *data, int size) {
+  _midiFileOwner->setState(std::vector<char>{
+      static_cast<const char *>(data), static_cast<const char *>(data) + size});
 }
 
 void SoloHarmonizerVst::_onCrotchetsPerSecondAvailable(

@@ -8,7 +8,14 @@
 namespace saint {
 class MidiFileOwner {
 public:
+  class Listener {
+  public:
+    virtual ~Listener() = default;
+    virtual void onStateChange() = 0;
+  };
+
   virtual ~MidiFileOwner() = default;
+  virtual void setStateChangeListener(Listener *) = 0;
   virtual void setMidiFile(std::filesystem::path) = 0;
   virtual std::optional<std::filesystem::path> getMidiFile() const = 0;
   virtual std::vector<std::string> getMidiFileTrackNames() const = 0;
@@ -17,8 +24,8 @@ public:
   virtual void setHarmonyTrack(int) = 0;
   virtual std::optional<int> getHarmonyTrack() const = 0;
   virtual bool execute(PlayheadCommand) = 0;
-  virtual const std::vector<uint8_t> &getState() const = 0;
-  virtual void setState(std::vector<uint8_t>) = 0;
+  virtual std::vector<char> getState() const = 0;
+  virtual void setState(std::vector<char>) = 0;
   virtual bool hasIntervalGetter() const = 0;
   virtual std::shared_ptr<IntervalGetter> getIntervalGetter() const = 0;
   virtual bool hasPositionGetter() const = 0;

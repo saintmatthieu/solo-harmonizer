@@ -2,6 +2,7 @@
 
 #include "DefaultMidiFileOwner.h"
 #include "JuceAudioPlayHeadProvider.h"
+#include "MidiFileOwner.h"
 #include "Playhead.h"
 #include "SoloHarmonizer.h"
 #include "SoloHarmonizerTypes.h"

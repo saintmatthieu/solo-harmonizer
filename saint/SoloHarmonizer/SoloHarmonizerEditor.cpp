@@ -74,7 +74,16 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   addAndMakeVisible(_beatNumberDisplay);
 
   _updateWidgets();
+
+  _midiFileOwner.setStateChangeListener(this);
 }
+
+SoloHarmonizerEditor::~SoloHarmonizerEditor() {
+  _soloHarmonizerVst.onEditorDestruction(this);
+  _midiFileOwner.setStateChangeListener(nullptr);
+}
+
+void SoloHarmonizerEditor::onStateChange() { _updateWidgets(); }
 
 void SoloHarmonizerEditor::_updateWidgets() {
   const auto midiFilePath = _midiFileOwner.getMidiFile();
@@ -102,10 +111,6 @@ void SoloHarmonizerEditor::_updateWidgets() {
     _comboBoxes[harmonyTrackTypeIndex].setSelectedId(*harmonyTrack);
   }
   _updatePlayButton();
-}
-
-SoloHarmonizerEditor::~SoloHarmonizerEditor() {
-  _soloHarmonizerVst.onEditorDestruction(this);
 }
 
 void SoloHarmonizerEditor::_updatePlayButton() {
