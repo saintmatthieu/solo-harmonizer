@@ -7,16 +7,23 @@ namespace {
 constexpr auto chooseFileButtonTxt = "Choose MIDI file ...";
 constexpr auto playTxt = "Play";
 constexpr auto stopTxt = "Stop";
-
-void initBarInputEditor(juce::TextEditor &editor,
+constexpr auto middle = juce::Justification::verticallyCentred |
+                        juce::Justification::horizontallyCentred;
+enum class ReadOnly { no, yes };
+void initBarBeatDisplay(juce::TextEditor &editor,
                         const std::string &textToShowWhenEmpty,
-                        juce::TextEditor::Listener *listener) {
+                        ReadOnly readOnly,
+                        juce::TextEditor::Listener *listener = nullptr) {
   editor.setTextToShowWhenEmpty(textToShowWhenEmpty,
                                 juce::Colours::whitesmoke.withAlpha(0.5f));
   editor.setInputFilter(
       new juce::TextEditor::LengthAndCharacterRestriction(0, "0123456789"),
       true);
-  editor.addListener(listener);
+  if (listener) {
+    editor.addListener(listener);
+  }
+  editor.setReadOnly(readOnly == ReadOnly::yes);
+  editor.setJustification(middle);
 }
 } // namespace
 
@@ -24,7 +31,10 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
                                            MidiFileOwner &midiFileOwner)
     : AudioProcessorEditor(&soloHarmonizerVst),
       _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(midiFileOwner),
-      _chooseFileButton(chooseFileButtonTxt), _playButton(playTxt),
+      _playButton(soloHarmonizerVst.isStandalone
+                      ? std::optional<juce::TextButton>{playTxt}
+                      : std::nullopt),
+      _chooseFileButton(chooseFileButtonTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)),
       _loopBeginBarEditor("loopBeginBarEditor"),
@@ -41,8 +51,7 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   for (auto i = 0u; i < numTrackTypes; ++i) {
     const auto trackType = static_cast<TrackType>(i);
     auto &box = _comboBoxes[i];
-    box.setJustificationType(juce::Justification::centred |
-                             juce::Justification::horizontallyCentred);
+    box.setJustificationType(middle);
     box.onChange = [&box, trackType, this]() {
       const auto selectedTrack = box.getSelectedId();
       if (trackType == TrackType::played) {
@@ -70,26 +79,28 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   };
   addAndMakeVisible(_chooseFileButton);
 
-  _playButton.onClick = [this]() {
-    if (_playButton.getButtonText() == playTxt &&
-        _midiFileOwner.execute(PlayheadCommand::play)) {
-      _playButton.setButtonText(stopTxt);
-    } else if (_midiFileOwner.execute(PlayheadCommand::stop)) {
-      _playButton.setButtonText(playTxt);
-    }
-  };
-  addChildComponent(_playButton);
+  if (_playButton) {
+    _playButton->onClick = [this]() {
+      if (_playButton->getButtonText() == playTxt &&
+          _midiFileOwner.execute(PlayheadCommand::play)) {
+        _playButton->setButtonText(stopTxt);
+      } else if (_midiFileOwner.execute(PlayheadCommand::stop)) {
+        _playButton->setButtonText(playTxt);
+      }
+    };
+    addChildComponent(*_playButton);
+  }
 
-  initBarInputEditor(_loopBeginBarEditor, "Loop begin (bar)", this);
-  initBarInputEditor(_loopEndBarEditor, "Loop end (bar)", this);
+  initBarBeatDisplay(_loopBeginBarEditor, "Loop begin (bar)", ReadOnly::no,
+                     this);
+  initBarBeatDisplay(_loopEndBarEditor, "Loop end (bar)", ReadOnly::no, this);
+  initBarBeatDisplay(_barNumberDisplay, "bar number", ReadOnly::yes);
+  initBarBeatDisplay(_beatNumberDisplay, "beat number", ReadOnly::yes);
+
   addAndMakeVisible(_loopBeginBarEditor);
   addAndMakeVisible(_loopEndBarEditor);
-
-  _barNumberDisplay.setEnabled(false);
-  _beatNumberDisplay.setEnabled(false);
   addAndMakeVisible(_barNumberDisplay);
   addAndMakeVisible(_beatNumberDisplay);
-
   addAndMakeVisible(_displayComponent);
 
   _updateWidgets();
@@ -183,9 +194,12 @@ void SoloHarmonizerEditor::_updateWidgets() {
 }
 
 void SoloHarmonizerEditor::_updatePlayButton() {
-  _playButton.setVisible(_midiFileOwner.getMidiFile().has_value() &&
-                         _midiFileOwner.getPlayedTrack().has_value() &&
-                         _midiFileOwner.getHarmonyTrack().has_value());
+  if (!_playButton) {
+    return;
+  }
+  _playButton->setVisible(_midiFileOwner.getMidiFile().has_value() &&
+                          _midiFileOwner.getPlayedTrack().has_value() &&
+                          _midiFileOwner.getHarmonyTrack().has_value());
 }
 
 void SoloHarmonizerEditor::_updateLayout() {
@@ -194,18 +208,20 @@ void SoloHarmonizerEditor::_updateLayout() {
   grid.rowGap = 10_px;
   grid.columnGap = 10_px;
   using Track = Grid::TrackInfo;
-  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr),
-                       Track(1_fr)};
+  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr)};
+  if (_playButton) {
+    grid.templateRows.add(Track(1_fr));
+    grid.items.add(GridItem(*_playButton).withRow({5, 6}).withColumn({1, 3}));
+  }
   grid.templateColumns = {Track(1_fr), Track(1_fr), Track(2_fr)};
   grid.items.addArray(
       {GridItem(_chooseFileButton).withRow({1, 2}).withColumn({1, 3}),
        GridItem(_comboBoxes[0]).withRow({2, 3}).withColumn({1, 2}),
        GridItem(_comboBoxes[1]).withRow({2, 3}).withColumn({2, 3}),
-       GridItem(_playButton).withRow({3, 4}).withColumn({1, 3}),
-       GridItem(_loopBeginBarEditor).withRow({4, 5}).withColumn({1, 2}),
-       GridItem(_loopEndBarEditor).withRow({4, 5}).withColumn({2, 3}),
-       GridItem(_barNumberDisplay).withRow({5, 6}).withColumn({1, 2}),
-       GridItem(_beatNumberDisplay).withRow({5, 6}).withColumn({2, 3}),
+       GridItem(_loopBeginBarEditor).withRow({3, 4}).withColumn({1, 2}),
+       GridItem(_loopEndBarEditor).withRow({3, 4}).withColumn({2, 3}),
+       GridItem(_barNumberDisplay).withRow({4, 5}).withColumn({1, 2}),
+       GridItem(_beatNumberDisplay).withRow({4, 5}).withColumn({2, 3}),
        GridItem(_displayComponent).withRow({1, 6}).withColumn({3, 4})});
   grid.performLayout(getLocalBounds());
 }
@@ -242,14 +258,19 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   const auto beatNumberStr = std::to_string(roundedPosition.beatIndex + 1);
   juce::MessageManager::getInstance()->callAsync(
       [this, barNumberStr, beatNumberStr, crotchets]() {
-        _barNumberDisplay.setButtonText(barNumberStr);
-        _beatNumberDisplay.setButtonText(beatNumberStr);
+        _barNumberDisplay.setText(barNumberStr);
+        _beatNumberDisplay.setText(beatNumberStr);
         _displayComponent.updateTimeInCrotchets(crotchets);
         repaint();
       });
 }
 
-void SoloHarmonizerEditor::play() { _playButton.triggerClick(); }
+void SoloHarmonizerEditor::play() {
+  if (!_playButton) {
+    return;
+  }
+  _playButton->triggerClick();
+}
 
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
   // (Our component is opaque, so we must completely fill the background with a

@@ -26,6 +26,8 @@ public:
   SoloHarmonizerVst(PlayheadFactory);
   ~SoloHarmonizerVst() override;
 
+  const bool isStandalone;
+
   // Kept public for testing
   void prepareToPlay(double sampleRate, int samplesPerBlock) override;
   void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
@@ -78,7 +80,6 @@ private:
   std::atomic<std::optional<int>> _loopBeginBar;
   std::atomic<std::optional<int>> _loopEndBar;
   float _loopingTimeInCrotchetsOffset = 0.f;
-  const bool _isStandalone;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;
   const std::shared_ptr<MidiFileOwner> _midiFileOwner;

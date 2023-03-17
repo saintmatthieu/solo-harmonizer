@@ -21,8 +21,7 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::mono(), true)
               .withOutput("Output", juce::AudioChannelSet::mono(), true)),
-      _isStandalone(wrapperType ==
-                    juce::AudioProcessor::wrapperType_Standalone),
+      isStandalone(wrapperType == juce::AudioProcessor::wrapperType_Standalone),
       _midiFileOwner(std::make_shared<DefaultMidiFileOwner>(
           std::bind(&SoloHarmonizerVst::_onCrotchetsPerSecondAvailable, this,
                     _1),
@@ -60,6 +59,9 @@ void SoloHarmonizerVst::prepareToPlay(double sampleRate, int samplesPerBlock) {
   _samplesPerSecond = static_cast<int>(sampleRate);
   _midiFileOwner->setSampleRate(*_samplesPerSecond);
   _soloHarmonizer->prepareToPlay(*_samplesPerSecond, samplesPerBlock);
+  if (!isStandalone) {
+    _startPlaying();
+  }
 }
 
 void SoloHarmonizerVst::releaseResources() {
@@ -117,7 +119,8 @@ std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() {
     const auto loopedValue =
         (modulo < 0.f ? modulo + loopDuration : modulo) + loopBeginCrotchet;
     _loopingTimeInCrotchetsOffset = *t - loopedValue;
-    return loopedValue;
+    assert(loopedValue >= 0.f);
+    return std::max(0.f, loopedValue);
   }
 }
 
@@ -183,7 +186,7 @@ bool SoloHarmonizerVst::_onPlayheadCommand(PlayheadCommand command) {
 }
 
 bool SoloHarmonizerVst::_startPlaying() {
-  _playhead = _playheadFactory(_isStandalone, *this, _crotchetsPerSecond,
+  _playhead = _playheadFactory(isStandalone, *this, _crotchetsPerSecond,
                                _samplesPerSecond);
   return _playhead != nullptr;
 }
