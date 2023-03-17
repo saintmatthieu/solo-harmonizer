@@ -9,8 +9,9 @@ class PositionGetter {
 public:
   PositionGetter(std::vector<TimeSignaturePosition> timeSignatures);
   Position getPosition(float timeInCrotchets) const;
+  float getBarTimeInCrotchets(int barIndex) const;
 
 private:
-  std::vector<TimeSignaturePosition> _timeSignaturePositions;
+  const std::vector<TimeSignaturePosition> _timeSignaturePositions;
 };
 } // namespace saint

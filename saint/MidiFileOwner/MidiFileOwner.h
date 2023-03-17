@@ -11,13 +11,16 @@ public:
   class Listener {
   public:
     virtual ~Listener() = default;
-    virtual void onStateChange() = 0;
+    virtual void onStateChange() {}
+    virtual void onLoopBeginBarChange(const std::optional<int> &) {}
+    virtual void onLoopEndBarChange(const std::optional<int> &) {}
   };
 
   virtual ~MidiFileOwner() = default;
   virtual void setSampleRate(int) = 0; // This is needed for a debug feature. A
                                        // better could probably be found.
-  virtual void setStateChangeListener(Listener *) = 0;
+  virtual void addStateChangeListener(Listener *) = 0;
+  virtual void removeStateChangeListener(Listener *) = 0;
   virtual void setMidiFile(std::filesystem::path) = 0;
   virtual std::optional<std::filesystem::path> getMidiFile() const = 0;
   virtual std::vector<std::string> getMidiFileTrackNames() const = 0;
@@ -25,9 +28,9 @@ public:
   virtual std::optional<int> getPlayedTrack() const = 0;
   virtual void setHarmonyTrack(int) = 0;
   virtual std::optional<int> getHarmonyTrack() const = 0;
-  virtual void setLoopBeginBar(int) = 0;
+  virtual void setLoopBeginBar(std::optional<int>) = 0;
   virtual std::optional<int> getLoopBeginBar() const = 0;
-  virtual void setLoopEndBar(int) = 0;
+  virtual void setLoopEndBar(std::optional<int>) = 0;
   virtual std::optional<int> getLoopEndBar() const = 0;
   virtual bool execute(PlayheadCommand) = 0;
   virtual std::vector<char> getState() const = 0;

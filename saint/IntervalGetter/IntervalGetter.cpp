@@ -30,18 +30,15 @@ getNotes(const std::vector<IntervalSpan> &spans) {
 
 IntervalGetter::IntervalGetter(
     const std::vector<IntervalSpan> &spans, float ticksPerCrotchet,
-    float ticksPerSample,
     std::optional<testUtils::IntervalGetterDebugCb> debugCb)
     : _debugCb(std::move(debugCb)), _ticksPerCrotchet(ticksPerCrotchet),
-      _ticksPerSample(ticksPerSample), _ticks(getTicks(spans)),
-      _intervals(getNotes(spans)) {}
+      _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
 
 std::optional<float> IntervalGetter::getHarmoInterval(
     float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
   const auto interval = _getHarmoInterval(timeInCrotchets, pitch);
   if (_debugCb) {
     testUtils::IntervalGetterDebugCbArgs args{_ticks, pitch, interval};
-    args.ticksPerSample = _ticksPerSample;
     args.newIndex = _currentIndex;
     args.blockSize = blockSize;
     (*_debugCb)(args);

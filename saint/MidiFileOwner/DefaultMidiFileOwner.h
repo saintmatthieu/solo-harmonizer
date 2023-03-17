@@ -7,6 +7,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <functional>
+#include <unordered_set>
 
 namespace saint {
 
@@ -19,7 +20,8 @@ public:
 
   // MidiFileOwner
   void setSampleRate(int) override;
-  void setStateChangeListener(Listener *) override;
+  void addStateChangeListener(Listener *) override;
+  void removeStateChangeListener(Listener *) override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
   std::vector<std::string> getMidiFileTrackNames() const override;
@@ -27,9 +29,9 @@ public:
   std::optional<int> getPlayedTrack() const override;
   void setHarmonyTrack(int) override;
   std::optional<int> getHarmonyTrack() const override;
-  void setLoopBeginBar(int) override;
+  void setLoopBeginBar(std::optional<int>) override;
   std::optional<int> getLoopBeginBar() const override;
-  void setLoopEndBar(int) override;
+  void setLoopEndBar(std::optional<int>) override;
   std::optional<int> getLoopEndBar() const override;
   std::optional<float> getLowestPlayedTrackHarmonizedFrequency() const override;
   bool execute(PlayheadCommand) override;
@@ -41,7 +43,6 @@ public:
   std::shared_ptr<PositionGetter> getPositionGetter() const override;
 
   // For testing
-  std::optional<int> getTicksPerCrotchet() const;
   std::optional<float> getCrotchetsPerSecond() const;
 
 private:
@@ -66,6 +67,6 @@ private:
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
   std::shared_ptr<IntervalGetter> _intervalGetter;
   std::shared_ptr<PositionGetter> _positionGetter;
-  Listener *_stateChangeListener = nullptr;
+  std::unordered_set<Listener *> _listeners;
 };
 } // namespace saint

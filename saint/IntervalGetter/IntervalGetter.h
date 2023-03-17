@@ -9,7 +9,7 @@ namespace saint {
 class IntervalGetter {
 public:
   IntervalGetter(const std::vector<IntervalSpan> &timeSegments,
-                 float ticksPerCrotchet, float ticksPerSample,
+                 float ticksPerCrotchet,
                  std::optional<testUtils::IntervalGetterDebugCb>);
   // The caller should only pass a nullopt pitch whenever there is no pitch to
   // be had, or a pitch jump was detected.
@@ -24,7 +24,6 @@ private:
                                          const std::optional<float> &pitch);
   const std::optional<testUtils::IntervalGetterDebugCb> _debugCb;
   const float _ticksPerCrotchet;
-  const float _ticksPerSample;
   const std::vector<int> _ticks;
   const std::vector<std::optional<PlayedNote>> _intervals;
   bool _prevWasPitched = false;

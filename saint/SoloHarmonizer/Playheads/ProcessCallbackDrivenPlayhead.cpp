@@ -26,8 +26,10 @@ ProcessCallbackDrivenPlayhead::ProcessCallbackDrivenPlayhead(
     int samplesPerSecond, float crotchetsPerSample)
     : _crotchetsPerSample(crotchetsPerSample), _a(getCoefs(samplesPerSecond)) {}
 
-void ProcessCallbackDrivenPlayhead::incrementSampleCount(int numSamples) {
+std::optional<float>
+ProcessCallbackDrivenPlayhead::incrementSampleCount(int numSamples) {
   _sampleCount += numSamples;
+  return getTimeInCrotchets();
 }
 
 void ProcessCallbackDrivenPlayhead::mixMetronome(float *audio, int numSamples) {
@@ -45,7 +47,7 @@ void ProcessCallbackDrivenPlayhead::mixMetronome(float *audio, int numSamples) {
   }
 }
 
-std::optional<float> ProcessCallbackDrivenPlayhead::getTimeInCrotchets() const {
+std::optional<float> ProcessCallbackDrivenPlayhead::getTimeInCrotchets() {
   return static_cast<float>(_sampleCount) * _crotchetsPerSample;
 }
 } // namespace saint

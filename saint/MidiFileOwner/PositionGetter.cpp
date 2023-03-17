@@ -34,4 +34,16 @@ Position PositionGetter::getPosition(float crotchet) const {
   const auto beatsPerCrotchet = beatsPerBar / crotchetsPerBar;
   return {sigBar + barsFromSigBar, beatsPerCrotchet * crotchetsFromBar};
 }
+
+float PositionGetter::getBarTimeInCrotchets(int barIndex) const {
+  const auto sigBarIt = std::prev(std::find_if(
+      _timeSignaturePositions.begin(), _timeSignaturePositions.end(),
+      [barIndex](const TimeSignaturePosition &timeSig) {
+        return timeSig.barIndex > barIndex;
+      }));
+  const auto barsFromSignBar = barIndex - sigBarIt->barIndex;
+  const auto &sig = sigBarIt->timeSignature;
+  const auto crotchetsPerBar = 4.f * sig.num / sig.den;
+  return sigBarIt->crotchet + crotchetsPerBar * barsFromSignBar;
+}
 } // namespace saint

@@ -2,11 +2,13 @@
 #include "DefaultMidiFileOwner.h"
 #include "Playheads/HostDrivenPlayhead.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
+#include "PositionGetter.h"
 #include "SoloHarmonizerEditor.h"
 #include "Utils.h"
 
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <optional>
 #include <thread>
 
@@ -28,7 +30,9 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
       _soloHarmonizer(std::make_unique<SoloHarmonizer>(_midiFileOwner, *this)),
       _playheadFactory(std::move(factory)),
       _editorCallThread(
-          std::bind(&SoloHarmonizerVst::_editorCallThreadFun, this)) {}
+          std::bind(&SoloHarmonizerVst::_editorCallThreadFun, this)) {
+  _midiFileOwner->addStateChangeListener(this);
+}
 
 SoloHarmonizerVst::~SoloHarmonizerVst() {
   _runEditorCallThread = false;
@@ -37,7 +41,7 @@ SoloHarmonizerVst::~SoloHarmonizerVst() {
 
 void SoloHarmonizerVst::_editorCallThreadFun() {
   while (_runEditorCallThread) {
-    const auto time = _timeInCrotchets.load();
+    const auto time = getTimeInCrotchets();
     if (time.has_value()) {
       std::lock_guard<std::mutex> lock(_editorMutex);
       for (auto editor : _editors) {
@@ -74,10 +78,10 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
   const auto numSamples = buffer.getNumSamples();
   if (playhead) {
     const auto p = buffer.getWritePointer(0);
+    // Calls SoloHarmonizerVst::getTimeInCrotchets()
     _soloHarmonizer->processBlock(p, numSamples);
     playhead->mixMetronome(p, numSamples);
-    playhead->incrementSampleCount(numSamples);
-    _timeInCrotchets = playhead->getTimeInCrotchets();
+    _timeInCrotchets = playhead->incrementSampleCount(numSamples);
   }
   const auto p = buffer.getReadPointer(0);
   for (auto i = 1; i < buffer.getNumChannels(); ++i) {
@@ -86,12 +90,46 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
   }
 }
 
-std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() const {
+std::optional<float> SoloHarmonizerVst::incrementSampleCount(int) {
   return _timeInCrotchets;
+}
+
+std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() {
+  const auto t = _timeInCrotchets.load();
+  if (!t.has_value() || !_midiFileOwner->hasPositionGetter()) {
+    return std::nullopt;
+  }
+  const auto positionGetter = _midiFileOwner->getPositionGetter();
+  if (!positionGetter) {
+    return std::nullopt;
+  }
+  const auto loopBeginBar = _loopBeginBar.load().value_or(1);
+  const auto loopEndBar = _loopEndBar.load();
+  if (!loopEndBar.has_value() || *loopEndBar <= loopBeginBar) {
+    return *t - _loopingTimeInCrotchetsOffset;
+  } else {
+    const auto loopBeginCrotchet =
+        positionGetter->getBarTimeInCrotchets(loopBeginBar - 1);
+    const auto loopEndCrotchet =
+        positionGetter->getBarTimeInCrotchets(*loopEndBar - 1);
+    const auto loopedValue = std::fmodf(*t - loopBeginCrotchet,
+                                        loopEndCrotchet - loopBeginCrotchet) +
+                             loopBeginCrotchet;
+    _loopingTimeInCrotchetsOffset = *t - loopedValue;
+    return loopedValue;
+  }
 }
 
 juce::AudioPlayHead *SoloHarmonizerVst::getJuceAudioPlayHead() const {
   return getPlayHead();
+}
+
+void SoloHarmonizerVst::onLoopBeginBarChange(const std::optional<int> &bar) {
+  _loopBeginBar = bar;
+}
+
+void SoloHarmonizerVst::onLoopEndBarChange(const std::optional<int> &bar) {
+  _loopEndBar = bar;
 }
 
 SoloHarmonizerEditor *SoloHarmonizerVst::createSoloHarmonizerEditor() {
@@ -163,7 +201,7 @@ juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {
                              const std::optional<int> &samplesPerSecond)
                               -> std::shared_ptr<Playhead> {
     if (mustSetPpqPosition) {
-      if (!crotchetsPerSecond.has_value() || samplesPerSecond.has_value()) {
+      if (!crotchetsPerSecond.has_value() || !samplesPerSecond.has_value()) {
         return nullptr;
       }
       const auto crotchetsPerSample =

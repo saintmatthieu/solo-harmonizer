@@ -20,6 +20,7 @@ class logger;
 namespace saint {
 class SoloHarmonizerVst : public juce::AudioProcessor,
                           public Playhead,
+                          public MidiFileOwner::Listener,
                           JuceAudioPlayHeadProvider {
 public:
   SoloHarmonizerVst(PlayheadFactory);
@@ -32,12 +33,17 @@ public:
   SoloHarmonizerEditor *createSoloHarmonizerEditor();
 
   // Playhead
-  std::optional<float> getTimeInCrotchets() const override;
+  std::optional<float> incrementSampleCount(int) override;
+  std::optional<float> getTimeInCrotchets() override;
 
   // JuceAudioPlayHeadProvider
   juce::AudioPlayHead *getJuceAudioPlayHead() const override;
 
 private:
+  // MidiFileOwner::Listener
+  void onLoopBeginBarChange(const std::optional<int> &) override;
+  void onLoopEndBarChange(const std::optional<int> &) override;
+
   juce::AudioProcessorEditor *createEditor() override;
   void releaseResources() override;
   bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
@@ -69,6 +75,9 @@ private:
   bool _stopPlaying();
   void _editorCallThreadFun();
   std::atomic<std::optional<float>> _timeInCrotchets;
+  std::atomic<std::optional<int>> _loopBeginBar;
+  std::atomic<std::optional<int>> _loopEndBar;
+  float _loopingTimeInCrotchetsOffset = 0.f;
   const bool _isStandalone;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;

@@ -93,12 +93,12 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
 
   _updateWidgets();
 
-  _midiFileOwner.setStateChangeListener(this);
+  _midiFileOwner.addStateChangeListener(this);
 }
 
 SoloHarmonizerEditor::~SoloHarmonizerEditor() {
   _soloHarmonizerVst.onEditorDestruction(this);
-  _midiFileOwner.setStateChangeListener(nullptr);
+  _midiFileOwner.addStateChangeListener(nullptr);
 }
 
 void SoloHarmonizerEditor::onStateChange() { _updateWidgets(); }
@@ -116,7 +116,8 @@ void SoloHarmonizerEditor::_onTextEditorChange(juce::TextEditor &editor) {
   const auto name = editor.getName();
   try {
     const auto valueStr = editor.getTextValue().toString().toStdString();
-    const auto barNumber = std::stoi(valueStr);
+    const std::optional<int> barNumber =
+        valueStr.empty() ? std::optional<int>{} : std::stoi(valueStr);
     if (name == "loopBeginBarEditor") {
       _midiFileOwner.setLoopBeginBar(barNumber);
     } else if (name == "loopEndBarEditor") {
@@ -197,11 +198,15 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   if (_previousPosition == roundedPosition) {
     return;
   }
-  _barNumberDisplay.setButtonText(std::to_string(roundedPosition.barIndex + 1));
-  _beatNumberDisplay.setButtonText(
-      std::to_string(roundedPosition.beatIndex + 1));
   _previousPosition = roundedPosition;
-  repaint();
+  const auto barNumberStr = std::to_string(roundedPosition.barIndex + 1);
+  const auto beatNumberStr = std::to_string(roundedPosition.beatIndex + 1);
+  juce::MessageManager::getInstance()->callAsync(
+      [this, barNumberStr, beatNumberStr]() {
+        _barNumberDisplay.setButtonText(barNumberStr);
+        _beatNumberDisplay.setButtonText(beatNumberStr);
+        repaint();
+      });
 }
 
 void SoloHarmonizerEditor::play() { _playButton.triggerClick(); }

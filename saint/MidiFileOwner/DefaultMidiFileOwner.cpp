@@ -26,9 +26,14 @@ void DefaultMidiFileOwner::setSampleRate(int sampleRate) {
   _samplesPerSecond = sampleRate;
 }
 
-void DefaultMidiFileOwner::setStateChangeListener(Listener *listener) {
-  assert(_stateChangeListener != listener);
-  _stateChangeListener = listener;
+void DefaultMidiFileOwner::addStateChangeListener(Listener *listener) {
+  _listeners.insert(listener);
+}
+
+void DefaultMidiFileOwner::removeStateChangeListener(Listener *listener) {
+  while (_listeners.count(listener) > 0) {
+    _listeners.erase(listener);
+  }
 }
 
 void DefaultMidiFileOwner::setMidiFile(std::filesystem::path path) {
@@ -59,13 +64,27 @@ std::optional<int> DefaultMidiFileOwner::getHarmonyTrack() const {
   return _harmonyTrack;
 }
 
-void DefaultMidiFileOwner::setLoopBeginBar(int bar) { _loopBeginBar = bar; }
+void DefaultMidiFileOwner::setLoopBeginBar(std::optional<int> bar) {
+  if (_loopBeginBar != bar) {
+    _loopBeginBar = bar;
+    for (auto listener : _listeners) {
+      listener->onLoopBeginBarChange(_loopBeginBar);
+    }
+  }
+}
 
 std::optional<int> DefaultMidiFileOwner::getLoopBeginBar() const {
   return _loopBeginBar;
 }
 
-void DefaultMidiFileOwner::setLoopEndBar(int bar) { _loopEndBar = bar; }
+void DefaultMidiFileOwner::setLoopEndBar(std::optional<int> bar) {
+  if (_loopEndBar != bar) {
+    _loopEndBar = bar;
+    for (auto listener : _listeners) {
+      listener->onLoopEndBarChange(_loopEndBar);
+    }
+  }
+}
 
 std::optional<int> DefaultMidiFileOwner::getLoopEndBar() const {
   return _loopEndBar;
@@ -162,8 +181,9 @@ void DefaultMidiFileOwner::setState(std::vector<char> data) {
   }
 
   if (somethingChanged) {
-    if (_stateChangeListener) {
-      _stateChangeListener->onStateChange();
+    _createIntervalGetterIfAllParametersSet();
+    for (auto listener : _listeners) {
+      listener->onStateChange();
     }
   }
 }
@@ -255,8 +275,7 @@ void DefaultMidiFileOwner::_setHarmonyTrack(
 }
 
 void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
-  if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack ||
-      !_samplesPerSecond || !_crotchetsPerSecond) {
+  if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack) {
     return;
   }
   const auto playedSeq = getMidiNoteMessages(
@@ -269,24 +288,21 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
   if (_intervalGetterInput.empty()) {
     // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
-    const auto ticksPerSample =
-        *_ticksPerCrotchet * *_crotchetsPerSecond / *_samplesPerSecond;
     // TODO: No need to wrap IntervalGetter
     if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
         utils::isDebugBuild()) {
+      assert(_samplesPerSecond.has_value());
+      assert(_crotchetsPerSecond.has_value());
+      const auto ticksPerSample =
+          *_ticksPerCrotchet * *_crotchetsPerSecond / *_samplesPerSecond;
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet, ticksPerSample,
-          testUtils::getIntervalGetterDebugCb());
+          _intervalGetterInput, *_ticksPerCrotchet,
+          testUtils::getIntervalGetterDebugCb(ticksPerSample));
     } else {
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet, ticksPerSample,
-          std::nullopt);
+          _intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
     }
   }
-}
-
-std::optional<int> DefaultMidiFileOwner::getTicksPerCrotchet() const {
-  return _ticksPerCrotchet;
 }
 
 std::optional<float> DefaultMidiFileOwner::getCrotchetsPerSecond() const {

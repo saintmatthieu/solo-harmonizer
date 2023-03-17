@@ -7,7 +7,11 @@ HostDrivenPlayhead::HostDrivenPlayhead(
     const JuceAudioPlayHeadProvider &playheadProvider)
     : _playheadProvider(playheadProvider) {}
 
-std::optional<float> HostDrivenPlayhead::getTimeInCrotchets() const {
+std::optional<float> HostDrivenPlayhead::incrementSampleCount(int) {
+  return getTimeInCrotchets();
+}
+
+std::optional<float> HostDrivenPlayhead::getTimeInCrotchets() {
   const juce::AudioPlayHead *playhead =
       _playheadProvider.getJuceAudioPlayHead();
   if (!playhead) {

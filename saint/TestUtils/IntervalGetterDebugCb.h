@@ -9,7 +9,6 @@ struct IntervalGetterDebugCbArgs {
   const std::vector<int> &intervalTicks;
   const std::optional<float> &inputPitch;
   const std::optional<float> &returnedInterval;
-  float ticksPerSample;
   int newIndex;
   int blockSize;
 };
@@ -17,6 +16,6 @@ struct IntervalGetterDebugCbArgs {
 using IntervalGetterDebugCb =
     std::function<void(const IntervalGetterDebugCbArgs &)>;
 
-IntervalGetterDebugCb getIntervalGetterDebugCb();
+IntervalGetterDebugCb getIntervalGetterDebugCb(int ticksPerSample);
 } // namespace testUtils
 } // namespace saint

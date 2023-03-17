@@ -10,9 +10,9 @@ namespace saint {
 class ProcessCallbackDrivenPlayhead : public Playhead {
 public:
   ProcessCallbackDrivenPlayhead(int samplesPerSecond, float crotchetsPerSample);
-  void incrementSampleCount(int numSamples) override;
+  std::optional<float> incrementSampleCount(int numSamples) override;
   void mixMetronome(float *, int) override;
-  std::optional<float> getTimeInCrotchets() const override;
+  std::optional<float> getTimeInCrotchets() override;
 
 private:
   const float _crotchetsPerSample;

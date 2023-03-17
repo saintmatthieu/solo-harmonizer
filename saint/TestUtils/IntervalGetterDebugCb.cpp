@@ -5,7 +5,7 @@
 
 namespace saint {
 namespace testUtils {
-IntervalGetterDebugCb getIntervalGetterDebugCb() {
+IntervalGetterDebugCb getIntervalGetterDebugCb(int ticksPerSample) {
   const auto inputPitchWriter =
       std::make_shared<WavFileWriter>(getOutDir() + "ig_inputPitch.wav");
   const auto newIndexWriter =
@@ -14,18 +14,18 @@ IntervalGetterDebugCb getIntervalGetterDebugCb() {
       std::make_shared<WavFileWriter>(getOutDir() + "ig_tickIntervals.wav");
   const auto returnedIntervalWriter =
       std::make_shared<WavFileWriter>(getOutDir() + "ig_returnedInterval.wav");
-  return [inputPitchWriter, newIndexWriter, tickIntervalWriter,
+  return [ticksPerSample, inputPitchWriter, newIndexWriter, tickIntervalWriter,
           returnedIntervalWriter, intervalIndex = 0, first = true,
           newIndexValue = -1.f](const IntervalGetterDebugCbArgs &args) mutable {
     if (first) {
       first = false;
       const auto &ticks = args.intervalTicks;
       const auto numSamples =
-          static_cast<int>(ticks[ticks.size() - 1] / args.ticksPerSample) + 1;
+          static_cast<int>(ticks[ticks.size() - 1] / ticksPerSample) + 1;
       std::vector<float> changes(numSamples);
       auto value = 1.f;
       for (const auto tick : ticks) {
-        const auto tickIndex = static_cast<int>(tick / args.ticksPerSample);
+        const auto tickIndex = static_cast<int>(tick / ticksPerSample);
         changes[tickIndex] = value;
         value *= -1.f;
       }
