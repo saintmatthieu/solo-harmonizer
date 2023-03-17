@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DisplayComponent.h"
 #include "MidiFileOwner.h"
 #include "SoloHarmonizerTypes.h"
 #include "SoloHarmonizerVst.h"
@@ -30,15 +31,17 @@ public:
 private:
   // MidiFileOwner::Listener
   void onStateChange() override;
+  void onIntervalSpansAvailable(const std::vector<IntervalSpan> &) override;
 
   // juce::TextEditor::Listener
   void textEditorReturnKeyPressed(juce::TextEditor &) override;
   void textEditorFocusLost(juce::TextEditor &) override;
 
   void _onTextEditorChange(juce::TextEditor &);
-
+  void _updateTimeSpans(const std::vector<IntervalSpan> &);
   void _updateWidgets();
   void _updatePlayButton();
+  void _updateLayout();
 
   struct RoundedPosition {
     int barIndex;
@@ -58,6 +61,7 @@ private:
   juce::TextButton _beatNumberDisplay;
   juce::TextEditor _loopBeginBarEditor;
   juce::TextEditor _loopEndBarEditor;
+  std::unique_ptr<DisplayComponent> _displayComponent;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SoloHarmonizerEditor)
 };

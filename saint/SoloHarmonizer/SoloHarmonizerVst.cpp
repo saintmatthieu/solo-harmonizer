@@ -135,6 +135,7 @@ void SoloHarmonizerVst::onLoopEndBarChange(const std::optional<int> &bar) {
 
 SoloHarmonizerEditor *SoloHarmonizerVst::createSoloHarmonizerEditor() {
   const auto editor = new SoloHarmonizerEditor(*this, *_midiFileOwner);
+  _midiFileOwner->addStateChangeListener(editor);
   {
     std::lock_guard<std::mutex> lock(_editorMutex);
     _editors.insert(editor);

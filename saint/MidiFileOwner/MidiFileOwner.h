@@ -14,6 +14,7 @@ public:
     virtual void onStateChange() {}
     virtual void onLoopBeginBarChange(const std::optional<int> &) {}
     virtual void onLoopEndBarChange(const std::optional<int> &) {}
+    virtual void onIntervalSpansAvailable(const std::vector<IntervalSpan> &) {}
   };
 
   virtual ~MidiFileOwner() = default;
@@ -41,5 +42,6 @@ public:
   virtual std::shared_ptr<PositionGetter> getPositionGetter() const = 0;
   virtual std::optional<float>
   getLowestPlayedTrackHarmonizedFrequency() const = 0;
+  virtual std::optional<std::vector<IntervalSpan>> getIntervalSpans() const = 0;
 };
 } // namespace saint

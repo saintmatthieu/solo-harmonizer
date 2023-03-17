@@ -41,6 +41,7 @@ public:
   std::shared_ptr<IntervalGetter> getIntervalGetter() const override;
   bool hasPositionGetter() const override;
   std::shared_ptr<PositionGetter> getPositionGetter() const override;
+  std::optional<std::vector<IntervalSpan>> getIntervalSpans() const override;
 
   // For testing
   std::optional<float> getCrotchetsPerSecond() const;
@@ -53,7 +54,7 @@ private:
   void _createIntervalGetterIfAllParametersSet();
   const OnCrotchetsPerSecondAvailable _onCrotchetsPerSecondAvailable;
   const OnPlayheadCommand _onPlayheadCommand;
-  std::vector<IntervalSpan> _intervalGetterInput;
+  std::optional<std::vector<IntervalSpan>> _intervalGetterInput;
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;
   std::vector<std::string> _trackNames;

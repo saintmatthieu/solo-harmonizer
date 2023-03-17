@@ -206,6 +206,11 @@ DefaultMidiFileOwner::getPositionGetter() const {
   return _positionGetter;
 }
 
+std::optional<std::vector<IntervalSpan>>
+DefaultMidiFileOwner::getIntervalSpans() const {
+  return _intervalGetterInput;
+}
+
 namespace {
 std::optional<float> getLowestPlayedTrackHarmonizedFrequency(
     const std::vector<IntervalSpan> &spans) {
@@ -282,12 +287,16 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
       *_juceMidiFile->getTrack(*_playedTrack), *_ticksPerCrotchet);
   const auto harmoSeq = getMidiNoteMessages(
       *_juceMidiFile->getTrack(*_harmonyTrack), *_ticksPerCrotchet);
-  _intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
+  const auto intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
   _lowestPlayedTrackHarmonizedFrequency =
-      ::saint::getLowestPlayedTrackHarmonizedFrequency(_intervalGetterInput);
-  if (_intervalGetterInput.empty()) {
+      ::saint::getLowestPlayedTrackHarmonizedFrequency(intervalGetterInput);
+  if (intervalGetterInput.empty()) {
     // _logger->warn("toIntervalGetterInput returned empty vector");
   } else {
+    _intervalGetterInput = intervalGetterInput;
+    for (auto listener : _listeners) {
+      listener->onIntervalSpansAvailable(intervalGetterInput);
+    }
     // TODO: No need to wrap IntervalGetter
     if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
         utils::isDebugBuild()) {
@@ -296,11 +305,11 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
       const auto ticksPerSample =
           *_ticksPerCrotchet * *_crotchetsPerSecond / *_samplesPerSecond;
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet,
+          intervalGetterInput, *_ticksPerCrotchet,
           testUtils::getIntervalGetterDebugCb(ticksPerSample));
     } else {
       _intervalGetter = std::make_shared<IntervalGetter>(
-          _intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
+          intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
     }
   }
 }

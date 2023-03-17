@@ -94,6 +94,9 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
   _updateWidgets();
 
   _midiFileOwner.addStateChangeListener(this);
+  if (const auto spans = _midiFileOwner.getIntervalSpans()) {
+    _updateTimeSpans(*spans);
+  }
 }
 
 SoloHarmonizerEditor::~SoloHarmonizerEditor() {
@@ -102,6 +105,11 @@ SoloHarmonizerEditor::~SoloHarmonizerEditor() {
 }
 
 void SoloHarmonizerEditor::onStateChange() { _updateWidgets(); }
+
+void SoloHarmonizerEditor::onIntervalSpansAvailable(
+    const std::vector<IntervalSpan> &spans) {
+  _updateTimeSpans(spans);
+}
 
 void SoloHarmonizerEditor::textEditorReturnKeyPressed(
     juce::TextEditor &editor) {
@@ -128,6 +136,18 @@ void SoloHarmonizerEditor::_onTextEditorChange(juce::TextEditor &editor) {
   } catch (...) {
     // TODO handle
   }
+}
+
+void SoloHarmonizerEditor::_updateTimeSpans(
+    const std::vector<IntervalSpan> &spans) {
+  juce::MessageManager::getInstance()->callAsync([spans, this]() {
+    if (_displayComponent) {
+      removeChildComponent(_displayComponent.get());
+    }
+    _displayComponent = std::make_unique<DisplayComponent>(spans);
+    addAndMakeVisible(_displayComponent.get());
+    _updateLayout();
+  });
 }
 
 void SoloHarmonizerEditor::_updateWidgets() {
@@ -171,6 +191,31 @@ void SoloHarmonizerEditor::_updatePlayButton() {
                          _midiFileOwner.getHarmonyTrack().has_value());
 }
 
+void SoloHarmonizerEditor::_updateLayout() {
+  using namespace juce; // for _px, _fr, ...;
+  Grid grid;
+  grid.rowGap = 10_px;
+  grid.columnGap = 10_px;
+  using Track = Grid::TrackInfo;
+  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr),
+                       Track(1_fr)};
+  grid.templateColumns = {Track(1_fr), Track(1_fr), Track(3_fr)};
+  grid.items.addArray(
+      {GridItem(_chooseFileButton).withRow({1, 2}).withColumn({1, 3}),
+       GridItem(_comboBoxes[0]).withRow({2, 3}).withColumn({1, 2}),
+       GridItem(_comboBoxes[1]).withRow({2, 3}).withColumn({2, 3}),
+       GridItem(_playButton).withRow({3, 4}).withColumn({1, 3}),
+       GridItem(_loopBeginBarEditor).withRow({4, 5}).withColumn({1, 2}),
+       GridItem(_loopEndBarEditor).withRow({4, 5}).withColumn({2, 3}),
+       GridItem(_barNumberDisplay).withRow({5, 6}).withColumn({1, 2}),
+       GridItem(_beatNumberDisplay).withRow({5, 6}).withColumn({2, 3})});
+  if (_displayComponent) {
+    grid.items.add(
+        GridItem(*_displayComponent).withRow({1, 6}).withColumn({3, 4}));
+  }
+  grid.performLayout(getLocalBounds());
+}
+
 bool SoloHarmonizerEditor::RoundedPosition::operator==(
     const RoundedPosition &other) const {
   return std::tie(barIndex, beatIndex) ==
@@ -202,9 +247,12 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   const auto barNumberStr = std::to_string(roundedPosition.barIndex + 1);
   const auto beatNumberStr = std::to_string(roundedPosition.beatIndex + 1);
   juce::MessageManager::getInstance()->callAsync(
-      [this, barNumberStr, beatNumberStr]() {
+      [this, barNumberStr, beatNumberStr, crotchets]() {
         _barNumberDisplay.setButtonText(barNumberStr);
         _beatNumberDisplay.setButtonText(beatNumberStr);
+        if (_displayComponent) {
+          _displayComponent->updateTimeInCrotchets(crotchets);
+        }
         repaint();
       });
 }
@@ -218,21 +266,5 @@ void SoloHarmonizerEditor::paint(juce::Graphics &g) {
       getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 }
 
-void SoloHarmonizerEditor::resized() {
-  using namespace juce; // for _px, _fr, ...;
-  Grid grid;
-  grid.rowGap = 20_px;
-  grid.columnGap = 20_px;
-  using Track = Grid::TrackInfo;
-  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr)};
-  grid.templateColumns = {Track(1_fr), Track(1_fr)};
-  grid.autoColumns = Track(1_fr);
-  grid.autoRows = Track(1_fr);
-  grid.items.addArray(
-      {GridItem(_chooseFileButton).withColumn({1, 3}), GridItem(_comboBoxes[0]),
-       GridItem(_comboBoxes[1]), GridItem(_playButton).withColumn({1, 3}),
-       GridItem(_loopBeginBarEditor), GridItem(_loopEndBarEditor),
-       GridItem(_barNumberDisplay), GridItem(_beatNumberDisplay)});
-  grid.performLayout(getLocalBounds());
-}
+void SoloHarmonizerEditor::resized() { _updateLayout(); }
 } // namespace saint
