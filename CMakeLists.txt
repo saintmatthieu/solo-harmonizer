@@ -11,13 +11,12 @@ string(FIND ${CMAKE_GENERATOR} "Visual Studio" SAINT_VS_GEN_INDEX)
 if(SAINT_VS_GEN_INDEX EQUAL -1)
     message("saint: Using non-VS generator")
     set(SAINT_ANNOYING_WARNINGS
-        ${SAINT_W}no-implicit-int-float-conversion
-        ${SAINT_W}no-implicit-int-float-conversion
-        ${SAINT_W}no-sign-compare
-        ${SAINT_W}no-sign-conversion
-        ${SAINT_W}no-shorten-64-to-32
-        ${SAINT_W}no-switch-enum
-        ${SAINT_W}no-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp)
+        -Wno-implicit-int-float-conversion
+        -Wno-sign-compare
+        -Wno-sign-conversion
+        -Wno-shorten-64-to-32
+        -Wno-switch-enum
+        -Wno-deprecated # or we get this annoying spam 'warning: out-of-line definition of constexpr static data member is redundant in C++17 and is deprecated' from juce_Variant.cpp)
     )
 else()
     message("saint: Using some VS generator")
