@@ -208,21 +208,22 @@ void SoloHarmonizerEditor::_updateLayout() {
   grid.rowGap = 10_px;
   grid.columnGap = 10_px;
   using Track = Grid::TrackInfo;
-  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr)};
+  grid.templateRows = {Track(1_fr), Track(1_fr), Track(1_fr)};
   if (_playButton) {
     grid.templateRows.add(Track(1_fr));
-    grid.items.add(GridItem(*_playButton).withRow({5, 6}).withColumn({1, 3}));
+    grid.items.add(GridItem(*_playButton).withRow({4, 5}).withColumn({1, 5}));
   }
-  grid.templateColumns = {Track(1_fr), Track(1_fr), Track(2_fr)};
+  grid.templateColumns = {Track(1_fr), Track(1_fr), Track(1_fr), Track(1_fr),
+                          Track(4_fr)};
   grid.items.addArray(
-      {GridItem(_chooseFileButton).withRow({1, 2}).withColumn({1, 3}),
-       GridItem(_comboBoxes[0]).withRow({2, 3}).withColumn({1, 2}),
-       GridItem(_comboBoxes[1]).withRow({2, 3}).withColumn({2, 3}),
+      {GridItem(_chooseFileButton).withRow({1, 2}).withColumn({1, 5}),
+       GridItem(_comboBoxes[0]).withRow({2, 3}).withColumn({1, 3}),
+       GridItem(_comboBoxes[1]).withRow({2, 3}).withColumn({3, 5}),
        GridItem(_loopBeginBarEditor).withRow({3, 4}).withColumn({1, 2}),
        GridItem(_loopEndBarEditor).withRow({3, 4}).withColumn({2, 3}),
-       GridItem(_barNumberDisplay).withRow({4, 5}).withColumn({1, 2}),
-       GridItem(_beatNumberDisplay).withRow({4, 5}).withColumn({2, 3}),
-       GridItem(_displayComponent).withRow({1, 6}).withColumn({3, 4})});
+       GridItem(_barNumberDisplay).withRow({3, 4}).withColumn({3, 4}),
+       GridItem(_beatNumberDisplay).withRow({3, 4}).withColumn({4, 5}),
+       GridItem(_displayComponent).withRow({1, 6}).withColumn({5, 6})});
   grid.performLayout(getLocalBounds());
 }
 
