@@ -10,12 +10,12 @@
 namespace saint {
 
 namespace {
-std::vector<int> getTicks(const std::vector<IntervalSpan> &spans) {
-  std::vector<int> ticks;
-  ticks.reserve(spans.size());
-  std::transform(spans.begin(), spans.end(), std::back_inserter(ticks),
-                 [](const IntervalSpan &span) { return span.beginTick; });
-  return ticks;
+std::vector<float> getCrotchets(const std::vector<IntervalSpan> &spans) {
+  std::vector<float> crotchets;
+  crotchets.reserve(spans.size());
+  std::transform(spans.begin(), spans.end(), std::back_inserter(crotchets),
+                 [](const IntervalSpan &span) { return span.beginCrotchet; });
+  return crotchets;
 }
 
 std::vector<std::optional<PlayedNote>>
@@ -29,16 +29,16 @@ getNotes(const std::vector<IntervalSpan> &spans) {
 } // namespace
 
 IntervalGetter::IntervalGetter(
-    const std::vector<IntervalSpan> &spans, float ticksPerCrotchet,
+    const std::vector<IntervalSpan> &spans,
     std::optional<testUtils::IntervalGetterDebugCb> debugCb)
-    : _debugCb(std::move(debugCb)), _ticksPerCrotchet(ticksPerCrotchet),
-      _ticks(getTicks(spans)), _intervals(getNotes(spans)) {}
+    : _debugCb(std::move(debugCb)), _crotchets(getCrotchets(spans)),
+      _intervals(getNotes(spans)) {}
 
 std::optional<float> IntervalGetter::getHarmoInterval(
     float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
   const auto interval = _getHarmoInterval(timeInCrotchets, pitch);
   if (_debugCb) {
-    testUtils::IntervalGetterDebugCbArgs args{_ticks, pitch, interval};
+    testUtils::IntervalGetterDebugCbArgs args{_crotchets, pitch, interval};
     args.newIndex = _currentIndex;
     args.blockSize = blockSize;
     (*_debugCb)(args);
@@ -56,8 +56,7 @@ IntervalGetter::_getHarmoInterval(float timeInCrotchets,
     return _getInterval();
   }
   _prevWasPitched = pitch.has_value();
-  const auto tick = timeInCrotchets * _ticksPerCrotchet;
-  const auto newIndex = getClosestLimitIndex(_ticks, tick);
+  const auto newIndex = getClosestLimitIndex(_crotchets, timeInCrotchets);
   if (!newIndex.has_value()) {
     return std::nullopt;
   }

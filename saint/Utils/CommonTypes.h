@@ -26,7 +26,7 @@ struct PlayedNote {
 };
 
 struct IntervalSpan {
-  int beginTick;
+  float beginCrotchet;
   std::optional<PlayedNote> playedNote;
 };
 
@@ -36,7 +36,7 @@ bool operator!=(const PlayedNote &a, const PlayedNote &b);
 bool operator!=(const IntervalSpan &a, const IntervalSpan &b);
 
 struct MidiNoteMsg {
-  int tick; // quantized
+  float crotchet;
   bool isNoteOn;
   int noteNumber;
 };

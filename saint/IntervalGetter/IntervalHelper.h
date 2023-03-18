@@ -5,8 +5,8 @@
 #include <vector>
 
 namespace saint {
-std::optional<int> getClosestLimitIndex(const std::vector<int> &intervals,
-                                        double tick);
+std::optional<int> getClosestLimitIndex(const std::vector<float> &intervals,
+                                        float crotchet);
 
 std::vector<IntervalSpan>
 toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,

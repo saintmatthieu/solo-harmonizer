@@ -2,6 +2,8 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
+#include <cassert>
+
 namespace saint {
 namespace {
 template <typename T>
@@ -81,21 +83,27 @@ float extractCrotchetsPerSecond(const juce::MidiFile &midiFile) {
   }
 }
 
-std::vector<MidiNoteMsg>
-getMidiNoteMessages(const juce::MidiMessageSequence &seq,
-                    int ticksPerCrotchet) {
+std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &file,
+                                             int track) {
+  const auto seq = file.getTrack(track);
+  assert(seq);
+  if (!seq) {
+    return {};
+  }
+  const auto ticksPerCrotchet = getTicksPerCrotchet(file);
   const auto ticksPer32nd = ticksPerCrotchet / 8;
   std::vector<MidiNoteMsg> msgs;
   MidiNoteMsg *lastMsg = nullptr;
-  for (auto it = seq.begin(); it != seq.end(); ++it) {
+  for (auto it = seq->begin(); it != seq->end(); ++it) {
     const auto msg = (*it)->message;
     if (!msg.isNoteOnOrOff()) {
       continue;
     }
-    const auto tick =
-        static_cast<int>(msg.getTimeStamp() / ticksPer32nd + 0.5) *
+    const auto roundedTick =
+        static_cast<int>(msg.getTimeStamp() / ticksPer32nd + 0.5f) *
         ticksPer32nd;
-    msgs.push_back({tick, msg.isNoteOn(), msg.getNoteNumber()});
+    const auto crotchet = static_cast<float>(roundedTick) / ticksPerCrotchet;
+    msgs.push_back({crotchet, msg.isNoteOn(), msg.getNoteNumber()});
     lastMsg = &msgs.back();
   }
   std::sort(msgs.begin(), msgs.end(),
@@ -104,12 +112,12 @@ getMidiNoteMessages(const juce::MidiMessageSequence &seq,
             });
   std::sort(msgs.begin(), msgs.end(),
             [](const MidiNoteMsg &a, const MidiNoteMsg &b) {
-              return a.tick < b.tick;
+              return a.crotchet < b.crotchet;
             });
   auto it = std::prev(msgs.end());
   while (it != msgs.begin()) {
     auto prev = std::prev(it);
-    if (prev->isNoteOn && !it->isNoteOn && prev->tick == it->tick) {
+    if (prev->isNoteOn && !it->isNoteOn && prev->crotchet == it->crotchet) {
       msgs.erase(it);
     }
     it = prev;

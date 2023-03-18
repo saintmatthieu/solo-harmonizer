@@ -20,7 +20,7 @@ if(SAINT_VS_GEN_INDEX EQUAL -1)
     )
 else()
     message("saint: Using some VS generator")
-endif(MSVC)
+endif()
 
 project(SoloHarmonizer VERSION 0.0.1)
 

@@ -63,7 +63,6 @@ private:
   std::optional<int> _harmonyTrack;
   std::optional<int> _loopBeginBar;
   std::optional<int> _loopEndBar;
-  std::optional<int> _ticksPerCrotchet;
   std::optional<float> _crotchetsPerSecond;
   std::optional<float> _lowestPlayedTrackHarmonizedFrequency;
   std::shared_ptr<IntervalGetter> _intervalGetter;

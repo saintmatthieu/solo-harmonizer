@@ -15,8 +15,7 @@ std::vector<std::string> getTrackNames(const juce::MidiFile &midiFile);
 
 float extractCrotchetsPerSecond(const juce::MidiFile &midiFile);
 
-std::vector<MidiNoteMsg>
-getMidiNoteMessages(const juce::MidiMessageSequence &seq, int ticksPerCrotchet);
+std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &, int track);
 
 int getTicksPerCrotchet(const juce::MidiFile &midiFile);
 

@@ -12,48 +12,49 @@ TEST(getClosestLimitIndex, leading_round_up_rule) {
   // We'll want the playhead to snap to the first interval slightly before it
   // has reached it already. What does "slightly before" mean ? We say it's half
   // the duration of the first interval.
-  const std::vector<int> intervalExample1{
-      {3, 7}}; // Should snap to first interval from 1 already.
-  const std::vector<int> intervalExample2{
-      {3, 5}}; // Should snapt to first interval from 2.
+  const std::vector<float> intervalExample1{
+      {3.f, 7.f}}; // Should snap to first interval from 1 already.
+  const std::vector<float> intervalExample2{
+      {3.f, 5.f}}; // Should snapt to first interval from 2.
 
-  EXPECT_THAT(getClosestLimitIndex(intervalExample1, 1), Optional(0));
-  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 1), Eq(std::nullopt));
-  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 2), Optional(0));
+  EXPECT_THAT(getClosestLimitIndex(intervalExample1, 1.f), Optional(0));
+  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 1.f), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervalExample2, 2.f), Optional(0));
 }
 
 TEST(getClosestLimitIndex, various_tests) {
-  const std::vector<int> intervals{{2, 3, 5, 8}};
-  EXPECT_THAT(getClosestLimitIndex(intervals, 0), Eq(std::nullopt));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 1), Eq(std::nullopt));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 2), Optional(0));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 3), Optional(1));
+  const std::vector<float> intervals{{2.f, 3.f, 5.f, 8.f}};
+  EXPECT_THAT(getClosestLimitIndex(intervals, 0.f), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 1.f), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 2.f), Optional(0));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 3.f), Optional(1));
   // 4 is exactly in the middle of [3, 5) -> rounds up.
-  EXPECT_THAT(getClosestLimitIndex(intervals, 4), Optional(2));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 5), Optional(2));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 6), Optional(2));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 7), Eq(std::nullopt));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 8), Eq(std::nullopt));
-  EXPECT_THAT(getClosestLimitIndex(intervals, 9), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 4.f), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 5.f), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 6.f), Optional(2));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 7.f), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 8.f), Eq(std::nullopt));
+  EXPECT_THAT(getClosestLimitIndex(intervals, 9.f), Eq(std::nullopt));
 }
 
 TEST(toIntervalSpans, variousTests) {
   const std::vector<MidiNoteMsg> playedMidiTrack{{
-                                                     1,    // tick
+                                                     1.f,  // crotchet
                                                      true, // isNoteOn
                                                      69,   // noteNumber
                                                  },
-                                                 {2, false, 69},
-                                                 {2, true, 71},
-                                                 {10, false, 71}};
-  const std::vector<MidiNoteMsg> harmoMidiTrack{{2, true, 74}, {10, false, 74}};
+                                                 {2.f, false, 69},
+                                                 {2.f, true, 71},
+                                                 {10.f, false, 71}};
+  const std::vector<MidiNoteMsg> harmoMidiTrack{{2.f, true, 74},
+                                                {10.f, false, 74}};
   const std::vector<IntervalSpan> actual =
       toIntervalSpans(playedMidiTrack, harmoMidiTrack);
 
-  const std::vector<IntervalSpan> expected{{0, std::nullopt},
-                                           {1, PlayedNote{69, std::nullopt}},
-                                           {2, PlayedNote{71, 3}},
-                                           {10, std::nullopt}};
+  const std::vector<IntervalSpan> expected{{0.f, std::nullopt},
+                                           {1.f, PlayedNote{69, std::nullopt}},
+                                           {2.f, PlayedNote{71, 3}},
+                                           {10.f, std::nullopt}};
 
   EXPECT_EQ(expected, actual);
 }

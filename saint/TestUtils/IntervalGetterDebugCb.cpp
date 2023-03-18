@@ -5,7 +5,8 @@
 
 namespace saint {
 namespace testUtils {
-IntervalGetterDebugCb getIntervalGetterDebugCb(int ticksPerSample) {
+// I might be breaking this test code right now ...
+IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample) {
   const auto inputPitchWriter =
       std::make_shared<WavFileWriter>(getOutDir() + "ig_inputPitch.wav");
   const auto newIndexWriter =
@@ -14,19 +15,22 @@ IntervalGetterDebugCb getIntervalGetterDebugCb(int ticksPerSample) {
       std::make_shared<WavFileWriter>(getOutDir() + "ig_tickIntervals.wav");
   const auto returnedIntervalWriter =
       std::make_shared<WavFileWriter>(getOutDir() + "ig_returnedInterval.wav");
-  return [ticksPerSample, inputPitchWriter, newIndexWriter, tickIntervalWriter,
-          returnedIntervalWriter, intervalIndex = 0, first = true,
+  return [crotchetsPerSample, inputPitchWriter, newIndexWriter,
+          tickIntervalWriter, returnedIntervalWriter, intervalIndex = 0,
+          first = true,
           newIndexValue = -1.f](const IntervalGetterDebugCbArgs &args) mutable {
     if (first) {
       first = false;
-      const auto &ticks = args.intervalTicks;
-      const auto numSamples =
-          static_cast<int>(ticks[ticks.size() - 1] / ticksPerSample) + 1;
+      const auto &crotchets = args.intervalCrotchets;
+      const auto numSamples = static_cast<int>(crotchets[crotchets.size() - 1] /
+                                               crotchetsPerSample) +
+                              1;
       std::vector<float> changes(numSamples);
       auto value = 1.f;
-      for (const auto tick : ticks) {
-        const auto tickIndex = static_cast<int>(tick / ticksPerSample);
-        changes[tickIndex] = value;
+      for (const auto crotchet : crotchets) {
+        const auto crotchetIndex =
+            static_cast<int>(crotchet / crotchetsPerSample);
+        changes[crotchetIndex] = value;
         value *= -1.f;
       }
       tickIntervalWriter->write(changes);

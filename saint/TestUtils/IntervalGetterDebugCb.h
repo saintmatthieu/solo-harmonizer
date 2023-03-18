@@ -6,7 +6,7 @@
 namespace saint {
 namespace testUtils {
 struct IntervalGetterDebugCbArgs {
-  const std::vector<int> &intervalTicks;
+  const std::vector<float> &intervalCrotchets;
   const std::optional<float> &inputPitch;
   const std::optional<float> &returnedInterval;
   int newIndex;
@@ -16,6 +16,6 @@ struct IntervalGetterDebugCbArgs {
 using IntervalGetterDebugCb =
     std::function<void(const IntervalGetterDebugCbArgs &)>;
 
-IntervalGetterDebugCb getIntervalGetterDebugCb(int ticksPerSample);
+IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample);
 } // namespace testUtils
 } // namespace saint

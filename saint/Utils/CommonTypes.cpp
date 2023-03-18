@@ -8,7 +8,7 @@ bool operator==(const PlayedNote &a, const PlayedNote &b) {
 }
 
 bool operator==(const IntervalSpan &a, const IntervalSpan &b) {
-  return a.playedNote == b.playedNote && a.beginTick == b.beginTick;
+  return a.playedNote == b.playedNote && a.beginCrotchet == b.beginCrotchet;
 }
 
 bool operator!=(const PlayedNote &a, const PlayedNote &b) { return !(a == b); }

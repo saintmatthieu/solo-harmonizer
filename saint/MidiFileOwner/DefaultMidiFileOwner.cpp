@@ -239,17 +239,13 @@ void DefaultMidiFileOwner::_setMidiFile(
   _midiFilePath = std::move(path);
   _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
                               : std::vector<std::string>{};
-  _ticksPerCrotchet =
-      _juceMidiFile
-          ? std::optional<int>{saint::getTicksPerCrotchet(*_juceMidiFile)}
-          : std::optional<int>{};
   _crotchetsPerSecond = _juceMidiFile
                             ? extractCrotchetsPerSecond(*_juceMidiFile)
                             : std::optional<float>{};
   if (_crotchetsPerSecond.has_value()) {
     _onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
   }
-  if (_juceMidiFile && _ticksPerCrotchet) {
+  if (_juceMidiFile) {
     auto timeSignaturePositions = getTimeSignatures(*_juceMidiFile);
     _positionGetter =
         std::make_shared<PositionGetter>(std::move(timeSignaturePositions));
@@ -280,13 +276,11 @@ void DefaultMidiFileOwner::_setHarmonyTrack(
 }
 
 void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
-  if (!_juceMidiFile || !_ticksPerCrotchet || !_playedTrack || !_harmonyTrack) {
+  if (!_juceMidiFile || !_playedTrack || !_harmonyTrack) {
     return;
   }
-  const auto playedSeq = getMidiNoteMessages(
-      *_juceMidiFile->getTrack(*_playedTrack), *_ticksPerCrotchet);
-  const auto harmoSeq = getMidiNoteMessages(
-      *_juceMidiFile->getTrack(*_harmonyTrack), *_ticksPerCrotchet);
+  const auto playedSeq = getMidiNoteMessages(*_juceMidiFile, *_playedTrack);
+  const auto harmoSeq = getMidiNoteMessages(*_juceMidiFile, *_harmonyTrack);
   const auto intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
   _lowestPlayedTrackHarmonizedFrequency =
       ::saint::getLowestPlayedTrackHarmonizedFrequency(intervalGetterInput);
@@ -302,14 +296,13 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
         utils::isDebugBuild()) {
       assert(_samplesPerSecond.has_value());
       assert(_crotchetsPerSecond.has_value());
-      const auto ticksPerSample =
-          *_ticksPerCrotchet * *_crotchetsPerSecond / *_samplesPerSecond;
+      const auto crotchetsPerSample = *_crotchetsPerSecond / *_samplesPerSecond;
       _intervalGetter = std::make_shared<IntervalGetter>(
-          intervalGetterInput, *_ticksPerCrotchet,
-          testUtils::getIntervalGetterDebugCb(ticksPerSample));
+          intervalGetterInput,
+          testUtils::getIntervalGetterDebugCb(crotchetsPerSample));
     } else {
-      _intervalGetter = std::make_shared<IntervalGetter>(
-          intervalGetterInput, *_ticksPerCrotchet, std::nullopt);
+      _intervalGetter =
+          std::make_shared<IntervalGetter>(intervalGetterInput, std::nullopt);
     }
   }
 }
