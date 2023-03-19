@@ -47,6 +47,7 @@ private:
     int barIndex;
     int beatIndex;
     bool operator==(const RoundedPosition &other) const;
+    bool operator!=(const RoundedPosition &other) const;
     RoundedPosition &operator=(const RoundedPosition &other);
   };
 
@@ -56,7 +57,7 @@ private:
   juce::TextButton _chooseFileButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
   const juce::Colour _chooseFileButtonDefaultColour;
-  std::optional<RoundedPosition> _previousPosition;
+  const juce::Colour _backgroundColour;
   juce::TextEditor _barNumberDisplay;
   juce::TextEditor _beatNumberDisplay;
   juce::TextEditor _loopBeginBarEditor;

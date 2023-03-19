@@ -37,8 +37,11 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
       _chooseFileButton(chooseFileButtonTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)),
+      _backgroundColour(getLookAndFeel().findColour(
+          juce::ResizableWindow::backgroundColourId)),
       _loopBeginBarEditor("loopBeginBarEditor"),
-      _loopEndBarEditor("loopEndBarEditor") {
+      _loopEndBarEditor("loopEndBarEditor"),
+      _displayComponent(_backgroundColour) {
 
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
@@ -166,7 +169,7 @@ void SoloHarmonizerEditor::_updateWidgets() {
   _chooseFileButton.setColour(juce::TextButton::ColourIds::buttonColourId,
                               trackNames.empty()
                                   ? _chooseFileButtonDefaultColour
-                                  : juce::Colours::darkgreen);
+                                  : juce::Colours::olivedrab.withAlpha(0.5f));
   for (auto &box : _comboBoxes) {
     box.clear();
     for (auto i = 0u; i < trackNames.size(); ++i) {
@@ -233,6 +236,11 @@ bool SoloHarmonizerEditor::RoundedPosition::operator==(
          std::tie(other.barIndex, other.beatIndex);
 }
 
+bool SoloHarmonizerEditor::RoundedPosition::operator!=(
+    const RoundedPosition &other) const {
+  return !(*this == other);
+}
+
 SoloHarmonizerEditor::RoundedPosition &
 SoloHarmonizerEditor::RoundedPosition::operator=(const RoundedPosition &other) {
   barIndex = other.barIndex;
@@ -251,17 +259,13 @@ void SoloHarmonizerEditor::updateTimeInCrotchets(float crotchets) {
   const auto position = positionGetter->getPosition(crotchets);
   const RoundedPosition roundedPosition{position.barIndex,
                                         static_cast<int>(position.beatIndex)};
-  if (_previousPosition == roundedPosition) {
-    return;
-  }
-  _previousPosition = roundedPosition;
   const auto barNumberStr = std::to_string(roundedPosition.barIndex + 1);
   const auto beatNumberStr = std::to_string(roundedPosition.beatIndex + 1);
   juce::MessageManager::getInstance()->callAsync(
       [this, barNumberStr, beatNumberStr, crotchets]() {
+        _displayComponent.updateTimeInCrotchets(crotchets);
         _barNumberDisplay.setText(barNumberStr);
         _beatNumberDisplay.setText(beatNumberStr);
-        _displayComponent.updateTimeInCrotchets(crotchets);
         repaint();
       });
 }
@@ -276,8 +280,7 @@ void SoloHarmonizerEditor::play() {
 void SoloHarmonizerEditor::paint(juce::Graphics &g) {
   // (Our component is opaque, so we must completely fill the background with a
   // solid colour)
-  g.fillAll(
-      getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+  g.fillAll(_backgroundColour);
 }
 
 void SoloHarmonizerEditor::resized() { _updateLayout(); }

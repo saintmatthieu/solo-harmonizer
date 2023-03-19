@@ -51,6 +51,7 @@ target_compile_options(SoloHarmonizerVst_Standalone PRIVATE ${SAINT_ANNOYING_WAR
 target_sources(SoloHarmonizerVst
     PRIVATE
         DisplayComponent.cpp
+        DisplayComponentHelper.cpp
         SoloHarmonizerEditor.cpp
         SoloHarmonizerVst.cpp
 )
@@ -80,6 +81,7 @@ target_link_libraries(SoloHarmonizerVst
 )
 
 add_executable(SoloHarmonizerTests
+    DisplayComponentHelperTests.cpp
     SoloHarmonizerTests.cpp
     Playheads/ProcessCallbackDrivenPlayheadTests.cpp
 )
