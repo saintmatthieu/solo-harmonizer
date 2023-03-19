@@ -32,8 +32,8 @@ SoloHarmonizerEditor::SoloHarmonizerEditor(SoloHarmonizerVst &soloHarmonizerVst,
     : AudioProcessorEditor(&soloHarmonizerVst),
       _soloHarmonizerVst(soloHarmonizerVst), _midiFileOwner(midiFileOwner),
       _playButton(soloHarmonizerVst.isStandalone
-                      ? std::optional<juce::TextButton>{playTxt}
-                      : std::nullopt),
+                      ? std::make_unique<juce::TextButton>(playTxt)
+                      : nullptr),
       _chooseFileButton(chooseFileButtonTxt),
       _chooseFileButtonDefaultColour(
           _chooseFileButton.findColour(juce::TextButton::buttonColourId)),

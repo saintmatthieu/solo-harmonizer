@@ -53,7 +53,7 @@ private:
 
   SoloHarmonizerVst &_soloHarmonizerVst;
   MidiFileOwner &_midiFileOwner;
-  std::optional<juce::TextButton> _playButton;
+  std::unique_ptr<juce::TextButton> _playButton;
   juce::TextButton _chooseFileButton;
   std::array<juce::ComboBox, numTrackTypes> _comboBoxes;
   const juce::Colour _chooseFileButtonDefaultColour;
