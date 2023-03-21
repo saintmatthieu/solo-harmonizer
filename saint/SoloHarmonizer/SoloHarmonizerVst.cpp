@@ -108,19 +108,17 @@ std::optional<float> SoloHarmonizerVst::getTimeInCrotchets() {
   const auto loopBeginBar = _loopBeginBar.load().value_or(1);
   const auto loopEndBar = _loopEndBar.load();
   if (!loopEndBar.has_value() || *loopEndBar <= loopBeginBar) {
-    return *t - _loopingTimeInCrotchetsOffset;
+    return *t;
   } else {
     const auto loopBeginCrotchet =
         positionGetter->getBarTimeInCrotchets(loopBeginBar - 1);
     const auto loopEndCrotchet =
         positionGetter->getBarTimeInCrotchets(*loopEndBar - 1);
     const auto loopDuration = loopEndCrotchet - loopBeginCrotchet;
-    const auto modulo = std::fmodf(*t - loopBeginCrotchet, loopDuration);
-    const auto loopedValue =
-        (modulo < 0.f ? modulo + loopDuration : modulo) + loopBeginCrotchet;
-    _loopingTimeInCrotchetsOffset = *t - loopedValue;
-    assert(loopedValue >= 0.f);
-    return std::max(0.f, loopedValue);
+    const auto numLoopsElapsed = static_cast<int>(*t / loopDuration);
+    const auto offsetInLoop =
+        *t - static_cast<float>(numLoopsElapsed) * loopDuration;
+    return loopBeginCrotchet + offsetInLoop;
   }
 }
 

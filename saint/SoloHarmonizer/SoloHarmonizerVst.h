@@ -79,7 +79,6 @@ private:
   std::atomic<std::optional<float>> _timeInCrotchets;
   std::atomic<std::optional<int>> _loopBeginBar;
   std::atomic<std::optional<int>> _loopEndBar;
-  float _loopingTimeInCrotchetsOffset = 0.f;
   std::optional<float> _crotchetsPerSecond;
   std::optional<int> _samplesPerSecond;
   const std::shared_ptr<MidiFileOwner> _midiFileOwner;
