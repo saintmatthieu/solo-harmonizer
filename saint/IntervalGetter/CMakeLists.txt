@@ -1,4 +1,5 @@
 add_library(IntervalGetter
+  DefaultIntervalGetter.cpp
   IntervalGetter.cpp
   IntervalHelper.cpp
 )
@@ -17,7 +18,7 @@ target_link_libraries(IntervalGetter
 )
 
 add_executable(IntervalGetterTests
-  IntervalGetterTests.cpp
+  DefaultIntervalGetterTests.cpp
   IntervalHelperTests.cpp
 )
 

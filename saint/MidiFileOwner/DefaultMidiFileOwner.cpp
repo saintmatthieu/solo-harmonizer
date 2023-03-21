@@ -1,7 +1,6 @@
 #include "DefaultMidiFileOwner.h"
 #include "CommonTypes.h"
 #include "IntervalGetter.h"
-#include "IntervalGetterDebugCb.h"
 #include "IntervalHelper.h"
 #include "JuceMidiFileUtils.h"
 #include "PositionGetter.h"
@@ -291,19 +290,8 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
     for (auto listener : _listeners) {
       listener->onIntervalSpansAvailable(intervalGetterInput);
     }
-    // TODO: No need to wrap IntervalGetter
-    if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
-        utils::isDebugBuild()) {
-      assert(_samplesPerSecond.has_value());
-      assert(_crotchetsPerSecond.has_value());
-      const auto crotchetsPerSample = *_crotchetsPerSecond / *_samplesPerSecond;
-      _intervalGetter = std::make_shared<IntervalGetter>(
-          intervalGetterInput,
-          testUtils::getIntervalGetterDebugCb(crotchetsPerSample));
-    } else {
-      _intervalGetter =
-          std::make_shared<IntervalGetter>(intervalGetterInput, std::nullopt);
-    }
+    _intervalGetter = IntervalGetter::createInstance(
+        intervalGetterInput, _samplesPerSecond, _crotchetsPerSecond);
   }
 }
 

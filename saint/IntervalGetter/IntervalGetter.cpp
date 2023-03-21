@@ -1,78 +1,25 @@
 #include "IntervalGetter.h"
-#include "IntervalHelper.h"
+#include "DefaultIntervalGetter.h"
+#include "IntervalGetterDebugCb.h"
+#include "Utils.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iterator>
-#include <map>
-#include <optional>
+#include <cassert>
 
 namespace saint {
-
-namespace {
-std::vector<float> getCrotchets(const std::vector<IntervalSpan> &spans) {
-  std::vector<float> crotchets;
-  crotchets.reserve(spans.size());
-  std::transform(spans.begin(), spans.end(), std::back_inserter(crotchets),
-                 [](const IntervalSpan &span) { return span.beginCrotchet; });
-  return crotchets;
-}
-
-std::vector<std::optional<PlayedNote>>
-getNotes(const std::vector<IntervalSpan> &spans) {
-  std::vector<std::optional<PlayedNote>> intervals;
-  intervals.reserve(spans.size());
-  std::transform(spans.begin(), spans.end(), std::back_inserter(intervals),
-                 [](const IntervalSpan &span) { return span.playedNote; });
-  return intervals;
-}
-} // namespace
-
-IntervalGetter::IntervalGetter(
-    const std::vector<IntervalSpan> &spans,
-    std::optional<testUtils::IntervalGetterDebugCb> debugCb)
-    : _debugCb(std::move(debugCb)), _crotchets(getCrotchets(spans)),
-      _intervals(getNotes(spans)) {}
-
-std::optional<float> IntervalGetter::getHarmoInterval(
-    float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
-  const auto interval = _getHarmoInterval(timeInCrotchets, pitch);
-  if (_debugCb) {
-    testUtils::IntervalGetterDebugCbArgs args{_crotchets, pitch, interval};
-    args.newIndex = _currentIndex;
-    args.blockSize = blockSize;
-    (*_debugCb)(args);
+std::shared_ptr<IntervalGetter>
+IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
+                               const std::optional<int> &samplesPerSecond,
+                               const std::optional<float> &crotchetsPerSecond) {
+  // TODO: No need to wrap IntervalGetter
+  if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
+      utils::isDebugBuild()) {
+    assert(samplesPerSecond.has_value());
+    assert(crotchetsPerSecond.has_value());
+    const auto crotchetsPerSample = *crotchetsPerSecond / *samplesPerSecond;
+    return std::make_shared<DefaultIntervalGetter>(
+        spans, testUtils::getIntervalGetterDebugCb(crotchetsPerSample));
+  } else {
+    return std::make_shared<DefaultIntervalGetter>(spans, std::nullopt);
   }
-  return interval;
 }
-
-std::optional<float>
-IntervalGetter::_getHarmoInterval(float timeInCrotchets,
-                                  const std::optional<float> &pitch) {
-  if (_prevWasPitched || !pitch.has_value()) {
-    _prevWasPitched = pitch.has_value();
-    // We only are interested in interval changes when the state goes from
-    // unpitched to pitched.
-    return _getInterval();
-  }
-  _prevWasPitched = pitch.has_value();
-  const auto newIndex = getClosestLimitIndex(_crotchets, timeInCrotchets);
-  if (!newIndex.has_value()) {
-    return std::nullopt;
-  }
-  _currentIndex = *newIndex;
-  return _getInterval();
-}
-
-std::optional<float> IntervalGetter::_getInterval() const {
-  const auto &interval = _intervals[_currentIndex];
-  if (!interval || !interval->interval) {
-    return std::nullopt;
-  }
-  // For now just a linear intra/extrapolation.
-  // Let's try this first and if it's not good enough we'll attempt something
-  // more elaborate.
-  return *interval->interval;
-}
-
 } // namespace saint
