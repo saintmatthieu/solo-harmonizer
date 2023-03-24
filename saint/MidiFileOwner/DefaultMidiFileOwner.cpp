@@ -290,8 +290,10 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
     for (auto listener : _listeners) {
       listener->onIntervalSpansAvailable(intervalGetterInput);
     }
-    _intervalGetter = IntervalGetter::createInstance(
-        intervalGetterInput, _samplesPerSecond, _crotchetsPerSecond);
+    const auto timeSignatures = getTimeSignatureMap(*_juceMidiFile);
+    _intervalGetter =
+        IntervalGetter::createInstance(intervalGetterInput, timeSignatures,
+                                       _samplesPerSecond, _crotchetsPerSecond);
   }
 }
 

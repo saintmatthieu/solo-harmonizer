@@ -1,5 +1,8 @@
 add_library(IntervalGetter
+  DefaultPitchMapper.cpp
+  DefaultPitchMapperHelper.cpp
   DefaultIntervalGetter.cpp
+  StochasticIntervalGetter.cpp
   IntervalGetter.cpp
   IntervalHelper.cpp
 )
@@ -19,6 +22,7 @@ target_link_libraries(IntervalGetter
 
 add_executable(IntervalGetterTests
   DefaultIntervalGetterTests.cpp
+  DefaultPitchMapperHelperTests.cpp
   IntervalHelperTests.cpp
 )
 

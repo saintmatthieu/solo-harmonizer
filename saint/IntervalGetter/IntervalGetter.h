@@ -2,6 +2,7 @@
 
 #include "CommonTypes.h"
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -9,10 +10,9 @@
 namespace saint {
 class IntervalGetter {
 public:
-  virtual ~IntervalGetter() = default;
-
   static std::shared_ptr<IntervalGetter>
   createInstance(const std::vector<IntervalSpan> &,
+                 const std::map<float, Fraction> &timeSignatures,
                  const std::optional<int> &samplesPerSecond,
                  const std::optional<float> &crotchetsPerSecond);
 
@@ -22,5 +22,7 @@ public:
   virtual std::optional<float>
   getHarmoInterval(float timeInCrotchets, const std::optional<float> &pitch,
                    int blockSize = 0) = 0;
+
+  virtual ~IntervalGetter() = default;
 };
 } // namespace saint

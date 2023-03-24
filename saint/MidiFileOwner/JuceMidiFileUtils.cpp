@@ -170,4 +170,13 @@ getTimeSignatures(const std::string &filename) {
   return getTimeSignatures(*midiFile);
 }
 
+std::map<float, Fraction> getTimeSignatureMap(const juce::MidiFile &midiFile) {
+  const auto positions = getTimeSignatures(midiFile);
+  std::map<float, Fraction> map;
+  for (const auto &pos : positions) {
+    map.emplace(pos.crotchet, pos.timeSignature);
+  }
+  return map;
+}
+
 } // namespace saint
