@@ -1,4 +1,5 @@
 #include "JuceMidiFileUtils.h"
+#include "Utils.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
@@ -131,12 +132,9 @@ int getTicksPerCrotchet(const juce::MidiFile &midiFile) {
   return static_cast<int>(midiFile.getTimeFormat());
 }
 
-std::vector<TimeSignaturePosition>
+std::vector<SigPosWithCrotchet>
 getTimeSignatures(const juce::MidiFile &midiFile) {
-  std::vector<TimeSignaturePosition> positions;
-  auto barIndex = 0;
-  auto barCrotchet = 0.f;
-  auto crotchetsPerBar = 4.f;
+  std::map<float, Fraction> timeSignatures;
   const juce::MidiMessageSequence *firstTrack = midiFile.getTrack(0);
   const auto ticksPerCrotchet = getTicksPerCrotchet(midiFile);
   for (auto it = firstTrack->begin(); it != firstTrack->end(); ++it) {
@@ -144,24 +142,18 @@ getTimeSignatures(const juce::MidiFile &midiFile) {
     if (!msg.isTimeSignatureMetaEvent()) {
       continue;
     }
-    TimeSignaturePosition position;
-    position.crotchet = std::roundf(static_cast<float>(msg.getTimeStamp()) /
-                                    static_cast<float>(ticksPerCrotchet) * 4) /
-                        4;
-    msg.getTimeSignatureInfo(position.timeSignature.num,
-                             position.timeSignature.den);
-    barIndex +=
-        static_cast<int>((position.crotchet - barCrotchet) / crotchetsPerBar);
-    position.barIndex = barIndex;
-    crotchetsPerBar =
-        4.f * position.timeSignature.num / position.timeSignature.den;
-    barCrotchet = position.crotchet;
-    positions.push_back(position);
+    Fraction sig;
+    const auto crotchet =
+        std::roundf(static_cast<float>(msg.getTimeStamp()) /
+                    static_cast<float>(ticksPerCrotchet) * 4) /
+        4;
+    msg.getTimeSignatureInfo(sig.num, sig.den);
+    timeSignatures[crotchet] = sig;
   }
-  return positions;
+  return utils::addBarInformation(timeSignatures);
 }
 
-std::optional<std::vector<TimeSignaturePosition>>
+std::optional<std::vector<SigPosWithCrotchet>>
 getTimeSignatures(const std::string &filename) {
   const auto midiFile = getJuceMidiFile(filename);
   if (!midiFile) {

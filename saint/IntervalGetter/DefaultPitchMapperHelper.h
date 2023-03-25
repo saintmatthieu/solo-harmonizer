@@ -1,33 +1,8 @@
 #pragma once
 
+#include "CommonTypes.h"
+
 namespace saint {
-enum class PC { // Pitch Class
-  Gb = -6,
-  Db,
-  Ab,
-  Eb,
-  Bb,
-  F,
-  C,
-  G,
-  D,
-  A,
-  E,
-  B,
-  Fsh,
-  Csh,
-  Gsh,
-  Dsh,
-  Ash
-};
-
-enum class Mode { minor, major };
-
-struct Key {
-  const PC pc;
-  const Mode mode;
-};
-
 class DefaultPitchMapperHelper {
 public:
   static float harmonize(float actualSemi, int intendedSemi, int harmonySemi,

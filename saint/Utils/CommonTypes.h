@@ -20,6 +20,29 @@ enum class PlayheadCommand {
   stop,
 };
 
+enum class Mode { minor, major };
+
+enum class PC { // Pitch Class
+  Fsh = 6,
+  Csh,
+  Gsh,
+  Dsh,
+  Ash,
+  Esh,
+  C = 0,
+  G,
+  D,
+  A,
+  E,
+  B,
+  Gb,
+  Db,
+  Ab,
+  Eb,
+  Bb,
+  F,
+};
+
 struct PlayedNote {
   int noteNumber;
   // If not present then no harmonization.
@@ -29,7 +52,7 @@ struct PlayedNote {
 struct IntervalSpan {
   float beginCrotchet;
   std::optional<PlayedNote> playedNote;
-  std::vector<int> allNotes;
+  std::vector<int> overlappingNotes;
 };
 
 bool operator==(const PlayedNote &a, const PlayedNote &b);
@@ -57,9 +80,21 @@ struct Position {
 bool operator==(const Position &, const Position &);
 bool operator!=(const Position &, const Position &);
 
-struct TimeSignaturePosition {
+struct SigPos {
   int barIndex;
-  float crotchet;
   Fraction timeSignature;
+  bool operator==(const SigPos &) const;
+  bool operator!=(const SigPos &) const;
+};
+
+struct SigPosWithCrotchet : SigPos {
+  float crotchet;
+};
+
+struct Key {
+  PC pc;
+  Mode mode;
+  bool operator==(const Key &) const;
+  bool operator!=(const Key &) const;
 };
 } // namespace saint

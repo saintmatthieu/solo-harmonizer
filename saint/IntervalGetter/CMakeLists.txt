@@ -2,6 +2,9 @@ add_library(IntervalGetter
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
   DefaultIntervalGetter.cpp
+  KeyRecognizer.cpp
+  KeyRecognizerHelper.cpp
+  KrumhanslSchmucklerAlgorithm.cpp
   StochasticIntervalGetter.cpp
   IntervalGetter.cpp
   IntervalHelper.cpp
@@ -24,6 +27,8 @@ add_executable(IntervalGetterTests
   DefaultIntervalGetterTests.cpp
   DefaultPitchMapperHelperTests.cpp
   IntervalHelperTests.cpp
+  KeyRecognizerHelperTests.cpp
+  KrumhanslSchmucklerAlgorithmTests.cpp
 )
 
 target_compile_options(IntervalGetterTests PRIVATE ${SAINT_ANNOYING_WARNINGS})

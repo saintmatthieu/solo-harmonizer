@@ -19,11 +19,11 @@ std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &, int track);
 
 int getTicksPerCrotchet(const juce::MidiFile &midiFile);
 
-std::vector<TimeSignaturePosition>
+std::vector<SigPosWithCrotchet>
 getTimeSignatures(const juce::MidiFile &midiFile);
 
 std::map<float, Fraction> getTimeSignatureMap(const juce::MidiFile &midiFile);
 
-std::optional<std::vector<TimeSignaturePosition>>
+std::optional<std::vector<SigPosWithCrotchet>>
 getTimeSignatures(const std::string &filename);
 } // namespace saint

@@ -15,7 +15,7 @@ PitchMapper::createInstance(const std::vector<IntervalSpan> &spans,
 DefaultPitchMapper::DefaultPitchMapper(
     const std::vector<IntervalSpan> &spans,
     const std::map<float, Fraction> &timeSignatures)
-    : _spans(spans), _timeSignatures(timeSignatures) {}
+    : _timeSignatures(timeSignatures), _keyRecognizer(spans, timeSignatures) {}
 
 std::optional<float> DefaultPitchMapper::getHarmony(
     float semiFromA, const std::vector<IntervalSpan>::const_iterator &it) {
@@ -26,10 +26,10 @@ std::optional<float> DefaultPitchMapper::getHarmony(
   if (!playedNote.interval.has_value()) {
     return std::nullopt;
   }
-  constexpr Key randomKey{PC::Eb, Mode::minor};
+  const auto key = _keyRecognizer.getKey(it);
   const auto playedSemi = static_cast<float>(playedNote.noteNumber - 69);
   const auto harmoSemi = playedSemi + static_cast<float>(*playedNote.interval);
   return DefaultPitchMapperHelper::harmonize(semiFromA, playedSemi, harmoSemi,
-                                             randomKey);
+                                             key);
 }
 } // namespace saint

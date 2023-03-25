@@ -34,4 +34,17 @@ bool operator!=(const Position &lhs, const Position &rhs) {
   return !(lhs == rhs);
 }
 
+bool SigPos::operator==(const SigPos &other) const {
+  return std::tie(barIndex, timeSignature) ==
+         std::tie(other.barIndex, other.timeSignature);
+}
+
+bool SigPos::operator!=(const SigPos &other) const { return !(*this == other); }
+
+bool Key::operator==(const Key &other) const {
+  return std::tie(pc, mode) == std::tie(other.pc, other.mode);
+}
+
+bool Key::operator!=(const Key &other) const { return !(*this == other); }
+
 } // namespace saint
