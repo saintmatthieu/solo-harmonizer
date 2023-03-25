@@ -13,9 +13,7 @@ public:
   createInstance(const std::vector<IntervalSpan> &,
                  const std::map<float, Fraction> &timeSignatures);
 
-  virtual std::optional<float>
-  getHarmony(float semiFromA,
-             const std::vector<IntervalSpan>::const_iterator &) = 0;
+  virtual std::optional<float> getHarmony(float semiFromA, float crotchet) = 0;
 
   virtual ~PitchMapper() = default;
 };

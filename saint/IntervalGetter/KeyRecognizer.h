@@ -9,10 +9,11 @@ class KeyRecognizer {
 public:
   KeyRecognizer(const std::vector<IntervalSpan> &spans,
                 const std::map<float, Fraction> &timeSignatures);
-  Key getKey(const std::vector<IntervalSpan>::const_iterator &it);
+  Key getKey(float crotchet);
 
 private:
   const std::vector<IntervalSpan> &_spans;
   const std::vector<std::pair<size_t /*end index */, Key>> _spanKeys;
+  size_t _spanIndex = 0u;
 };
 } // namespace saint

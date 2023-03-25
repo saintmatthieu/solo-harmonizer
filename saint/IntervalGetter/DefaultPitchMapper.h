@@ -10,12 +10,12 @@ public:
   DefaultPitchMapper(const std::vector<IntervalSpan> &,
                      const std::map<float, Fraction> &);
 
-  std::optional<float>
-  getHarmony(float semiFromA,
-             const std::vector<IntervalSpan>::const_iterator &) override;
+  std::optional<float> getHarmony(float semiFromA, float crotchet) override;
 
 private:
+  const std::vector<IntervalSpan> &_spans;
   const std::map<float, Fraction> &_timeSignatures;
   KeyRecognizer _keyRecognizer;
+  size_t _spanIndex = 0u;
 };
 } // namespace saint

@@ -15,18 +15,25 @@ PitchMapper::createInstance(const std::vector<IntervalSpan> &spans,
 DefaultPitchMapper::DefaultPitchMapper(
     const std::vector<IntervalSpan> &spans,
     const std::map<float, Fraction> &timeSignatures)
-    : _timeSignatures(timeSignatures), _keyRecognizer(spans, timeSignatures) {}
+    : _spans(spans), _timeSignatures(timeSignatures),
+      _keyRecognizer(spans, timeSignatures) {}
 
-std::optional<float> DefaultPitchMapper::getHarmony(
-    float semiFromA, const std::vector<IntervalSpan>::const_iterator &it) {
-  if (!it->playedNote.has_value()) {
+std::optional<float> DefaultPitchMapper::getHarmony(float semiFromA,
+                                                    float crotchet) {
+  while (_spanIndex < _spans.size() &&
+         _spans[_spanIndex].beginCrotchet <= crotchet) {
+    ++_spanIndex;
+  }
+  --_spanIndex;
+  const auto &span = _spans[_spanIndex];
+  if (span.playedNote.has_value()) {
     return std::nullopt;
   }
-  const auto &playedNote = *it->playedNote;
+  const auto &playedNote = *span.playedNote;
   if (!playedNote.interval.has_value()) {
     return std::nullopt;
   }
-  const auto key = _keyRecognizer.getKey(it);
+  const auto key = _keyRecognizer.getKey(span.beginCrotchet);
   const auto playedSemi = static_cast<float>(playedNote.noteNumber - 69);
   const auto harmoSemi = playedSemi + static_cast<float>(*playedNote.interval);
   return DefaultPitchMapperHelper::harmonize(semiFromA, playedSemi, harmoSemi,

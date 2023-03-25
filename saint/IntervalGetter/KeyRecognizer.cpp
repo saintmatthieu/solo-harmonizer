@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <xlocale>
 
 namespace saint {
 
@@ -51,14 +52,17 @@ KeyRecognizer::KeyRecognizer(const std::vector<IntervalSpan> &spans,
                              const std::map<float, Fraction> &sigFractions)
     : _spans(spans), _spanKeys(getSpanKeys(spans, sigFractions)) {}
 
-Key KeyRecognizer::getKey(
-    const std::vector<IntervalSpan>::const_iterator &spanIt) {
-  const auto i = std::distance(_spans.begin(), spanIt);
+Key KeyRecognizer::getKey(float crotchet) {
+  while (_spanIndex < _spans.size() &&
+         _spans[_spanIndex].beginCrotchet <= crotchet) {
+    ++_spanIndex;
+  }
+  --_spanIndex;
   const auto keyIt =
       std::prev(std::find_if(_spanKeys.begin(), _spanKeys.end(),
-                             [i](const std::pair<size_t, Key> &entry) {
+                             [this](const std::pair<size_t, Key> &entry) {
                                const auto lastSpanIndex = entry.first;
-                               return i > lastSpanIndex;
+                               return _spanIndex > lastSpanIndex;
                              }));
   return keyIt->second;
 }

@@ -1,25 +1,39 @@
 #include "StochasticIntervalGetter.h"
 
 namespace saint {
-std::unique_ptr<TargetIntervalEstimator>
-TargetIntervalEstimator::createInstance(const std::vector<IntervalSpan> &) {
+std::unique_ptr<PerformanceTimeWarper> PerformanceTimeWarper::createInstance(
+    const std::map<float, std::optional<int>> &timedNoteNumbers) {
   return nullptr;
 }
+
+namespace {
+std::map<float, std::optional<int>>
+toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {
+  std::map<float, std::optional<int>> timedNoteNumbers;
+  for (const auto &span : spans) {
+    timedNoteNumbers[span.beginCrotchet] =
+        span.playedNote.has_value()
+            ? std::optional<int>{span.playedNote->noteNumber}
+            : std::nullopt;
+  }
+  return timedNoteNumbers;
+}
+} // namespace
 
 StochasticIntervalGetter::StochasticIntervalGetter(
     const std::vector<IntervalSpan> &spans,
     const std::map<float, Fraction> &timeSignatures)
-    : _spans(spans), _targetSpanIt(_spans.begin()),
-      _targetIntervalEstimator(TargetIntervalEstimator::createInstance(_spans)),
+    : _spans(spans), _perfTimeWarper(PerformanceTimeWarper::createInstance(
+                         toTimedNoteNumbers(spans))),
       _pitchMapper(PitchMapper::createInstance(_spans, timeSignatures)) {}
 
 std::optional<float> StochasticIntervalGetter::getHarmoInterval(
     float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
-  _targetIntervalEstimator->updateIterator(timeInCrotchets, pitch,
-                                           _targetSpanIt);
-  if (!pitch.has_value() || _targetSpanIt == _spans.end()) {
+  const auto warpedTime =
+      _perfTimeWarper->getWarpedTime(timeInCrotchets, pitch);
+  if (!pitch.has_value()) {
     return std::nullopt;
   }
-  return _pitchMapper->getHarmony(*pitch, _targetSpanIt);
+  return _pitchMapper->getHarmony(*pitch, warpedTime);
 }
 } // namespace saint

@@ -5,16 +5,15 @@
 #include "PitchMapper.h"
 
 namespace saint {
-class TargetIntervalEstimator {
+class PerformanceTimeWarper {
 public:
-  static std::unique_ptr<TargetIntervalEstimator>
-  createInstance(const std::vector<IntervalSpan> &);
+  static std::unique_ptr<PerformanceTimeWarper>
+  createInstance(const std::map<float, std::optional<int>> &timedNoteNumbers);
 
-  virtual void updateIterator(float timeInCrotchets,
-                              const std::optional<float> &pitch,
-                              std::vector<IntervalSpan>::const_iterator &) = 0;
+  virtual float getWarpedTime(float timeInCrotchets,
+                              const std::optional<float> &pitch) = 0;
 
-  virtual ~TargetIntervalEstimator() = default;
+  virtual ~PerformanceTimeWarper() = default;
 };
 
 class StochasticIntervalGetter : public IntervalGetter {
@@ -27,8 +26,7 @@ public:
 
 private:
   const std::vector<IntervalSpan> _spans;
-  std::vector<IntervalSpan>::const_iterator _targetSpanIt;
-  const std::unique_ptr<TargetIntervalEstimator> _targetIntervalEstimator;
+  const std::unique_ptr<PerformanceTimeWarper> _perfTimeWarper;
   const std::unique_ptr<PitchMapper> _pitchMapper;
 };
 } // namespace saint
