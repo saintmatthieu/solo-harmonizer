@@ -55,12 +55,7 @@ toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
        playedIt != playedMidiTrack.end(); ++playedIt) {
     const auto &played = *playedIt;
     if (!played.isNoteOn) {
-      if (std::next(playedIt) == playedMidiTrack.end()) {
-        // We do this because other places assume that the intervals end with a
-        // closing. Would be better to address this assumption, but too tired
-        // right now.
-        spans.push_back({played.crotchet, std::nullopt});
-      }
+      spans.push_back({played.crotchet, std::nullopt});
       continue;
     }
     if (spans.size() > 0u && !spans.back().playedNote &&
