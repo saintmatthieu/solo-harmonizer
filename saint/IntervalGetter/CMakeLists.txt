@@ -1,7 +1,8 @@
 add_library(IntervalGetter
+  DefaultIntervalGetter.cpp
+  DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
-  DefaultIntervalGetter.cpp
   KeyRecognizer.cpp
   KeyRecognizerHelper.cpp
   KrumhanslSchmucklerAlgorithm.cpp

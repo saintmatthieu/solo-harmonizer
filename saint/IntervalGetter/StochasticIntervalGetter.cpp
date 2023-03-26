@@ -1,11 +1,6 @@
 #include "StochasticIntervalGetter.h"
 
 namespace saint {
-std::unique_ptr<PerformanceTimeWarper> PerformanceTimeWarper::createInstance(
-    const std::map<float, std::optional<int>> &timedNoteNumbers) {
-  return nullptr;
-}
-
 namespace {
 std::map<float, std::optional<int>>
 toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {

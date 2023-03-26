@@ -2,20 +2,10 @@
 
 #include "CommonTypes.h"
 #include "IntervalGetter.h"
+#include "PerformanceTimeWarper.h"
 #include "PitchMapper.h"
 
 namespace saint {
-class PerformanceTimeWarper {
-public:
-  static std::unique_ptr<PerformanceTimeWarper>
-  createInstance(const std::map<float, std::optional<int>> &timedNoteNumbers);
-
-  virtual float getWarpedTime(float timeInCrotchets,
-                              const std::optional<float> &pitch) = 0;
-
-  virtual ~PerformanceTimeWarper() = default;
-};
-
 class StochasticIntervalGetter : public IntervalGetter {
 public:
   StochasticIntervalGetter(const std::vector<IntervalSpan> &spans,
