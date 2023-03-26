@@ -42,45 +42,44 @@ constexpr int getNumSharps(const Key &key) {
 }
 } // namespace
 
-float DefaultPitchMapperHelper::aeolianDegreeToSemi(float degree,
-                                                    const Key &modulationKey) {
+float DefaultPitchMapperHelper::aeolianDegreeToNn(float degree,
+                                                  const Key &modulationKey) {
   const auto aeolianSemi = getAeolianSemi(degree);
   const auto numSharps = getNumSharps(modulationKey);
   const auto modulationShift = 7.f * numSharps;
   const auto modulationOctave = std::floorf(modulationShift / 12.f);
   const auto modulatedSemi =
       aeolianSemi + modulationShift - modulationOctave * 12;
-  return modulatedSemi;
+  return modulatedSemi + 69;
 }
 
-float DefaultPitchMapperHelper::semiToAeolianDegree(float modulatedSemi,
-                                                    const Key &key) {
+float DefaultPitchMapperHelper::nnToAeolianDegree(float modulatedNn,
+                                                  const Key &key) {
 
   const auto numSharps = getNumSharps(key);
   const auto modulationShift = 7.f * numSharps;
   const auto modulationOctave = std::floorf(modulationShift / 12.f);
   const auto aeolianSemi =
-      modulatedSemi - modulationShift + modulationOctave * 12;
+      modulatedNn - 69 - modulationShift + modulationOctave * 12;
   const auto aeolianDegree = getAeolianDegree(aeolianSemi);
   return aeolianDegree;
 }
 
-float DefaultPitchMapperHelper::harmonize(float actualSemi, int intendedSemi,
-                                          int harmonySemi, const Key &key) {
+float DefaultPitchMapperHelper::harmonize(float actualNn, int intendedNn,
+                                          int harmonyNn, const Key &key) {
   const auto playedDegree =
-      semiToAeolianDegree(static_cast<float>(intendedSemi), key);
+      nnToAeolianDegree(static_cast<float>(intendedNn), key);
   const auto harmoDegree =
-      semiToAeolianDegree(static_cast<float>(harmonySemi), key);
-  return harmonized(actualSemi, key, harmoDegree - playedDegree);
+      nnToAeolianDegree(static_cast<float>(harmonyNn), key);
+  return harmonized(actualNn, key, harmoDegree - playedDegree);
 }
 
-float DefaultPitchMapperHelper::harmonized(float semitone /*A = 0*/,
-                                           const Key &key,
+float DefaultPitchMapperHelper::harmonized(float noteNumber, const Key &key,
                                            float harmonyDegree) {
-  const auto degree = semiToAeolianDegree(semitone, key);
+  const auto degree = nnToAeolianDegree(noteNumber, key);
   const auto harmonizedDegree = degree + harmonyDegree;
-  const auto harmonizedSemi = aeolianDegreeToSemi(harmonizedDegree, key);
-  return harmonizedSemi;
+  const auto harmonizedNn = aeolianDegreeToNn(harmonizedDegree, key);
+  return harmonizedNn;
 }
 
 } // namespace saint

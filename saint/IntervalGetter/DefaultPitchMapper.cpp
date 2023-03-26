@@ -18,7 +18,7 @@ DefaultPitchMapper::DefaultPitchMapper(
     : _spans(spans), _timeSignatures(timeSignatures),
       _keyRecognizer(spans, timeSignatures) {}
 
-std::optional<float> DefaultPitchMapper::getHarmony(float pitch,
+std::optional<float> DefaultPitchMapper::getHarmony(float performancePitch,
                                                     float crotchet) {
   while (_spanIndex < _spans.size() &&
          _spans[_spanIndex].beginCrotchet <= crotchet) {
@@ -34,10 +34,10 @@ std::optional<float> DefaultPitchMapper::getHarmony(float pitch,
     return std::nullopt;
   }
   const auto key = _keyRecognizer.getKey(span.beginCrotchet);
-  const auto playedSemi = static_cast<float>(playedNote.noteNumber - 69);
-  const auto harmoSemi = playedSemi + static_cast<float>(*playedNote.interval);
-  const auto perfSemi = 12.f * std::log2f(pitch / 440.f);
-  return DefaultPitchMapperHelper::harmonize(perfSemi, playedSemi, harmoSemi,
-                                             key);
+  const auto programmedHarmoNn = playedNote.noteNumber + *playedNote.interval;
+  const auto perfNn = 12.f * std::log2f(performancePitch / 440.f) + 69.f;
+  const auto performanceHarmoNn = DefaultPitchMapperHelper::harmonize(
+      perfNn, playedNote.noteNumber, programmedHarmoNn, key);
+  return performanceHarmoNn - 69.f;
 }
 } // namespace saint
