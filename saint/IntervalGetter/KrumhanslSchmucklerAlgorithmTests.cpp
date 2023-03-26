@@ -5,9 +5,9 @@
 namespace saint {
 TEST(KrumhanslSchmucklerAlgorithm, works) {
   using KSA = KrumhanslSchmucklerAlgorithm;
-  const std::vector<int> cTriad{60, 64, 67};
-  const std::vector<int> cSharpTriad{61, 65, 68};
-  const std::vector<int> aMinorEMajor{57, 60, 64, 64, 68, 71};
+  const std::unordered_set<int> cTriad{60, 64, 67};
+  const std::unordered_set<int> cSharpTriad{61, 65, 68};
+  const std::unordered_set<int> aMinorEMajor{57, 60, 64, 64, 68, 71};
   constexpr Key C{PC::C, Mode::major};
   constexpr Key Csh{PC::Csh, Mode::major};
   constexpr Key Am{PC::A, Mode::minor};

@@ -18,7 +18,7 @@ DefaultPitchMapper::DefaultPitchMapper(
     : _spans(spans), _timeSignatures(timeSignatures),
       _keyRecognizer(spans, timeSignatures) {}
 
-std::optional<float> DefaultPitchMapper::getHarmony(float semiFromA,
+std::optional<float> DefaultPitchMapper::getHarmony(float pitch,
                                                     float crotchet) {
   while (_spanIndex < _spans.size() &&
          _spans[_spanIndex].beginCrotchet <= crotchet) {
@@ -26,17 +26,19 @@ std::optional<float> DefaultPitchMapper::getHarmony(float semiFromA,
   }
   --_spanIndex;
   const auto &span = _spans[_spanIndex];
-  if (span.playedNote.has_value()) {
+  if (!span.playedNote.has_value()) {
     return std::nullopt;
   }
   const auto &playedNote = *span.playedNote;
   if (!playedNote.interval.has_value()) {
     return std::nullopt;
   }
+  constexpr auto C = 261.6255653005986f; // Some C, not sure which, 3 or 4.
   const auto key = _keyRecognizer.getKey(span.beginCrotchet);
-  const auto playedSemi = static_cast<float>(playedNote.noteNumber - 69);
+  const auto playedSemi = static_cast<float>(playedNote.noteNumber - 60);
   const auto harmoSemi = playedSemi + static_cast<float>(*playedNote.interval);
-  return DefaultPitchMapperHelper::harmonize(semiFromA, playedSemi, harmoSemi,
+  const auto perfSemi = 12.f * std::log2f(pitch / C);
+  return DefaultPitchMapperHelper::harmonize(perfSemi, playedSemi, harmoSemi,
                                              key);
 }
 } // namespace saint

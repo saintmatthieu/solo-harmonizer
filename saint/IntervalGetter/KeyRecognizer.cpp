@@ -30,17 +30,25 @@ getSpanKeys(const std::vector<IntervalSpan> &spans,
   for (const auto group : groups) {
     const auto barIndex = static_cast<int>(group.first);
     const auto spanEndIndex = static_cast<int>(group.second);
-    std::vector<int> noteNumbers;
+    std::unordered_set<int> noteNumbers;
     while (spanIndex < spanEndIndex) {
       const auto &span = spans[spanIndex++];
-      std::copy(span.overlappingNotes.begin(), span.overlappingNotes.end(),
-                std::back_inserter(noteNumbers));
+      for (auto note : span.overlappingNotes) {
+        noteNumbers.insert(note);
+      }
+      if (span.playedNote.has_value()) {
+        const auto &note = *span.playedNote;
+        noteNumbers.insert(note.noteNumber);
+        if (note.interval.has_value()) {
+          noteNumbers.insert(note.noteNumber + *note.interval);
+        }
+      }
     }
     if (noteNumbers.empty()) {
       keys.emplace_back(spanIndex, prevKey);
     } else {
       const auto likelihoods =
-          KrumhanslSchmucklerAlgorithm::getLikelihoods(noteNumbers);
+          KrumhanslSchmucklerAlgorithm::getKeyLikelihoods(noteNumbers);
       keys.emplace_back(spanIndex, likelihoods[0].first);
     }
   }
@@ -58,12 +66,11 @@ Key KeyRecognizer::getKey(float crotchet) {
     ++_spanIndex;
   }
   --_spanIndex;
-  const auto keyIt =
-      std::prev(std::find_if(_spanKeys.begin(), _spanKeys.end(),
-                             [this](const std::pair<size_t, Key> &entry) {
-                               const auto lastSpanIndex = entry.first;
-                               return _spanIndex > lastSpanIndex;
-                             }));
+  const auto keyIt = std::find_if(_spanKeys.begin(), _spanKeys.end(),
+                                  [this](const std::pair<size_t, Key> &entry) {
+                                    const auto lastSpanIndex = entry.first;
+                                    return _spanIndex < lastSpanIndex;
+                                  });
   return keyIt->second;
 }
 } // namespace saint

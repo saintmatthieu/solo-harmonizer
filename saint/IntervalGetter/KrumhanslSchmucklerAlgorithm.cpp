@@ -8,14 +8,13 @@ namespace saint {
 namespace {
 constexpr std::array<float, 12> cMajorProfile{5.f, 2.f,  3.5f, 2.f,  4.5f, 4.f,
                                               2.f, 4.5f, 2.f,  3.5f, 1.5f, 4.f};
-constexpr std::array<float, 12> gMajorProfile{4.f, 2.f, 4.5f, 2.f,  3.5f, 1.5f,
-                                              4.f, 5.f, 2.f,  3.5f, 2.f,  4.5f};
 constexpr std::array<float, 12> cMinorProfile{5.f, 2.f,  3.5f, 4.5f, 2.f,  4.f,
                                               2,   4.5f, 3.5f, 2.f,  1.5f, 4.f};
 } // namespace
 
-std::vector<std::pair<Key, float>> KrumhanslSchmucklerAlgorithm::getLikelihoods(
-    const std::vector<int> &noteNumbers) {
+std::vector<std::pair<Key, float>>
+KrumhanslSchmucklerAlgorithm::getKeyLikelihoods(
+    const std::unordered_set<int> &noteNumbers) {
   std::unordered_set<int> ionianPcs;
   for (auto nn : noteNumbers) {
     const auto relative = nn - 60;
@@ -43,8 +42,8 @@ std::vector<std::pair<Key, float>> KrumhanslSchmucklerAlgorithm::getLikelihoods(
 }
 
 Key KrumhanslSchmucklerAlgorithm::getMostLikelyKey(
-    const std::vector<int> &noteNumbers) {
-  return getLikelihoods(noteNumbers)[0].first;
+    const std::unordered_set<int> &noteNumbers) {
+  return getKeyLikelihoods(noteNumbers)[0].first;
 }
 
 } // namespace saint

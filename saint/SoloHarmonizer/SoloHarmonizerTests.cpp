@@ -1,7 +1,6 @@
 #include "DefaultMidiFileOwner.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
-#include "SoloHarmonizerTypes.h"
 #include "Utils.h"
 #include "testUtils.h"
 
