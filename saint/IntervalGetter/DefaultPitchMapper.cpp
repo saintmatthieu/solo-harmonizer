@@ -33,11 +33,10 @@ std::optional<float> DefaultPitchMapper::getHarmony(float pitch,
   if (!playedNote.interval.has_value()) {
     return std::nullopt;
   }
-  constexpr auto C = 261.6255653005986f; // Some C, not sure which, 3 or 4.
   const auto key = _keyRecognizer.getKey(span.beginCrotchet);
-  const auto playedSemi = static_cast<float>(playedNote.noteNumber - 60);
+  const auto playedSemi = static_cast<float>(playedNote.noteNumber - 69);
   const auto harmoSemi = playedSemi + static_cast<float>(*playedNote.interval);
-  const auto perfSemi = 12.f * std::log2f(pitch / C);
+  const auto perfSemi = 12.f * std::log2f(pitch / 440.f);
   return DefaultPitchMapperHelper::harmonize(perfSemi, playedSemi, harmoSemi,
                                              key);
 }
