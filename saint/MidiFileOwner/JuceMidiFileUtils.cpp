@@ -1,6 +1,8 @@
 #include "JuceMidiFileUtils.h"
+#include "CommonTypes.h"
 #include "Utils.h"
 
+#include <algorithm>
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <cassert>
@@ -84,8 +86,9 @@ float extractCrotchetsPerSecond(const juce::MidiFile &midiFile) {
   }
 }
 
-std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &file,
-                                             int track) {
+namespace {
+std::vector<MidiNoteMsg> getTrackNoteMessages(const juce::MidiFile &file,
+                                              int track) {
   const auto seq = file.getTrack(track);
   assert(seq);
   if (!seq) {
@@ -117,6 +120,16 @@ std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &file,
             [](const MidiNoteMsg &a, const MidiNoteMsg &b) {
               return a.crotchet < b.crotchet;
             });
+  return msgs;
+}
+} // namespace
+
+std::vector<MidiNoteMsg> parseMonophonicTrack(const juce::MidiFile &file,
+                                              int track) {
+  auto msgs = getTrackNoteMessages(file, track);
+  if (msgs.empty()) {
+    return {};
+  }
   auto it = std::prev(msgs.end());
   while (it != msgs.begin()) {
     auto prev = std::prev(it);
@@ -126,6 +139,43 @@ std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &file,
     it = prev;
   }
   return msgs;
+}
+
+std::vector<Note> getNotes(const juce::MidiFile &file,
+                           const std::vector<int> &tracksToExclude) {
+  std::vector<Note> notes;
+  const auto numTracks = file.getNumTracks();
+  for (auto track = 0; track < numTracks; ++track) {
+    if (std::find(tracksToExclude.begin(), tracksToExclude.end(), track) !=
+        tracksToExclude.end()) {
+      continue;
+    }
+    const auto trackMsgs = getTrackNoteMessages(file, track);
+    std::unordered_map<int, float> ongoingNotes;
+    for (const auto &msg : trackMsgs) {
+      if (ongoingNotes.count(msg.noteNumber)) {
+        Note note;
+        note.noteNumber = msg.noteNumber;
+        note.beginCrotchet = ongoingNotes.at(msg.noteNumber);
+        note.endCrotchet = msg.crotchet;
+        notes.push_back(std::move(note));
+        ongoingNotes.erase(msg.noteNumber);
+      }
+      if (msg.isNoteOn) {
+        ongoingNotes.emplace(msg.noteNumber, msg.crotchet);
+      }
+    }
+  }
+  std::sort(notes.begin(), notes.end(), [](const Note &a, const Note &b) {
+    return a.noteNumber < b.noteNumber;
+  });
+  std::sort(notes.begin(), notes.end(), [](const Note &a, const Note &b) {
+    return a.endCrotchet < b.endCrotchet;
+  });
+  std::sort(notes.begin(), notes.end(), [](const Note &a, const Note &b) {
+    return a.beginCrotchet < b.beginCrotchet;
+  });
+  return notes;
 }
 
 int getTicksPerCrotchet(const juce::MidiFile &midiFile) {

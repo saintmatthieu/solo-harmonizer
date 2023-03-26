@@ -278,9 +278,12 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
   if (!_juceMidiFile || !_playedTrack || !_harmonyTrack) {
     return;
   }
-  const auto playedSeq = getMidiNoteMessages(*_juceMidiFile, *_playedTrack);
-  const auto harmoSeq = getMidiNoteMessages(*_juceMidiFile, *_harmonyTrack);
-  const auto intervalGetterInput = toIntervalSpans(playedSeq, harmoSeq);
+  const auto playedSeq = parseMonophonicTrack(*_juceMidiFile, *_playedTrack);
+  const auto harmoSeq = parseMonophonicTrack(*_juceMidiFile, *_harmonyTrack);
+  const auto allNotes =
+      getNotes(*_juceMidiFile, {*_playedTrack, *_harmonyTrack});
+  const auto intervalGetterInput =
+      toIntervalSpans(playedSeq, harmoSeq, allNotes);
   _lowestPlayedTrackHarmonizedFrequency =
       ::saint::getLowestPlayedTrackHarmonizedFrequency(intervalGetterInput);
   if (intervalGetterInput.empty()) {

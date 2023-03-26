@@ -49,7 +49,7 @@ TEST(toIntervalSpans, variousTests) {
   const std::vector<MidiNoteMsg> harmoMidiTrack{{2.f, true, 74},
                                                 {10.f, false, 74}};
   const std::vector<IntervalSpan> actual =
-      toIntervalSpans(playedMidiTrack, harmoMidiTrack);
+      toIntervalSpans(playedMidiTrack, harmoMidiTrack, {});
 
   const std::vector<IntervalSpan> expected{{0.f, std::nullopt},
                                            {1.f, PlayedNote{69, std::nullopt}},

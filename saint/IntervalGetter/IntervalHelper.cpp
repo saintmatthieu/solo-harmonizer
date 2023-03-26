@@ -1,4 +1,5 @@
 #include "IntervalHelper.h"
+#include "CommonTypes.h"
 
 #include <cassert>
 #include <iterator>
@@ -46,9 +47,37 @@ std::optional<int> getClosestLimitIndex(const std::vector<float> &intervals,
              : std::optional<int>{closestLimitIndex};
 }
 
+namespace {
+void addOverlappingNotes(std::vector<IntervalSpan> &spans,
+                         const std::vector<Note> &allNotes) {
+  // Makes a big assumption: that `allNotes` are ordered by duration and then by
+  // beginCrotchet.
+  auto noteIt = allNotes.begin();
+  auto spanIt = spans.begin();
+  while (spanIt != std::prev(spans.end()) && noteIt != allNotes.end()) {
+    const auto spanEnd = (spanIt + 1)->beginCrotchet;
+    if (noteIt->beginCrotchet >= spanEnd) {
+      ++spanIt;
+      continue;
+    } else if (spanIt->beginCrotchet >= noteIt->endCrotchet) {
+      ++noteIt;
+      continue;
+    }
+    spanIt->overlappingNotes.insert(noteIt->noteNumber);
+    if (std::next(noteIt) == allNotes.end() ||
+        spanEnd < std::next(noteIt)->beginCrotchet) {
+      ++spanIt;
+    } else {
+      ++noteIt;
+    }
+  }
+}
+} // namespace
+
 std::vector<IntervalSpan>
 toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
-                const std::vector<MidiNoteMsg> &harmoMidiTrack) {
+                const std::vector<MidiNoteMsg> &harmoMidiTrack,
+                const std::vector<Note> &allNotes) {
   std::vector<IntervalSpan> spans;
   auto harmoIt = harmoMidiTrack.begin();
   for (auto playedIt = playedMidiTrack.begin();
@@ -89,6 +118,7 @@ toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
   if (spans.size() > 0 && spans[0].beginCrotchet > 0) {
     spans.insert(spans.begin(), {0, std::nullopt});
   }
+  addOverlappingNotes(spans, allNotes);
   return spans;
 }
 } // namespace saint

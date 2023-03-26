@@ -15,7 +15,11 @@ std::map<int, std::string> getTrackNames(const juce::MidiFile &midiFile);
 
 float extractCrotchetsPerSecond(const juce::MidiFile &midiFile);
 
-std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &, int track);
+std::vector<MidiNoteMsg> parseMonophonicTrack(const juce::MidiFile &,
+                                              int track);
+
+std::vector<Note> getNotes(const juce::MidiFile &,
+                           const std::vector<int> &tracksToExclude = {});
 
 int getTicksPerCrotchet(const juce::MidiFile &midiFile);
 

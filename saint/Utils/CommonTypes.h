@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace juce {
@@ -52,7 +53,7 @@ struct PlayedNote {
 struct IntervalSpan {
   float beginCrotchet;
   std::optional<PlayedNote> playedNote;
-  std::vector<int> overlappingNotes;
+  std::unordered_set<int> overlappingNotes;
 };
 
 bool operator==(const PlayedNote &a, const PlayedNote &b);
@@ -63,6 +64,12 @@ bool operator!=(const IntervalSpan &a, const IntervalSpan &b);
 struct MidiNoteMsg {
   float crotchet;
   bool isNoteOn;
+  int noteNumber;
+};
+
+struct Note {
+  float beginCrotchet;
+  float endCrotchet;
   int noteNumber;
 };
 

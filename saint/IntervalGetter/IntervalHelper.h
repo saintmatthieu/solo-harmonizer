@@ -10,5 +10,6 @@ std::optional<int> getClosestLimitIndex(const std::vector<float> &intervals,
 
 std::vector<IntervalSpan>
 toIntervalSpans(const std::vector<MidiNoteMsg> &playedMidiTrack,
-                const std::vector<MidiNoteMsg> &harmoMidiTrack);
+                const std::vector<MidiNoteMsg> &harmoMidiTrack,
+                const std::vector<Note> &allNotes);
 } // namespace saint
