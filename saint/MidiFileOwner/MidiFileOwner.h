@@ -16,6 +16,7 @@ public:
     virtual void onLoopBeginBarChange(const std::optional<int> &) {}
     virtual void onLoopEndBarChange(const std::optional<int> &) {}
     virtual void onIntervalSpansAvailable(const std::vector<IntervalSpan> &) {}
+    virtual void onCrotchetsPerSecondAvailable(float) {}
   };
 
   virtual ~MidiFileOwner() = default;

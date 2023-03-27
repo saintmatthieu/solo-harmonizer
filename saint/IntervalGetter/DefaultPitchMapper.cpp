@@ -33,7 +33,7 @@ std::optional<float> DefaultPitchMapper::getHarmony(float performancePitch,
   if (!playedNote.interval.has_value()) {
     return std::nullopt;
   }
-  const auto key = _keyRecognizer.getKey(span.beginCrotchet);
+  const auto key = _keyRecognizer.getKey(crotchet);
   const auto programmedHarmoNn = playedNote.noteNumber + *playedNote.interval;
   const auto perfNn = 12.f * std::log2f(performancePitch / 440.f) + 69.f;
   const auto performanceHarmoNn = DefaultPitchMapperHelper::harmonize(

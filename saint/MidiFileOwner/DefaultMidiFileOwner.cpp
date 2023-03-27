@@ -27,6 +27,9 @@ void DefaultMidiFileOwner::setSampleRate(int sampleRate) {
 
 void DefaultMidiFileOwner::addStateChangeListener(Listener *listener) {
   _listeners.insert(listener);
+  if (_crotchetsPerSecond.has_value()) {
+    listener->onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
+  }
 }
 
 void DefaultMidiFileOwner::removeStateChangeListener(Listener *listener) {
@@ -242,7 +245,11 @@ void DefaultMidiFileOwner::_setMidiFile(
                             ? extractCrotchetsPerSecond(*_juceMidiFile)
                             : std::optional<float>{};
   if (_crotchetsPerSecond.has_value()) {
+    // Maybe time to centralize listeners ?
     _onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
+    for (const auto &listener : _listeners) {
+      listener->onCrotchetsPerSecondAvailable(*_crotchetsPerSecond);
+    }
   }
   if (_juceMidiFile) {
     auto timeSignaturePositions = getTimeSignatures(*_juceMidiFile);

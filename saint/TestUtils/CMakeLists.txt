@@ -6,6 +6,7 @@ target_sources(TestUtils
   PUBLIC
     testUtils.cpp
     IntervalGetterDebugCb.cpp
+    PerformanceTimeWarperDebugCb.cpp
     PitchDetectorDebugCb.cpp
     WavFileReader.cpp
     WavFileWriter.cpp
@@ -14,6 +15,11 @@ target_sources(TestUtils
 target_compile_definitions(TestUtils
   PUBLIC
     JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED
+)
+
+target_link_libraries(TestUtils
+  PUBLIC
+    Utils
 )
 
 target_include_directories(TestUtils

@@ -1,5 +1,6 @@
 #include "DefaultPerformanceTimeWarper.h"
 #include "IntervalHelper.h"
+#include "PerformanceTimeWarperDebugCb.h"
 
 #include <algorithm>
 #include <cassert>
@@ -34,6 +35,9 @@ float DefaultPerformanceTimeWarper::getWarpedTime(
                                             : _noteBeginCrotchets[_lastIndex];
   if (index.has_value()) {
     _lastIndex = *index;
+  }
+  if (auto debugCb = testUtils::getPerformanceTimeWarperDebugCb()) {
+    (*debugCb)(timeInCrotchets, pitch, warpedTime);
   }
   return warpedTime;
 }

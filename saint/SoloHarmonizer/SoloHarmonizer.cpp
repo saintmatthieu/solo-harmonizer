@@ -1,6 +1,7 @@
 #include "SoloHarmonizer.h"
 #include "IntervalGetter.h"
 #include "MidiFileOwner.h"
+#include "PerformanceTimeWarperDebugCb.h"
 #include "SoloHarmonizerHelper.h"
 
 #include "spdlog/common.h"
@@ -22,15 +23,23 @@ SoloHarmonizer::SoloHarmonizer(std::shared_ptr<MidiFileOwner> midiFileOwner,
       _playhead(playhead) {
   _logger->set_level(saint::getLogLevelFromEnv());
   _logger->info("ctor {0}", _loggerName);
+  _midiFileOwner->addStateChangeListener(this);
 }
 
-SoloHarmonizer::~SoloHarmonizer() { _logger->info("dtor {0}", _loggerName); }
+SoloHarmonizer::~SoloHarmonizer() {
+  _logger->info("dtor {0}", _loggerName);
+  testUtils::resetPerformanceTimeWarperDebugCb();
+  // Not necessary, but sure ...
+  _midiFileOwner->removeStateChangeListener(this);
+}
 
 void SoloHarmonizer::prepareToPlay(int sampleRate, int samplesPerBlock) {
   _pitchShifter = DavidCNAntonia::IPitchShifter::createInstance(
       1, static_cast<double>(sampleRate), samplesPerBlock);
   _pitchDetector = PitchDetector::createInstance(
       sampleRate, _midiFileOwner->getLowestPlayedTrackHarmonizedFrequency());
+  _samplesPerBlock = samplesPerBlock;
+  _updateTestCbsIfReady();
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }
@@ -75,5 +84,17 @@ void SoloHarmonizer::processBlock(float *block, int size) {
   std::vector<float *> channels(1);
   channels[0] = block;
   _pitchShifter->processBuffer(channels.data(), 1, size);
+}
+
+void SoloHarmonizer::onCrotchetsPerSecondAvailable(float crotchetsPerSecond) {
+  _crotchetsPerSecond = crotchetsPerSecond;
+  _updateTestCbsIfReady();
+}
+
+void SoloHarmonizer::_updateTestCbsIfReady() {
+  if (_crotchetsPerSecond > 0.f && _samplesPerBlock > 0) {
+    testUtils::setPerformanceTimeWarperDebugCbParams(_samplesPerBlock,
+                                                     _crotchetsPerSecond);
+  }
 }
 } // namespace saint
