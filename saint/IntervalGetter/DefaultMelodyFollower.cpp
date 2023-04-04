@@ -162,15 +162,13 @@ DefaultMelodyFollower::DefaultMelodyFollower(
       _priors(getLog(_initialPriors)) {}
 
 void DefaultMelodyFollower::addNoteSample(float time, float noteNumber) {
-  _likelihoodGetter.addObservationSample(time, noteNumber);
+  _observationSamples.emplace_back(time, noteNumber);
 }
 
 std::optional<int> DefaultMelodyFollower::getNextNoteIndex() {
-  if (!_likelihoodGetter.hasObservationSamples()) {
-    return _lastReturnedIndex = std::nullopt;
-  }
   const auto observationLikelihoods =
-      _likelihoodGetter.consumeObservationSamples();
+      _likelihoodGetter.getObservationLikelihoods(_observationSamples);
+  _observationSamples.clear();
   // Should normally be fine, but for virtuoso soli with plenty of notes this
   // O(N^2) loop might become expensive ...
   std::unordered_map<int, int> newPathEntry;

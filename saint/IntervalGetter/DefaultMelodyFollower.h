@@ -9,10 +9,8 @@
 namespace saint {
 class ObservationLikelihoodGetter {
 public:
-  virtual void addObservationSample(float time, float noteNumber) = 0;
-  virtual bool hasObservationSamples() const = 0;
-  // Returns likelihoods based on the observation samples since last call.
-  virtual std::unordered_map<int, float> consumeObservationSamples() = 0;
+  virtual std::unordered_map<int, float> getObservationLikelihoods(
+      const std::vector<std::pair<float, float>> &observationSamples) = 0;
   virtual ~ObservationLikelihoodGetter() = default;
 };
 
@@ -44,5 +42,6 @@ private:
   std::vector<std::unordered_map<int, int>> _paths;
   bool _first = true;
   std::optional<int> _lastReturnedIndex;
+  std::vector<std::pair<float, float>> _observationSamples;
 };
 } // namespace saint

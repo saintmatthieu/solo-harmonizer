@@ -18,16 +18,13 @@ const std::vector<int> melody{60, 59, 57, 59, 57, 59, 60};
 
 class ObservationLikelihoodGetterFake : public ObservationLikelihoodGetter {
 public:
-  void addObservationSample(float, float) override {}
-  std::unordered_map<int, float> consumeObservationSamples() override {
+  std::unordered_map<int, float> getObservationLikelihoods(
+      const std::vector<std::pair<float, float>> &) override {
     return observationLikelihoods;
   }
   void setOnly(int nn, float prob) {
     observationLikelihoods.clear();
     observationLikelihoods[nn] = prob;
-  }
-  bool hasObservationSamples() const override {
-    return observationLikelihoods.size() > 0u;
   }
   std::unordered_map<int, float> observationLikelihoods;
 };
