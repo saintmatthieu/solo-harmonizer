@@ -1,5 +1,6 @@
 add_library(IntervalGetter
   DefaultIntervalGetter.cpp
+  DefaultMelodyFollower.cpp
   DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
@@ -26,6 +27,7 @@ target_link_libraries(IntervalGetter
 
 add_executable(IntervalGetterTests
   DefaultIntervalGetterTests.cpp
+  DefaultMelodyFollowerTests.cpp
   DefaultPitchMapperHelperTests.cpp
   IntervalHelperTests.cpp
   KeyRecognizerHelperTests.cpp

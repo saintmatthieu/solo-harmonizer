@@ -18,7 +18,7 @@ DefaultPitchMapper::DefaultPitchMapper(
     : _spans(spans), _timeSignatures(timeSignatures),
       _keyRecognizer(spans, timeSignatures) {}
 
-std::optional<float> DefaultPitchMapper::getHarmony(float performancePitch,
+std::optional<float> DefaultPitchMapper::getHarmony(float perfNn,
                                                     float crotchet) {
   while (_spanIndex < _spans.size() &&
          _spans[_spanIndex].beginCrotchet <= crotchet) {
@@ -35,7 +35,6 @@ std::optional<float> DefaultPitchMapper::getHarmony(float performancePitch,
   }
   const auto key = _keyRecognizer.getKey(crotchet);
   const auto programmedHarmoNn = playedNote.noteNumber + *playedNote.interval;
-  const auto perfNn = 12.f * std::log2f(performancePitch / 440.f) + 69.f;
   const auto performanceHarmoNn = DefaultPitchMapperHelper::harmonize(
       perfNn, playedNote.noteNumber, programmedHarmoNn, key);
   return performanceHarmoNn - 69.f;

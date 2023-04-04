@@ -10,7 +10,7 @@ public:
   DefaultPitchMapper(const std::vector<IntervalSpan> &,
                      const std::map<float, Fraction> &);
 
-  std::optional<float> getHarmony(float semiFromC, float crotchet) override;
+  std::optional<float> getHarmony(float noteNumber, float crotchet) override;
 
 private:
   const std::vector<IntervalSpan> &_spans;

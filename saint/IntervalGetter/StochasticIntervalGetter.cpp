@@ -2,14 +2,15 @@
 
 namespace saint {
 namespace {
-std::map<float, std::optional<int>>
+std::vector<std::pair<float, std::optional<int>>>
 toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {
-  std::map<float, std::optional<int>> timedNoteNumbers;
+  std::vector<std::pair<float, std::optional<int>>> timedNoteNumbers;
   for (const auto &span : spans) {
-    timedNoteNumbers[span.beginCrotchet] =
+    timedNoteNumbers.emplace_back(
+        span.beginCrotchet,
         span.playedNote.has_value()
             ? std::optional<int>{span.playedNote->noteNumber}
-            : std::nullopt;
+            : std::nullopt);
   }
   return timedNoteNumbers;
 }
@@ -24,11 +25,15 @@ StochasticIntervalGetter::StochasticIntervalGetter(
 
 std::optional<float> StochasticIntervalGetter::getHarmoInterval(
     float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
+  const auto perfNn =
+      pitch.has_value()
+          ? std::optional<float>{12.f * std::log2f(*pitch / 440.f) + 69.f}
+          : std::nullopt;
   const auto warpedTime =
-      _perfTimeWarper->getWarpedTime(timeInCrotchets, pitch);
-  if (!pitch.has_value()) {
+      _perfTimeWarper->getWarpedTime(timeInCrotchets, perfNn);
+  if (!perfNn.has_value()) {
     return std::nullopt;
   }
-  return _pitchMapper->getHarmony(*pitch, warpedTime);
+  return _pitchMapper->getHarmony(*perfNn, warpedTime);
 }
 } // namespace saint
