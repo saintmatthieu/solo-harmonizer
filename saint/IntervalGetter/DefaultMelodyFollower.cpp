@@ -1,10 +1,13 @@
 #include "DefaultMelodyFollower.h"
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <iterator>
 #include <limits>
+#include <map>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -51,95 +54,26 @@ std::optional<int> DefaultMelodyFollowerHelper::getIndexOfLastSnippetElement(
   return melodyIndex + static_cast<int>(snippet.size()) - 1;
 }
 
-namespace {
-std::unordered_set<int> getNoteNumberSet(
-    const std::vector<std::pair<float, std::optional<int>>> &melody) {
-  std::unordered_set<int> nns;
-  for (const auto &entry : melody) {
-    if (entry.second.has_value()) {
-      nns.insert(*entry.second);
-    }
-  }
-  return nns;
+DefaultMelodyFollower::DefaultMelodyFollower(
+    ObservationLikelihoodGetter &likelihoodGetter,
+    const std::vector<std::pair<float, std::optional<int>>> &melody)
+    : _likelihoodGetter(likelihoodGetter),
+      _melody(DefaultMelodyFollowerHelper::getMelody(melody)),
+      _intervals(DefaultMelodyFollowerHelper::getIntervals(_melody)),
+      _uniqueIntervals(
+          DefaultMelodyFollowerHelper::getUniqueIntervals(_intervals)) {}
+
+void DefaultMelodyFollower::addNoteSample(float time, float noteNumber) {
+  _observationSamples.emplace_back(time, noteNumber);
 }
 
-std::unordered_map<int, float> getInitialPriors(
-    const std::vector<std::pair<float, std::optional<int>>> &melody) {
-  std::unordered_map<int, int> noteCounts;
-  int totalCount = 0;
-  for (const auto &entry : melody) {
-    if (!entry.second.has_value()) {
-      continue;
-    }
-    const auto nn = *entry.second;
-    if (noteCounts.count(nn) == 0) {
-      noteCounts.emplace(nn, 0);
-    }
-    ++noteCounts.at(nn);
-    ++totalCount;
-  }
-  std::unordered_map<int, float> priors;
-  for (const auto &entry : noteCounts) {
-    priors.emplace(entry.first, static_cast<float>(entry.second) /
-                                    static_cast<float>(totalCount));
-  }
-  return priors;
+std::optional<int> DefaultMelodyFollower::getNextNoteIndex() {
+  const auto obsLikelihoods =
+      _likelihoodGetter.getObservationLogLikelihoods(_observationSamples);
+  _observationSamples.clear();
 }
-
-const std::unordered_map<int, std::unordered_map<int, float>>
-getTransitionLikelihoods(
-    const std::vector<std::pair<float, std::optional<int>>> &melodyWithSilences,
-    const std::unordered_set<int> &melodyNoteNumberSet,
-    const std::unordered_map<int, float> &initialPriors) {
-  std::unordered_map<int, std::unordered_map<int, float>> likelihoods;
-  std::vector<float> melody;
-  for (const auto &entry : melodyWithSilences) {
-    if (entry.second.has_value()) {
-      melody.push_back(*entry.second);
-    }
-  }
-  for (auto i = 0u; i < melody.size() - 1u; ++i) {
-    if (likelihoods.count(melody[i]) == 0) {
-      likelihoods[melody[i]] = {};
-    }
-    auto &column = likelihoods[melody[i]];
-    if (column.count(melody[i + 1]) == 0) {
-      column[melody[i + 1]] = 0.f;
-    }
-    // Record transition
-    ++column.at(melody[i + 1]);
-  }
-  for (auto &entry : likelihoods) {
-    auto &column = entry.second;
-    const auto sum = std::accumulate(
-        column.begin(), column.end(), 0.f,
-        [](float acc, const auto &entry) { return acc + entry.second; });
-    for (const auto &priorEntry : initialPriors) {
-      const auto nn = priorEntry.first;
-      if (column.count(nn) == 0) {
-        column[nn] = 0.f;
-      }
-      // We normalize the column entries, but also add a bit of prior
-      // probability. Although it is not the typical way of playing a melody, we
-      // still want to allow the performer to jump from one note to the other.
-      column.at(nn) =
-          std::logf(priorEntry.second * 0.1f + column.at(nn) * 0.9f / sum);
-    }
-  }
-  return likelihoods;
-}
-
-std::unordered_map<int, float>
-getLog(const std::unordered_map<int, float> &probs) {
-  std::unordered_map<int, float> logs;
-  for (const auto &entry : probs) {
-    logs.emplace(entry.first, std::logf(entry.second));
-  }
-  return logs;
-}
-
-std::vector<int>
-getMelody(const std::vector<std::pair<float, std::optional<int>>> &input) {
+std::vector<int> DefaultMelodyFollowerHelper::getMelody(
+    const std::vector<std::pair<float, std::optional<int>>> &input) {
   std::vector<int> melody;
   melody.reserve(input.size());
   for (const auto &entry : input) {
@@ -149,77 +83,96 @@ getMelody(const std::vector<std::pair<float, std::optional<int>>> &input) {
   }
   return melody;
 }
-} // namespace
 
-DefaultMelodyFollower::DefaultMelodyFollower(
-    ObservationLikelihoodGetter &likelihoodGetter,
-    const std::vector<std::pair<float, std::optional<int>>> &melody)
-    : _likelihoodGetter(likelihoodGetter), _melody(getMelody(melody)),
-      _melodyNoteNumberSet(getNoteNumberSet(melody)),
-      _initialPriors(getInitialPriors(melody)),
-      _transitionLikelihoods(getTransitionLikelihoods(
-          melody, _melodyNoteNumberSet, _initialPriors)),
-      _priors(getLog(_initialPriors)) {}
-
-void DefaultMelodyFollower::addNoteSample(float time, float noteNumber) {
-  _observationSamples.emplace_back(time, noteNumber);
+void log(const std::vector<std::set<std::vector<int>>> &uniqueIntervals) {
+  std::ofstream logfile("C:\\Users\\saint\\Downloads\\log.py");
+  logfile << "uniques = [";
+  std::string s1 = "";
+  for (const auto &set : uniqueIntervals) {
+    logfile << s1 << "{";
+    s1 = ",";
+    std::string s2 = "";
+    for (const auto &vector : set) {
+      logfile << s2 << "[";
+      s2 = ",";
+      std::string s3 = "";
+      for (auto interval : vector) {
+        logfile << s3 << interval;
+        s3 = ",";
+      }
+      logfile << "]";
+    }
+    logfile << "}" << std::endl;
+  }
+  logfile << "]";
 }
 
-std::optional<int> DefaultMelodyFollower::getNextNoteIndex() {
-  const auto observationLikelihoods =
-      _likelihoodGetter.getObservationLikelihoods(_observationSamples);
-  _observationSamples.clear();
-  // Should normally be fine, but for virtuoso soli with plenty of notes this
-  // O(N^2) loop might become expensive ...
-  std::unordered_map<int, int> newPathEntry;
-  std::unordered_map<int, float> newPriors;
-  for (auto j : _melodyNoteNumberSet) {
-    const auto obsLikelihood = std::logf(observationLikelihoods.count(j) > 0
-                                             ? observationLikelihoods.at(j)
-                                             : 0.f);
-    if (_first) {
-      newPriors[j] = _initialPriors.at(j) + obsLikelihood;
-    } else {
-      std::unordered_map<int, float> probs;
-      for (auto i : _melodyNoteNumberSet) {
-        const auto transLikelihood = _transitionLikelihoods.at(i).at(j);
-        probs[i] = _priors.at(i) + obsLikelihood + transLikelihood;
-      }
-      const auto bestMatchIt = std::max_element(
-          probs.begin(), probs.end(), [](const auto &lhs, const auto &rhs) {
-            return lhs.second < rhs.second;
-          });
-      newPathEntry[j] = bestMatchIt->first;
-      newPriors[j] = bestMatchIt->second;
+void updateMatched(const std::vector<int> &intervals,
+                   const std::vector<int> &match, int order,
+                   std::vector<bool> &matched) {
+  assert(intervals.size() == matched.size());
+  auto it = intervals.begin();
+  while (true) {
+    it = std::search(it, intervals.end(), match.begin(), match.end());
+    if (it == intervals.end()) {
+      break;
     }
+    const auto offset = std::distance(intervals.begin(), it);
+    std::fill(matched.begin() + offset, matched.begin() + offset + order + 1u,
+              true);
+    ++it;
   }
-  _priors = newPriors;
-  if (!_first) {
-    _paths.push_back(std::move(newPathEntry));
+}
+
+std::vector<std::set<std::vector<int>>>
+DefaultMelodyFollowerHelper::getUniqueIntervals(
+    const std::vector<int> &intervals) {
+  std::vector<bool> matched(intervals.size());
+  std::vector<std::set<std::vector<int>>> uniques;
+  while (
+      !std::all_of(matched.begin(), matched.end(), [](bool m) { return m; })) {
+    std::map<std::vector<int>, int> map;
+    const auto order = uniques.size();
+    if (order >= intervals.size()) {
+      break;
+    }
+    for (auto i = 0u; i < intervals.size() - order - 1u; ++i) {
+      map[{intervals.begin() + i, intervals.begin() + i + order + 1u}]++;
+    }
+    std::set<std::vector<int>> newSet;
+    for (const auto &entry : map) {
+      if (entry.second == 1) {
+        const auto &newMatch = entry.first;
+        auto seenAlready = false;
+        for (const auto &set : uniques) {
+          for (const auto &oldMatch : set) {
+            if (std::search(newMatch.begin(), newMatch.end(), oldMatch.begin(),
+                            oldMatch.end()) != newMatch.end()) {
+              updateMatched(intervals, newMatch, order, matched);
+              seenAlready = true;
+              break;
+            }
+          }
+        }
+        if (!seenAlready) {
+          newSet.insert(newMatch);
+        }
+      }
+    }
+    for (const auto &match : newSet) {
+      updateMatched(intervals, match, order, matched);
+    }
+    uniques.emplace_back(std::move(newSet));
   }
-  auto pathNn = std::max_element(_priors.begin(), _priors.end(),
-                                 [](const auto &lhs, const auto &rhs) {
-                                   return lhs.second < rhs.second;
-                                 })
-                    ->first;
-  std::vector<int> seq;
-  seq.push_back(pathNn);
-  for (auto rit = _paths.rbegin(); rit != _paths.rend(); ++rit) {
-    pathNn = rit->at(pathNn);
-    seq.push_back(pathNn);
+  log(uniques);
+  return uniques;
+}
+std::vector<int>
+DefaultMelodyFollowerHelper::getIntervals(const std::vector<int> &melody) {
+  std::vector<int> intervals(melody.size() - 1u);
+  for (auto i = 1u; i < melody.size(); ++i) {
+    intervals[i - 1] = melody[i] - melody[i - 1];
   }
-  std::reverse(seq.begin(), seq.end());
-  const auto lastSequenceMatch =
-      DefaultMelodyFollowerHelper::getIndexOfLastSnippetElement(
-          _melody, std::move(seq), _lastReturnedIndex);
-  if (!lastSequenceMatch.has_value()) {
-    // TODO
-  }
-  _first = false;
-  _lastReturnedIndex = *lastSequenceMatch + 1;
-  if (_lastReturnedIndex == _melody.size()) {
-    _lastReturnedIndex.reset();
-  }
-  return _lastReturnedIndex;
+  return intervals;
 }
 } // namespace saint

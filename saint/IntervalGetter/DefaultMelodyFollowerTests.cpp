@@ -8,54 +8,65 @@ namespace saint {
 
 using namespace ::testing;
 namespace {
+constexpr auto A = 57;
+constexpr auto B = 59;
+constexpr auto C = 60;
+constexpr auto D = 62;
+constexpr auto E = 64;
+constexpr auto F = 65;
 const std::vector<std::pair<float, std::optional<int>>> timedMelody{
-    {0.f, {60}}, {1.f, {59}}, {2.f, {57}}, {3.f, {59}},
-    {4.f, {57}}, {5.f, {59}}, {6.f, {60}},
-};
+    {0, {A}},  {1, {B}},  {2, {C}},  {3, {D}},  {4, {E}},  {5, {F}},
+    {6, {E}},  {7, {D}},  {8, {D}},  {9, {C}},  {10, {C}}, {11, {B}},
+    {12, {C}}, {13, {D}}, {14, {E}}, {15, {C}}, {16, {B}}, {17, {A}}};
 
-const std::vector<int> melody{60, 59, 57, 59, 57, 59, 60};
+const std::unordered_set<int> intervalSet{-1, -2, 1, 2};
 } // namespace
 
 class ObservationLikelihoodGetterFake : public ObservationLikelihoodGetter {
 public:
-  std::unordered_map<int, float> getObservationLikelihoods(
+  ObservationLikelihoodGetterFake(std::unordered_set<int> set)
+      : hiddenStateSet(std::move(set)) {
+    // At first we don't know shit, so return just equal likelihood for all
+    // states
+    for (auto state : hiddenStateSet) {
+      observationLikelihoods[state] =
+          std::logf(1.f / static_cast<float>(hiddenStateSet.size()));
+    }
+  }
+  const std::unordered_set<int> hiddenStateSet;
+  std::unordered_map<int, float> getObservationLogLikelihoods(
       const std::vector<std::pair<float, float>> &) override {
     return observationLikelihoods;
   }
   void setOnly(int nn, float prob) {
-    observationLikelihoods.clear();
-    observationLikelihoods[nn] = prob;
+    for (auto state : hiddenStateSet) {
+      observationLikelihoods[state] = state == nn ? 0.f : std::logf(0.f);
+    }
   }
   std::unordered_map<int, float> observationLikelihoods;
 };
 
-TEST(DefaultMelodyFollower, getNextNoteIndex_returnsNulloptByDefault) {
-  ObservationLikelihoodGetterFake likelihoodGetter;
-  DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
-  EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
-}
-
 TEST(DefaultMelodyFollower, easy) {
-  ObservationLikelihoodGetterFake likelihoodGetter;
+  ObservationLikelihoodGetterFake likelihoodGetter(intervalSet);
   DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
-  likelihoodGetter.setOnly(60, 1.f);
+  EXPECT_THAT(sut.getNextNoteIndex(), Optional(0));
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
-  likelihoodGetter.setOnly(59, 1.f);
+  likelihoodGetter.setOnly(-1, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(2));
-  likelihoodGetter.setOnly(57, 1.f);
+  likelihoodGetter.setOnly(-2, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(3));
-  likelihoodGetter.setOnly(59, 1.f);
+  likelihoodGetter.setOnly(2, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(4));
-  likelihoodGetter.setOnly(57, 1.f);
+  likelihoodGetter.setOnly(-2, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(5));
-  likelihoodGetter.setOnly(59, 1.f);
+  likelihoodGetter.setOnly(2, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(6));
-  likelihoodGetter.setOnly(60, 1.f);
+  likelihoodGetter.setOnly(1, 1.f);
   EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
 }
 
 TEST(DefaultMelodyFollower, beginFromTheMiddle) {
-  ObservationLikelihoodGetterFake likelihoodGetter;
+  ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
   DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
   likelihoodGetter.setOnly(57, 1.f);
   // At this stage should opt for the first A
@@ -68,7 +79,7 @@ TEST(DefaultMelodyFollower, beginFromTheMiddle) {
 }
 
 TEST(DefaultMelodyFollower, skippedNote) {
-  ObservationLikelihoodGetterFake likelihoodGetter;
+  ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
   DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
   likelihoodGetter.setOnly(60, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
@@ -84,18 +95,5 @@ TEST(DefaultMelodyFollower, skippedNote) {
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(6));
   likelihoodGetter.setOnly(60, 1.f);
   EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
-}
-
-TEST(DefaultMelodyFollowerHelper, getIndexOfLastSnippetElement) {
-  using Sut = DefaultMelodyFollowerHelper;
-  EXPECT_THAT(
-      Sut::getIndexOfLastSnippetElement(melody, {60, 59, 59}, std::nullopt),
-      Optional(1));
-  EXPECT_THAT(
-      Sut::getIndexOfLastSnippetElement(melody, {60, 57, 59}, std::nullopt),
-      Optional(3));
-  EXPECT_THAT(
-      Sut::getIndexOfLastSnippetElement(melody, {57, 59, 60}, std::nullopt),
-      Optional(6));
 }
 } // namespace saint
