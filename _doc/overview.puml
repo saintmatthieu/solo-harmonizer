@@ -1,4 +1,4 @@
-@startuml
+@startuml Overview
 
 hide fields
 hide SoloHarmonizer methods
