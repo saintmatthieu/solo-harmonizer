@@ -1,11 +1,36 @@
 #include "DefaultMelodyTracker.h"
+#include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
+#include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
+#include "MelodyTracker/TimingEstimator/DefaultTimingEstimator.h"
 
+#include <__msvc_chrono.hpp>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 
 namespace saint {
+class DefaultClock : public Clock {
+public:
+  DefaultClock() : _creationTime(std::chrono::steady_clock::now()) {}
+
+  std::chrono::milliseconds now() const override {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - _creationTime);
+  }
+
+private:
+  const std::chrono::steady_clock::time_point _creationTime;
+};
+
+std::unique_ptr<MelodyTracker> MelodyTracker::createInstance(
+    const std::vector<std::pair<float, std::optional<int>>> &melody) {
+  return std::make_unique<DefaultMelodyTracker>(
+      MelodyRecognizer::createInstance(melody),
+      std::make_unique<DefaultTimingEstimator>(),
+      std::make_unique<DefaultClock>());
+}
+
 DefaultMelodyTracker::DefaultMelodyTracker(
-    const std::vector<std::pair<float, std::optional<int>>> &melody,
     std::unique_ptr<MelodyRecognizer> melodyFollower,
     std::unique_ptr<TimingEstimator> timingEstimator,
     std::unique_ptr<Clock> clock)

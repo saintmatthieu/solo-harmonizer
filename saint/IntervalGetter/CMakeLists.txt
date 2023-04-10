@@ -29,6 +29,7 @@ target_link_libraries(IntervalGetter
 
 add_executable(IntervalGetterTests
   MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizerTests.cpp
+  MelodyTracker/MelodyRecognizer/ObservationLikelihoodGetter/DefaultObservationLikelihoodGetter.cpp
   MelodyTracker/DefaultMelodyTrackerTests.cpp
   DefaultIntervalGetterTests.cpp
   DefaultPitchMapperHelperTests.cpp

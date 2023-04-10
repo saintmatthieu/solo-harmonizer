@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
+#include "MelodyTracker/MelodyTracker.h"
 #include "MelodyTracker/TimingEstimator/TimingEstimator.h"
 #include <chrono>
 #include <memory>
@@ -14,17 +15,16 @@ public:
   virtual ~Clock() = default;
 };
 
-class DefaultMelodyTracker {
+class DefaultMelodyTracker : public MelodyTracker {
 public:
-  DefaultMelodyTracker(
-      const std::vector<std::pair<float, std::optional<int>>> &melody,
-      std::unique_ptr<MelodyRecognizer>, std::unique_ptr<TimingEstimator>,
-      std::unique_ptr<Clock>);
-  void onHostTimeJump(float newTime);
+  DefaultMelodyTracker(std::unique_ptr<MelodyRecognizer>,
+                       std::unique_ptr<TimingEstimator>,
+                       std::unique_ptr<Clock>);
+  void onHostTimeJump(float newTime) override;
   // return value: note index, or nullopt if no current note index can be
   // assumed.
-  size_t onNoteOnSample(float noteNum);
-  void onNoteOff();
+  size_t onNoteOnSample(float noteNum) override;
+  void onNoteOff() override;
 
 private:
   const std::unique_ptr<MelodyRecognizer> _melodyRecognizer;

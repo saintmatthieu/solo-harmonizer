@@ -35,7 +35,8 @@ public:
   }
   const std::unordered_set<int> hiddenStateSet;
   std::unordered_map<int, float> getObservationLogLikelihoods(
-      const std::vector<std::pair<float, float>> &) override {
+      const std::vector<std::pair<std::chrono::milliseconds, float>> &)
+      override {
     return observationLikelihoods;
   }
   void setOnly(int nn, float prob) {
@@ -47,53 +48,56 @@ public:
 };
 
 TEST(DefaultMelodyRecognizer, easy) {
-  ObservationLikelihoodGetterFake likelihoodGetter(intervalSet);
-  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(0));
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
-  likelihoodGetter.setOnly(-1, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(2));
-  likelihoodGetter.setOnly(-2, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(3));
-  likelihoodGetter.setOnly(2, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(4));
-  likelihoodGetter.setOnly(-2, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(5));
-  likelihoodGetter.setOnly(2, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(6));
-  likelihoodGetter.setOnly(1, 1.f);
-  EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
+  auto likelihoodGetter = new ObservationLikelihoodGetterFake(intervalSet);
+  DefaultMelodyRecognizer sut{
+      std::unique_ptr<ObservationLikelihoodGetter>{likelihoodGetter},
+      timedMelody};
+  EXPECT_EQ(sut.getNextNoteIndex(), 0);
+  EXPECT_EQ(sut.getNextNoteIndex(), 1);
+  likelihoodGetter->setOnly(-1, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 2);
+  likelihoodGetter->setOnly(-2, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 3);
+  likelihoodGetter->setOnly(2, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 4);
+  likelihoodGetter->setOnly(-2, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 5);
+  likelihoodGetter->setOnly(2, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 6);
+  likelihoodGetter->setOnly(1, 1.f);
 }
 
 TEST(DefaultMelodyRecognizer, beginFromTheMiddle) {
-  ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
-  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
-  likelihoodGetter.setOnly(57, 1.f);
+  auto likelihoodGetter = new ObservationLikelihoodGetterFake(intervalSet);
+  DefaultMelodyRecognizer sut{
+      std::unique_ptr<ObservationLikelihoodGetter>{likelihoodGetter},
+      timedMelody};
+  likelihoodGetter->setOnly(57, 1.f);
   // At this stage should opt for the first A
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(3));
-  likelihoodGetter.setOnly(59, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(4));
+  EXPECT_EQ(sut.getNextNoteIndex(), 3);
+  likelihoodGetter->setOnly(59, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 4);
   // At that stage knows it was the final A-B-C being played.
-  likelihoodGetter.setOnly(60, 1.f);
-  EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
+  likelihoodGetter->setOnly(60, 1.f);
 }
 
 TEST(DefaultMelodyRecognizer, skippedNote) {
-  ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
-  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
-  likelihoodGetter.setOnly(60, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
-  likelihoodGetter.setOnly(59, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(2));
-  // likelihoodGetter.setOnly(57, 1.f);
+  auto likelihoodGetter = new ObservationLikelihoodGetterFake(intervalSet);
+  DefaultMelodyRecognizer sut{
+      std::unique_ptr<ObservationLikelihoodGetter>{likelihoodGetter},
+      timedMelody};
+  likelihoodGetter->setOnly(60, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 1);
+  likelihoodGetter->setOnly(59, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 2);
+  // likelihoodGetter->setOnly(57, 1.f);
   // EXPECT_THAT(sut.getNextNoteIndex(), Optional(3));
-  likelihoodGetter.setOnly(59, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(4));
-  likelihoodGetter.setOnly(57, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(5));
-  likelihoodGetter.setOnly(59, 1.f);
-  EXPECT_THAT(sut.getNextNoteIndex(), Optional(6));
-  likelihoodGetter.setOnly(60, 1.f);
-  EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
+  likelihoodGetter->setOnly(59, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 4);
+  likelihoodGetter->setOnly(57, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 5);
+  likelihoodGetter->setOnly(59, 1.f);
+  EXPECT_EQ(sut.getNextNoteIndex(), 6);
+  likelihoodGetter->setOnly(60, 1.f);
 }
 } // namespace saint

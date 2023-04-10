@@ -9,19 +9,6 @@ namespace saint {
 using namespace ::testing;
 using namespace std::literals::chrono_literals;
 
-namespace {
-constexpr auto A = 57;
-constexpr auto B = 59;
-constexpr auto C = 60;
-constexpr auto D = 62;
-constexpr auto E = 64;
-constexpr auto F = 65;
-const std::vector<std::pair<float, std::optional<int>>> timedMelody{
-    {0, {A}},  {1, {B}},  {2, {C}},  {3, {D}},  {4, {E}},  {5, {F}},
-    {6, {E}},  {7, {D}},  {8, {D}},  {9, {C}},  {10, {C}}, {11, {B}},
-    {12, {C}}, {13, {D}}, {14, {E}}, {15, {C}}, {16, {B}}, {17, {A}}};
-} // namespace
-
 class MockMelodyRecognizer : public MelodyRecognizer {
 public:
   MOCK_METHOD1(
@@ -46,8 +33,7 @@ TEST(DefaultMelodyTracker, stuff) {
   auto melodyRecognizer = new NiceMock<MockMelodyRecognizer>;
   auto timingEstimator = new NiceMock<MockTimingEstimator>;
   auto clock = new NiceMock<MockClock>;
-  DefaultMelodyTracker sut{timedMelody,
-                           std::unique_ptr<MelodyRecognizer>{melodyRecognizer},
+  DefaultMelodyTracker sut{std::unique_ptr<MelodyRecognizer>{melodyRecognizer},
                            std::unique_ptr<TimingEstimator>{timingEstimator},
                            std::unique_ptr<Clock>{clock}};
 

@@ -2,13 +2,14 @@
 
 #include "CommonTypes.h"
 #include "IntervalGetter.h"
-#include "PerformanceTimeWarper.h"
+#include "MelodyTracker/MelodyTracker.h"
 #include "PitchMapper.h"
 
 namespace saint {
 class StochasticIntervalGetter : public IntervalGetter {
 public:
   StochasticIntervalGetter(const std::vector<IntervalSpan> &spans,
+                           std::unique_ptr<MelodyTracker>,
                            const std::map<float, Fraction> &timeSignatures);
   std::optional<float> getHarmoInterval(float timeInCrotchets,
                                         const std::optional<float> &pitch,
@@ -16,7 +17,8 @@ public:
 
 private:
   const std::vector<IntervalSpan> _spans;
-  const std::unique_ptr<PerformanceTimeWarper> _perfTimeWarper;
+  const std::unique_ptr<MelodyTracker> _melodyTracker;
   const std::unique_ptr<PitchMapper> _pitchMapper;
+  bool _prevPitchHadValue = false;
 };
 } // namespace saint

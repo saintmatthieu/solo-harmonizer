@@ -1,4 +1,5 @@
 #include "DefaultMelodyRecognizer.h"
+#include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -8,10 +9,14 @@
 #include <numeric>
 #include <optional>
 #include <set>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace saint {
+std::unique_ptr<MelodyRecognizer> MelodyRecognizer::createInstance(
+    const std::vector<std::pair<float, std::optional<int>>> &melody) {
+  return std::make_unique<DefaultMelodyRecognizer>(
+      ObservationLikelihoodGetter::createInstance(), melody);
+}
+
 std::optional<int> DefaultMelodyRecognizerHelper::getIndexOfLastSnippetElement(
     const std::vector<int> &melody, std::vector<int> snippet,
     const std::optional<int> &aroundIndex) {
@@ -55,23 +60,27 @@ std::optional<int> DefaultMelodyRecognizerHelper::getIndexOfLastSnippetElement(
 }
 
 DefaultMelodyRecognizer::DefaultMelodyRecognizer(
-    ObservationLikelihoodGetter &likelihoodGetter,
+    std::unique_ptr<ObservationLikelihoodGetter> likelihoodGetter,
     const std::vector<std::pair<float, std::optional<int>>> &melody)
-    : _likelihoodGetter(likelihoodGetter),
+    : _likelihoodGetter(std::move(likelihoodGetter)),
       _melody(DefaultMelodyRecognizerHelper::getMelody(melody)),
       _intervals(DefaultMelodyRecognizerHelper::getIntervals(_melody)),
       _uniqueIntervals(
           DefaultMelodyRecognizerHelper::getUniqueIntervals(_intervals)) {}
 
-void DefaultMelodyRecognizer::addNoteSample(float time, float noteNumber) {
-  _observationSamples.emplace_back(time, noteNumber);
+bool DefaultMelodyRecognizer::onNoteOff(
+    const std::vector<std::pair<std::chrono::milliseconds, float>>
+        &noteonSamples) {
+  const auto obsLikelihoods =
+      _likelihoodGetter->getObservationLogLikelihoods(noteonSamples);
+  return false;
 }
 
-std::optional<int> DefaultMelodyRecognizer::getNextNoteIndex() {
-  const auto obsLikelihoods =
-      _likelihoodGetter.getObservationLogLikelihoods(_observationSamples);
-  _observationSamples.clear();
+size_t DefaultMelodyRecognizer::getNextNoteIndex() {
+  assert(_nextNoteIndex.has_value());
+  return _nextNoteIndex.has_value() ? *_nextNoteIndex : 0u;
 }
+
 std::vector<int> DefaultMelodyRecognizerHelper::getMelody(
     const std::vector<std::pair<float, std::optional<int>>> &input) {
   std::vector<int> melody;

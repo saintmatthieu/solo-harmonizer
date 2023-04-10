@@ -1,7 +1,8 @@
 #pragma once
 
-#include "DefaultMelodyRecognizer.h"
 #include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
+#include "ObservationLikelihoodGetter/ObservationLikelihoodGetter.h"
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -10,14 +11,6 @@
 #include <vector>
 
 namespace saint {
-
-class ObservationLikelihoodGetter {
-public:
-  virtual std::unordered_map<int, float> getObservationLogLikelihoods(
-      const std::vector<std::pair<float, float>> &observationSamples) = 0;
-  virtual ~ObservationLikelihoodGetter() = default;
-};
-
 class DefaultMelodyRecognizerHelper {
 public:
   static std::optional<int>
@@ -34,20 +27,21 @@ public:
   getUniqueIntervals(const std::vector<int> &intervals);
 };
 
-class DefaultMelodyRecognizer {
+class DefaultMelodyRecognizer : public MelodyRecognizer {
 public:
   DefaultMelodyRecognizer(
-      ObservationLikelihoodGetter &,
+      std::unique_ptr<ObservationLikelihoodGetter>,
       const std::vector<std::pair<float, std::optional<int>>> &melody);
 
-  void addNoteSample(float time, float noteNumber);
-  std::optional<int> getNextNoteIndex();
+  bool onNoteOff(const std::vector<std::pair<std::chrono::milliseconds, float>>
+                     &) override;
+  size_t getNextNoteIndex() override;
 
 private:
-  ObservationLikelihoodGetter &_likelihoodGetter;
+  const std::unique_ptr<ObservationLikelihoodGetter> _likelihoodGetter;
   const std::vector<int> _melody;
   const std::vector<int> _intervals;
   const std::vector<std::set<std::vector<int>>> _uniqueIntervals;
-  std::vector<std::pair<float, float>> _observationSamples;
+  std::optional<size_t> _nextNoteIndex;
 };
 } // namespace saint
