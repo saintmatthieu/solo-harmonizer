@@ -1,4 +1,4 @@
-#include "DefaultMelodyFollower.h"
+#include "DefaultMelodyRecognizer.h"
 
 #include "gmock/gmock.h"
 #include <gmock/gmock.h>
@@ -46,9 +46,9 @@ public:
   std::unordered_map<int, float> observationLikelihoods;
 };
 
-TEST(DefaultMelodyFollower, easy) {
+TEST(DefaultMelodyRecognizer, easy) {
   ObservationLikelihoodGetterFake likelihoodGetter(intervalSet);
-  DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
+  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(0));
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
   likelihoodGetter.setOnly(-1, 1.f);
@@ -65,9 +65,9 @@ TEST(DefaultMelodyFollower, easy) {
   EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
 }
 
-TEST(DefaultMelodyFollower, beginFromTheMiddle) {
+TEST(DefaultMelodyRecognizer, beginFromTheMiddle) {
   ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
-  DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
+  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
   likelihoodGetter.setOnly(57, 1.f);
   // At this stage should opt for the first A
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(3));
@@ -78,9 +78,9 @@ TEST(DefaultMelodyFollower, beginFromTheMiddle) {
   EXPECT_EQ(sut.getNextNoteIndex(), std::nullopt);
 }
 
-TEST(DefaultMelodyFollower, skippedNote) {
+TEST(DefaultMelodyRecognizer, skippedNote) {
   ObservationLikelihoodGetterFake likelihoodGetter{intervalSet};
-  DefaultMelodyFollower sut{likelihoodGetter, timedMelody};
+  DefaultMelodyRecognizer sut{likelihoodGetter, timedMelody};
   likelihoodGetter.setOnly(60, 1.f);
   EXPECT_THAT(sut.getNextNoteIndex(), Optional(1));
   likelihoodGetter.setOnly(59, 1.f);

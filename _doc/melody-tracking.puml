@@ -1,0 +1,89 @@
+@startuml melody-tracking class diagram
+
+hide circle
+hide fields
+
+class MelodyTracker {
+  onHostTimeJump(newTime)
+  onNoteOnSample(noteNum: float): size_t
+  onNoteOff()
+}
+class MelodyFitter {
+  onNoteOff(timeNotenumPairs): bool
+  getNextNoteIndex()
+}
+class TimingEstimator {
+  addAttack(time, noteIndex)
+  estimateNoteIndex(): optional<float>
+}
+
+MelodyTracker *-- MelodyFitter
+MelodyTracker *-- TimingEstimator
+
+@enduml
+
+@startuml melody-tracking sequence diagram
+
+participant MelodyTracker
+participant MelodyFitter
+participant TimingEstimator
+
+note over MelodyTracker
+_index = 0
+_samples = []
+_fittingWasReady = false
+end note
+
+== note-on phase ==
+
+-> MelodyTracker:onNoteOnSample(noteNum)
+alt _index.has_value()
+note over MelodyTracker: index = *_index
+else
+MelodyTracker -> TimingEstimator: estimateNoteIndex()
+TimingEstimator -->> MelodyTracker: floatIndex
+note over MelodyTracker
+index = round(floatIndex)
+_index = index
+end note
+end
+note over MelodyTracker
+_samples.emplace_back(time, noteNum)
+end note
+<<-- MelodyTracker:index
+
+== note-off event ==
+
+-> MelodyTracker:onNoteOff()
+MelodyTracker -> MelodyFitter:onNoteOff(_samples)
+MelodyFitter -->> MelodyTracker:fittingReady
+
+note over MelodyTracker
+lookingGood = fittingReady || !_fittingWasReady
+end note
+
+alt lookingGood
+MelodyTracker -> TimingEstimator:addAttack(_samples[0].time, noteIndex)
+else
+note over MelodyTracker:_index = nullopt
+end
+
+alt lookingGood && !fittingReady
+note over MelodyTracker
+_index++
+end note
+else fittingReady
+MelodyTracker -> MelodyFitter:getNextNoteIndex()
+MelodyFitter -->> MelodyTracker:nextNoteIndex
+note over MelodyTracker
+_index = nextNoteIndex
+end note
+else !lookingGood
+end
+
+note over MelodyTracker
+_samples = []
+_fittingWasReady = fittingReady
+end note
+
+@enduml

@@ -1,6 +1,8 @@
 add_library(IntervalGetter
+  MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.cpp
+  MelodyTracker/TimingEstimator/DefaultTimingEstimator.cpp
+  MelodyTracker/DefaultMelodyTracker.cpp
   DefaultIntervalGetter.cpp
-  DefaultMelodyFollower.cpp
   DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
@@ -26,8 +28,9 @@ target_link_libraries(IntervalGetter
 )
 
 add_executable(IntervalGetterTests
+  MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizerTests.cpp
+  MelodyTracker/DefaultMelodyTrackerTests.cpp
   DefaultIntervalGetterTests.cpp
-  DefaultMelodyFollowerTests.cpp
   DefaultPitchMapperHelperTests.cpp
   IntervalHelperTests.cpp
   KeyRecognizerHelperTests.cpp

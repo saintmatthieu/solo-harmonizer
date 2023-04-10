@@ -1,4 +1,4 @@
-#include "DefaultMelodyFollower.h"
+#include "DefaultMelodyRecognizer.h"
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -12,7 +12,7 @@
 #include <unordered_set>
 
 namespace saint {
-std::optional<int> DefaultMelodyFollowerHelper::getIndexOfLastSnippetElement(
+std::optional<int> DefaultMelodyRecognizerHelper::getIndexOfLastSnippetElement(
     const std::vector<int> &melody, std::vector<int> snippet,
     const std::optional<int> &aroundIndex) {
   // Find match closest to _lastReturnedIndex
@@ -54,25 +54,25 @@ std::optional<int> DefaultMelodyFollowerHelper::getIndexOfLastSnippetElement(
   return melodyIndex + static_cast<int>(snippet.size()) - 1;
 }
 
-DefaultMelodyFollower::DefaultMelodyFollower(
+DefaultMelodyRecognizer::DefaultMelodyRecognizer(
     ObservationLikelihoodGetter &likelihoodGetter,
     const std::vector<std::pair<float, std::optional<int>>> &melody)
     : _likelihoodGetter(likelihoodGetter),
-      _melody(DefaultMelodyFollowerHelper::getMelody(melody)),
-      _intervals(DefaultMelodyFollowerHelper::getIntervals(_melody)),
+      _melody(DefaultMelodyRecognizerHelper::getMelody(melody)),
+      _intervals(DefaultMelodyRecognizerHelper::getIntervals(_melody)),
       _uniqueIntervals(
-          DefaultMelodyFollowerHelper::getUniqueIntervals(_intervals)) {}
+          DefaultMelodyRecognizerHelper::getUniqueIntervals(_intervals)) {}
 
-void DefaultMelodyFollower::addNoteSample(float time, float noteNumber) {
+void DefaultMelodyRecognizer::addNoteSample(float time, float noteNumber) {
   _observationSamples.emplace_back(time, noteNumber);
 }
 
-std::optional<int> DefaultMelodyFollower::getNextNoteIndex() {
+std::optional<int> DefaultMelodyRecognizer::getNextNoteIndex() {
   const auto obsLikelihoods =
       _likelihoodGetter.getObservationLogLikelihoods(_observationSamples);
   _observationSamples.clear();
 }
-std::vector<int> DefaultMelodyFollowerHelper::getMelody(
+std::vector<int> DefaultMelodyRecognizerHelper::getMelody(
     const std::vector<std::pair<float, std::optional<int>>> &input) {
   std::vector<int> melody;
   melody.reserve(input.size());
@@ -125,7 +125,7 @@ void updateMatched(const std::vector<int> &intervals,
 }
 
 std::vector<std::set<std::vector<int>>>
-DefaultMelodyFollowerHelper::getUniqueIntervals(
+DefaultMelodyRecognizerHelper::getUniqueIntervals(
     const std::vector<int> &intervals) {
   std::vector<bool> matched(intervals.size());
   std::vector<std::set<std::vector<int>>> uniques;
@@ -168,7 +168,7 @@ DefaultMelodyFollowerHelper::getUniqueIntervals(
   return uniques;
 }
 std::vector<int>
-DefaultMelodyFollowerHelper::getIntervals(const std::vector<int> &melody) {
+DefaultMelodyRecognizerHelper::getIntervals(const std::vector<int> &melody) {
   std::vector<int> intervals(melody.size() - 1u);
   for (auto i = 1u; i < melody.size(); ++i) {
     intervals[i - 1] = melody[i] - melody[i - 1];

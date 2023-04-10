@@ -1,6 +1,7 @@
 #pragma once
 
-#include "DefaultMelodyFollower.h"
+#include "DefaultMelodyRecognizer.h"
+#include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
 #include <optional>
 #include <set>
 #include <string>
@@ -17,7 +18,7 @@ public:
   virtual ~ObservationLikelihoodGetter() = default;
 };
 
-class DefaultMelodyFollowerHelper {
+class DefaultMelodyRecognizerHelper {
 public:
   static std::optional<int>
   getIndexOfLastSnippetElement(const std::vector<int> &melody,
@@ -33,9 +34,9 @@ public:
   getUniqueIntervals(const std::vector<int> &intervals);
 };
 
-class DefaultMelodyFollower {
+class DefaultMelodyRecognizer {
 public:
-  DefaultMelodyFollower(
+  DefaultMelodyRecognizer(
       ObservationLikelihoodGetter &,
       const std::vector<std::pair<float, std::optional<int>>> &melody);
 
