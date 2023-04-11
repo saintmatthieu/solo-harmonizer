@@ -56,7 +56,8 @@ void SoloHarmonizer::setSemitoneShift(float value) {
   _pitchShifter->setSemitoneShift(value);
 }
 
-void SoloHarmonizer::processBlock(float *block, int size) {
+void SoloHarmonizer::processBlock(const std::chrono::milliseconds &now,
+                                  float *block, int size) {
   _logger->trace("processBlock");
   if (!_midiFileOwner->hasIntervalGetter()) {
     return;
@@ -72,7 +73,8 @@ void SoloHarmonizer::processBlock(float *block, int size) {
   }
   const auto time = *timeOpt;
   const auto pitch = _pitchDetector->process(block, size);
-  const auto pitchShift = intervalGetter->getHarmoInterval(time, pitch, size);
+  const auto pitchShift =
+      intervalGetter->getHarmoInterval(time, pitch, now, size);
   _logger->debug("_intervalGetter->getHarmoInterval() returned {0}",
                  pitchShift ? std::to_string(*pitchShift) : "nullopt");
   if (pitchShift.has_value()) {

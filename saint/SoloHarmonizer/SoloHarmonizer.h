@@ -7,6 +7,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <chrono>
+
 namespace saint {
 class SoloHarmonizer : public MidiFileOwner::Listener {
 public:
@@ -15,7 +17,7 @@ public:
 
   void setSemitoneShift(float value);
   void prepareToPlay(int sampleRate, int samplesPerBlock);
-  void processBlock(float *, int size);
+  void processBlock(const std::chrono::milliseconds &now, float *, int size);
   void releaseResources();
 
 private:

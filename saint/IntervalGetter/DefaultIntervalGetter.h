@@ -4,16 +4,20 @@
 #include "IntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
 
+#include <chrono>
 #include <vector>
 
 namespace saint {
+using namespace std::literals::chrono_literals;
+
 class DefaultIntervalGetter : public IntervalGetter {
 public:
   DefaultIntervalGetter(const std::vector<IntervalSpan> &timeSegments,
                         std::optional<testUtils::IntervalGetterDebugCb>);
-  std::optional<float> getHarmoInterval(float timeInCrotchets,
-                                        const std::optional<float> &pitch,
-                                        int blockSize = 0) override;
+  std::optional<float>
+  getHarmoInterval(float timeInCrotchets, const std::optional<float> &pitch,
+                   const std::chrono::milliseconds &now = 0ms,
+                   int blockSize = 0) override;
 
 private:
   std::optional<float> _getInterval() const;

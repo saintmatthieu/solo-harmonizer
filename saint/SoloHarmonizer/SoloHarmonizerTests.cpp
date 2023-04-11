@@ -54,7 +54,8 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   sut.prepareToPlay(sampleRate, blockSize);
   for (auto offset = 0; offset + blockSize < static_cast<int>(wav.size());
        offset += blockSize) {
-    sut.processBlock(wav.data() + offset, blockSize);
+    const std::chrono::milliseconds now(1000 * offset / sampleRate);
+    sut.processBlock(now, wav.data() + offset, blockSize);
     playhead.incrementSampleCount(blockSize);
   }
   testUtils::toWavFile(

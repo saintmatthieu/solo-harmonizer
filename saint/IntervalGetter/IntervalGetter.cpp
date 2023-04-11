@@ -1,8 +1,6 @@
 #include "IntervalGetter.h"
 #include "DefaultIntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
-#include "MelodyTracker/DefaultMelodyTracker.h"
-#include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
 #include "MelodyTracker/MelodyTracker.h"
 #include "StochasticIntervalGetter.h"
 #include "Utils.h"
@@ -23,19 +21,6 @@ toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {
   }
   return timedNoteNumbers;
 }
-
-class DefaultClock : public Clock {
-public:
-  DefaultClock() : _creationTime(std::chrono::steady_clock::now()) {}
-
-  std::chrono::milliseconds now() const override {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - _creationTime);
-  }
-
-private:
-  const std::chrono::time_point<std::chrono::steady_clock> _creationTime;
-};
 } // namespace
 
 constexpr auto useStochasticIntervalGetter = true;
@@ -47,7 +32,7 @@ IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
   if (useStochasticIntervalGetter) {
     return std::make_shared<StochasticIntervalGetter>(
         spans, MelodyTracker::createInstance(toTimedNoteNumbers(spans)),
-        std::make_unique<DefaultClock>(), timeSignatures);
+        timeSignatures);
   }
   if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
       utils::isDebugBuild()) {

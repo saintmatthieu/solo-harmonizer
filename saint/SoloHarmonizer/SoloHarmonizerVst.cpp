@@ -16,6 +16,21 @@ namespace saint {
 
 using namespace std::placeholders;
 
+namespace {
+class DefaultClock : public Clock {
+public:
+  DefaultClock() : _creationTime(std::chrono::steady_clock::now()) {}
+
+  std::chrono::milliseconds now() const override {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - _creationTime);
+  }
+
+private:
+  const std::chrono::time_point<std::chrono::steady_clock> _creationTime;
+};
+} // namespace
+
 SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
     : AudioProcessor(
           BusesProperties()
@@ -27,6 +42,7 @@ SoloHarmonizerVst::SoloHarmonizerVst(PlayheadFactory factory)
                     _1),
           std::bind(&SoloHarmonizerVst::_onPlayheadCommand, this, _1))),
       _soloHarmonizer(std::make_unique<SoloHarmonizer>(_midiFileOwner, *this)),
+      _clock(std::make_unique<DefaultClock>()),
       _playheadFactory(std::move(factory)),
       _editorCallThread(
           std::bind(&SoloHarmonizerVst::_editorCallThreadFun, this)) {
@@ -81,7 +97,7 @@ void SoloHarmonizerVst::processBlock(juce::AudioBuffer<float> &buffer,
   if (playhead) {
     const auto p = buffer.getWritePointer(0);
     // Calls SoloHarmonizerVst::getTimeInCrotchets()
-    _soloHarmonizer->processBlock(p, numSamples);
+    _soloHarmonizer->processBlock(_clock->now(), p, numSamples);
     playhead->mixMetronome(p, numSamples);
     _timeInCrotchets = playhead->incrementSampleCount(numSamples);
   }

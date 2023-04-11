@@ -18,6 +18,12 @@ class logger;
 }
 
 namespace saint {
+class Clock {
+public:
+  virtual std::chrono::milliseconds now() const = 0;
+  virtual ~Clock() = default;
+};
+
 class SoloHarmonizerVst : public juce::AudioProcessor,
                           public Playhead,
                           public MidiFileOwner::Listener,
@@ -83,6 +89,7 @@ private:
   std::optional<int> _samplesPerSecond;
   const std::shared_ptr<MidiFileOwner> _midiFileOwner;
   const std::unique_ptr<SoloHarmonizer> _soloHarmonizer;
+  const std::unique_ptr<Clock> _clock;
   const PlayheadFactory _playheadFactory;
   std::shared_ptr<Playhead> _playhead;
   std::unordered_set<SoloHarmonizerEditor *> _editors;

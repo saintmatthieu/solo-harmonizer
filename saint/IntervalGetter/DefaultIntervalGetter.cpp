@@ -33,7 +33,8 @@ DefaultIntervalGetter::DefaultIntervalGetter(
       _intervals(getNotes(spans)) {}
 
 std::optional<float> DefaultIntervalGetter::getHarmoInterval(
-    float timeInCrotchets, const std::optional<float> &pitch, int blockSize) {
+    float timeInCrotchets, const std::optional<float> &pitch,
+    const std::chrono::milliseconds &, int blockSize) {
   const auto interval = _getHarmoInterval(timeInCrotchets, pitch);
   if (_debugCb) {
     testUtils::IntervalGetterDebugCbArgs args{_crotchets, pitch, interval};

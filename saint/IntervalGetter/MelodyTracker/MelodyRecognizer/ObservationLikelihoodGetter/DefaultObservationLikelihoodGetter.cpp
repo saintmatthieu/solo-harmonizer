@@ -3,7 +3,7 @@
 namespace saint {
 std::unique_ptr<ObservationLikelihoodGetter>
 ObservationLikelihoodGetter::createInstance() {
-  return std::unique_ptr<ObservationLikelihoodGetter>();
+  return std::make_unique<DefaultObservationLikelihoodGetter>();
 }
 
 std::unordered_map<int, float>

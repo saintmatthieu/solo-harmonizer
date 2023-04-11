@@ -2,8 +2,10 @@
 #include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
 #include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
 #include "MelodyTracker/TimingEstimator/DefaultTimingEstimator.h"
+#include "TracingMelodyTracker.h"
+#include "Utils.h"
 
-#include <__msvc_chrono.hpp>
+
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -24,9 +26,15 @@ getOnsetTimes(const std::vector<std::pair<float, std::optional<int>>> &melody) {
 
 std::unique_ptr<MelodyTracker> MelodyTracker::createInstance(
     const std::vector<std::pair<float, std::optional<int>>> &melody) {
-  return std::make_unique<DefaultMelodyTracker>(
+  auto tracker = std::make_unique<DefaultMelodyTracker>(
       MelodyRecognizer::createInstance(melody),
       std::make_unique<DefaultTimingEstimator>(getOnsetTimes(melody)));
+  if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_MELODYTRACKER") &&
+      utils::isDebugBuild()) {
+    return std::make_unique<TracingMelodyTracker>(std::move(tracker));
+  } else {
+    return tracker;
+  }
 }
 
 DefaultMelodyTracker::DefaultMelodyTracker(
