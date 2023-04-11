@@ -24,45 +24,34 @@ public:
   MOCK_METHOD1(estimateNoteIndex, float(const std::chrono::milliseconds &));
 };
 
-class MockClock : public Clock {
-public:
-  MOCK_CONST_METHOD0(now, std::chrono::milliseconds());
-};
-
 TEST(DefaultMelodyTracker, stuff) {
   auto melodyRecognizer = new NiceMock<MockMelodyRecognizer>;
   auto timingEstimator = new NiceMock<MockTimingEstimator>;
-  auto clock = new NiceMock<MockClock>;
   DefaultMelodyTracker sut{std::unique_ptr<MelodyRecognizer>{melodyRecognizer},
-                           std::unique_ptr<TimingEstimator>{timingEstimator},
-                           std::unique_ptr<Clock>{clock}};
+                           std::unique_ptr<TimingEstimator>{timingEstimator}};
 
-  ON_CALL(*clock, now).WillByDefault(Return(0ms));
-
-  EXPECT_EQ(sut.onNoteOnSample(60.f), 0);
+  EXPECT_EQ(sut.onNoteOnSample(0ms, 60.f), 0);
   EXPECT_CALL(*melodyRecognizer, onNoteOff).WillOnce(Return(false));
   sut.onNoteOff();
 
-  EXPECT_EQ(sut.onNoteOnSample(60.f), 1);
+  EXPECT_EQ(sut.onNoteOnSample(0ms, 60.f), 1);
   EXPECT_CALL(*melodyRecognizer, onNoteOff).WillOnce(Return(true));
   EXPECT_CALL(*melodyRecognizer, getNextNoteIndex).WillOnce(Return(2u));
   sut.onNoteOff();
 
-  EXPECT_EQ(sut.onNoteOnSample(60.f), 2u);
+  EXPECT_EQ(sut.onNoteOnSample(0ms, 60.f), 2u);
   // Can't recognize, entering "gliding mode".
   EXPECT_CALL(*melodyRecognizer, onNoteOff).WillOnce(Return(false));
   sut.onNoteOff();
   Mock::VerifyAndClearExpectations(melodyRecognizer);
   // Next time we call onNoteOff, will ask the TimingEstimator for the index
-  EXPECT_CALL(*clock, now).WillOnce(Return(100ms));
   EXPECT_CALL(*timingEstimator, estimateNoteIndex(100ms))
       .WillOnce(Return(123.f));
-  EXPECT_EQ(sut.onNoteOnSample(60.f), 123u);
-  Mock::VerifyAndClearExpectations(clock);
+  EXPECT_EQ(sut.onNoteOnSample(0ms, 60.f), 123u);
 
   // This time it should be looking good again, just incrementing the index.
   EXPECT_CALL(*timingEstimator, addAttack);
   sut.onNoteOff();
-  EXPECT_EQ(sut.onNoteOnSample(60.f), 124u);
+  EXPECT_EQ(sut.onNoteOnSample(0ms, 60.f), 124u);
 }
 } // namespace saint

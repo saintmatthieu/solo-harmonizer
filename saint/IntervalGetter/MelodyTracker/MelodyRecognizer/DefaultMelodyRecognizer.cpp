@@ -2,7 +2,6 @@
 #include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
 #include <algorithm>
 #include <cassert>
-#include <fstream>
 #include <iterator>
 #include <limits>
 #include <map>
@@ -93,29 +92,6 @@ std::vector<int> DefaultMelodyRecognizerHelper::getMelody(
   return melody;
 }
 
-void log(const std::vector<std::set<std::vector<int>>> &uniqueIntervals) {
-  std::ofstream logfile("C:\\Users\\saint\\Downloads\\log.py");
-  logfile << "uniques = [";
-  std::string s1 = "";
-  for (const auto &set : uniqueIntervals) {
-    logfile << s1 << "{";
-    s1 = ",";
-    std::string s2 = "";
-    for (const auto &vector : set) {
-      logfile << s2 << "[";
-      s2 = ",";
-      std::string s3 = "";
-      for (auto interval : vector) {
-        logfile << s3 << interval;
-        s3 = ",";
-      }
-      logfile << "]";
-    }
-    logfile << "}" << std::endl;
-  }
-  logfile << "]";
-}
-
 void updateMatched(const std::vector<int> &intervals,
                    const std::vector<int> &match, int order,
                    std::vector<bool> &matched) {
@@ -173,7 +149,6 @@ DefaultMelodyRecognizerHelper::getUniqueIntervals(
     }
     uniques.emplace_back(std::move(newSet));
   }
-  log(uniques);
   return uniques;
 }
 std::vector<int>

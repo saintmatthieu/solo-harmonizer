@@ -1,5 +1,6 @@
 add_library(IntervalGetter
   MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.cpp
+  MelodyTracker/MelodyRecognizer/ObservationLikelihoodGetter/DefaultObservationLikelihoodGetter.cpp
   MelodyTracker/TimingEstimator/DefaultTimingEstimator.cpp
   MelodyTracker/DefaultMelodyTracker.cpp
   DefaultIntervalGetter.cpp
@@ -19,6 +20,8 @@ target_compile_options(IntervalGetter PRIVATE ${SAINT_ANNOYING_WARNINGS})
 target_include_directories(IntervalGetter
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/_thirdParty # For gmtl
 )
 
 target_link_libraries(IntervalGetter

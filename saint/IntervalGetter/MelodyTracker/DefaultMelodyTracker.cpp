@@ -9,38 +9,37 @@
 #include <cmath>
 
 namespace saint {
-class DefaultClock : public Clock {
-public:
-  DefaultClock() : _creationTime(std::chrono::steady_clock::now()) {}
-
-  std::chrono::milliseconds now() const override {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - _creationTime);
+namespace {
+std::vector<float>
+getOnsetTimes(const std::vector<std::pair<float, std::optional<int>>> &melody) {
+  std::vector<float> times;
+  for (const auto &entry : melody) {
+    if (entry.second.has_value()) {
+      times.push_back(entry.first);
+    }
   }
-
-private:
-  const std::chrono::steady_clock::time_point _creationTime;
-};
+  return times;
+}
+} // namespace
 
 std::unique_ptr<MelodyTracker> MelodyTracker::createInstance(
     const std::vector<std::pair<float, std::optional<int>>> &melody) {
   return std::make_unique<DefaultMelodyTracker>(
       MelodyRecognizer::createInstance(melody),
-      std::make_unique<DefaultTimingEstimator>(),
-      std::make_unique<DefaultClock>());
+      std::make_unique<DefaultTimingEstimator>(getOnsetTimes(melody)));
 }
 
 DefaultMelodyTracker::DefaultMelodyTracker(
     std::unique_ptr<MelodyRecognizer> melodyFollower,
-    std::unique_ptr<TimingEstimator> timingEstimator,
-    std::unique_ptr<Clock> clock)
+    std::unique_ptr<TimingEstimator> timingEstimator)
     : _melodyRecognizer(std::move(melodyFollower)),
-      _timingEstimator(std::move(timingEstimator)), _clock(std::move(clock)) {}
+      _timingEstimator(std::move(timingEstimator)) {}
 
 void DefaultMelodyTracker::onHostTimeJump(float newTime) {}
 
-size_t DefaultMelodyTracker::onNoteOnSample(float noteNum) {
-  const auto now = _clock->now();
+size_t
+DefaultMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
+                                     float noteNum) {
   _samples.emplace_back(now, noteNum);
   auto index = 0u;
   if (_index.has_value()) {
