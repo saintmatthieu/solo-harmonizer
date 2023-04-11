@@ -18,4 +18,4 @@
 	url = https://github.com/marton78/pffft.git
 [submodule "eigen"]
 	path = eigen
-	url = https://github.com/libigl/eigen.git
+	url = https://github.com/saintmatthieu/eigen.git
