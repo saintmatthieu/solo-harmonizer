@@ -14,7 +14,7 @@ namespace saint {
 std::unique_ptr<MelodyRecognizer> MelodyRecognizer::createInstance(
     const std::vector<std::pair<float, std::optional<int>>> &melody) {
   return std::make_unique<DefaultMelodyRecognizer>(
-      ObservationLikelihoodGetter::createInstance(), melody);
+      ObservationLikelihoodGetter::createInstance(melody), melody);
 }
 
 DefaultMelodyRecognizer::DefaultMelodyRecognizer(
