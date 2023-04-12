@@ -30,6 +30,7 @@ target_link_libraries(IntervalGetter
   PUBLIC
     TestUtils
     Utils
+    eigen
 )
 
 add_executable(IntervalGetterTests

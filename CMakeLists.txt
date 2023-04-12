@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 add_definitions(-DJUCE_MODAL_LOOPS_PERMITTED -DJUCE_ASIO -DJucePlugin_PreferredChannelConfigurations={1,2})
+set(PFFFT_DISABLE_LINK_WITH_M 1)
 
 # just if(MSVC) didn't work for me (wasn't true, even with a VS generator)
 string(FIND ${CMAKE_GENERATOR} "Visual Studio" SAINT_VS_GEN_INDEX)
