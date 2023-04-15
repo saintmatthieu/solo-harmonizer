@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <set>
 #include <vector>
@@ -17,8 +18,11 @@ public:
 
   static std::vector<int> getIntervals(const std::vector<int> &melody);
 
-  static std::vector<std::set<std::vector<int>>>
+  static std::vector<std::map<size_t, std::vector<int>>>
   getUniqueIntervals(const std::vector<int> &intervals);
+
+  static std::map<int, std::set<int>>
+  getTransitions(const std::vector<int> &sequence);
 };
 
 } // namespace saint

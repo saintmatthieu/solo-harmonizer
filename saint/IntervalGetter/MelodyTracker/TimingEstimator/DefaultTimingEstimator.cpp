@@ -7,12 +7,16 @@ namespace saint {
 DefaultTimingEstimator::DefaultTimingEstimator(std::vector<float> onsetTimes)
     : _onsetTimes(std::move(onsetTimes)) {}
 
-void DefaultTimingEstimator::addAttack(const std::chrono::milliseconds &time,
+bool DefaultTimingEstimator::addAttack(const std::chrono::milliseconds &time,
                                        size_t noteIndex) {
+  if (noteIndex >= _onsetTimes.size()) {
+    return false;
+  }
   while (_coordinates.size() >= fittingOrder) {
     _coordinates.erase(_coordinates.begin());
   }
   _coordinates.emplace_back(time, _onsetTimes[noteIndex]);
+  return true;
 }
 
 float DefaultTimingEstimator::estimateNoteIndex(

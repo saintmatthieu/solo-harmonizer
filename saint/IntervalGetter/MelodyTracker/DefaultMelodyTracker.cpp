@@ -5,7 +5,6 @@
 #include "TracingMelodyTracker.h"
 #include "Utils.h"
 
-
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -54,14 +53,12 @@ DefaultMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
     index = *_index;
   } else {
     const auto floatIndex = _timingEstimator->estimateNoteIndex(now);
-    index = static_cast<size_t>(std::roundf(floatIndex));
-    _index = index;
+    _index = index = static_cast<size_t>(std::roundf(floatIndex));
   }
   return index;
 }
 
 void DefaultMelodyTracker::onNoteOff() {
-
   assert(!_samples.empty());
   if (_samples.empty()) {
     return;
@@ -71,14 +68,12 @@ void DefaultMelodyTracker::onNoteOff() {
   const auto lookingGood =
       _index.has_value() && (fittingReady || !_fittingWasReady);
 
-  if (lookingGood) {
-    _timingEstimator->addAttack(_samples[0].first, *_index);
+  if (lookingGood && _timingEstimator->addAttack(_samples[0].first, *_index)) {
     _index =
         fittingReady ? _melodyRecognizer->getNextNoteIndex() : *_index + 1u;
   } else {
     _index.reset();
   }
-
   _samples.clear();
   _fittingWasReady = fittingReady;
 }
