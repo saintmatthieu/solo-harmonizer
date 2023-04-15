@@ -32,6 +32,7 @@ private:
   const std::vector<std::map<size_t,            // _intervals sub-vector index
                              std::vector<int>>> // _intervals sub-vector
       _uniqueSequences;
+  const size_t _uniqueSequenceCount;
   // const std::vector<std::map<size_t, std::vector<std::optional<float>>>>
   //     _intervalLikelihoods;
   const std::map<int, std::set<int>> _intervalTransitions;

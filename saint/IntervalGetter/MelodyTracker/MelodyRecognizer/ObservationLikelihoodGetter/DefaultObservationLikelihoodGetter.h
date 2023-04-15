@@ -19,6 +19,6 @@ private:
   const std::unordered_set<int> _intervals;
   const std::map<int, float> _neutralLikelihoods;
   std::vector<std::pair<std::chrono::milliseconds, float>> _prevObservation;
-  std::optional<std::array<float, 2>> _prevMinMax;
+  std::array<float, 2> _prevMinMax;
 };
 } // namespace saint

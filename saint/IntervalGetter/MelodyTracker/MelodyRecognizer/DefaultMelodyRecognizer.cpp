@@ -33,6 +33,15 @@ auto getInitializedIntervalLikelihoods(
   }
   return intervalLikelihoods;
 }
+
+size_t getUniqueSequenceCount(
+    const std::vector<std::map<size_t, std::vector<int>>> &uniqueSequences) {
+  size_t count = 0u;
+  for (const auto &map : uniqueSequences) {
+    count += map.size();
+  }
+  return count;
+}
 } // namespace
 
 DefaultMelodyRecognizer::DefaultMelodyRecognizer(
@@ -42,6 +51,7 @@ DefaultMelodyRecognizer::DefaultMelodyRecognizer(
       _melody(MelodyTrackerHelper::getMelody(melody)),
       _intervals(MelodyTrackerHelper::getIntervals(_melody)),
       _uniqueSequences(MelodyTrackerHelper::getUniqueIntervals(_intervals)),
+      _uniqueSequenceCount(getUniqueSequenceCount(_uniqueSequences)),
       // _intervalLikelihoods(getInitializedIntervalLikelihoods(_uniqueSequences)),
       _intervalTransitions(MelodyTrackerHelper::getTransitions(_intervals)) {}
 
@@ -55,7 +65,14 @@ bool DefaultMelodyRecognizer::onNoteOff(
       _likelihoodGetter->getObservationLogLikelihoods(noteonSamples));
   const auto maxOrder =
       std::min(_pastLikelihoods.size(), _uniqueSequences.size());
-  for (auto order = 1u; order <= maxOrder; ++order) {
+  struct Score {
+    size_t order;
+    size_t orderSequenceIndex;
+    float totalLikelihood;
+  };
+  std::vector<Score> scores;
+  scores.reserve(_uniqueSequenceCount);
+  for (size_t order = 1u; order <= maxOrder; ++order) {
     const auto &sequenceEntries = _uniqueSequences[order - 1u];
     for (const auto &entry : sequenceEntries) {
       const auto sequenceIndex = entry.first;
@@ -67,9 +84,14 @@ bool DefaultMelodyRecognizer::onNoteOff(
         const auto &likelihoods = _pastLikelihoods[i];
         totalLikelihood += likelihoods.at(interval);
       }
-      // TODO: what next ?
+      scores.emplace_back(order, sequenceIndex, totalLikelihood);
     }
   }
+  const auto &winner = *std::max_element(
+      scores.begin(), scores.end(), [](const Score &lhs, const Score &rhs) {
+        return lhs.totalLikelihood < rhs.totalLikelihood;
+      });
+  const auto noteIndex = winner.orderSequenceIndex;
   return false;
 }
 
