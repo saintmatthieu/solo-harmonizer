@@ -58,3 +58,5 @@ target_link_libraries(IntervalGetterTests
     gmock
     gtest_main
 )
+
+add_subdirectory(MelodyTracker2)
