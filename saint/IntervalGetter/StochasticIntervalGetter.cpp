@@ -16,13 +16,18 @@ std::optional<float> StochasticIntervalGetter::getHarmoInterval(
           ? std::optional<float>{12.f * std::log2f(*pitch / 440.f) + 69.f}
           : std::nullopt;
   if (pitch.has_value()) {
-    const auto noteIndex = _melodyTracker->onNoteOnSample(now, *perfNn);
-    const auto spanTime = _spans[noteIndex].beginCrotchet;
+    _melodyTracker->onNoteOnSample(now, *perfNn);
     _prevPitchHadValue = true;
-    return _pitchMapper->getHarmony(*perfNn, spanTime);
+    return _nextNoteonTimeEstimate.has_value()
+               ? _pitchMapper->getHarmony(*perfNn, *_nextNoteonTimeEstimate)
+               : std::nullopt;
   } else {
     if (_prevPitchHadValue) {
-      _melodyTracker->onNoteOff();
+      if (const auto nextNoteIndex = _melodyTracker->onNoteOff()) {
+        _nextNoteonTimeEstimate = _spans[*nextNoteIndex].beginCrotchet;
+      } else {
+        _nextNoteonTimeEstimate.reset();
+      }
     }
     _prevPitchHadValue = false;
     return std::nullopt;

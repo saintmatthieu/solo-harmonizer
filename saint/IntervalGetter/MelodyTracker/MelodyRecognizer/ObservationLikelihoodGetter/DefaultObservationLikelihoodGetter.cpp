@@ -2,7 +2,10 @@
 #include "MelodyTracker/MelodyTrackerHelper.h"
 
 #include "Eigen/Eigen"
+#include <chrono>
 #include <numeric>
+
+using namespace std::literals::chrono_literals;
 
 namespace saint {
 namespace {
@@ -72,15 +75,19 @@ std::map<int, float>
 DefaultObservationLikelihoodGetter::getObservationLogLikelihoods(
     const std::vector<std::pair<std::chrono::milliseconds, float>>
         &observationSamples) {
-  const auto prevWasEmpty = _prevObservation.empty();
+  const auto duration =
+      observationSamples[observationSamples.size() - 1].first -
+      observationSamples[0].first;
+  if (duration < 50ms) {
+    return {};
+  }
   const auto minMax = getPitchFitMinMax(observationSamples);
-  if (prevWasEmpty) {
-    _prevObservation = observationSamples;
+  if (!_prevMinMax.has_value()) {
     _prevMinMax = minMax;
-    return _neutralLikelihoods;
+    return {};
   }
   const auto [min, max] = minMax;
-  const auto [pmin, pmax] = _prevMinMax;
+  const auto [pmin, pmax] = *_prevMinMax;
   _prevMinMax = minMax;
   std::map<int, float> likelihoods;
   const std::array<float, 4> combinations{min - pmin, max - pmin, min - pmax,

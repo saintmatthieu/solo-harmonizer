@@ -10,15 +10,14 @@ void TracingMelodyTracker::onHostTimeJump(float newTime) {
   _impl->onHostTimeJump(newTime);
 }
 
-size_t
-TracingMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
-                                     float noteNum) {
+void TracingMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
+                                          float noteNum) {
   _trace << "onNoteOnSample," << now.count() << "," << noteNum << std::endl;
-  return _impl->onNoteOnSample(now, noteNum);
+  _impl->onNoteOnSample(now, noteNum);
 }
 
-void TracingMelodyTracker::onNoteOff() {
+std::optional<size_t> TracingMelodyTracker::onNoteOff() {
   _trace << "onNoteOff" << std::endl;
-  _impl->onNoteOff();
+  return _impl->onNoteOff();
 }
 } // namespace saint

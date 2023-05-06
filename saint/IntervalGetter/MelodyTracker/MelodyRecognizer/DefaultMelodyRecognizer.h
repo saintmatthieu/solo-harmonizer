@@ -21,6 +21,17 @@ public:
   size_t getNextNoteIndex() override;
 
 private:
+  static constexpr size_t trackingIntervalSequenceLength = 3u;
+  // Maps interval sequence to occurrence indices
+  using SequenceMap = std::map<std::array<int, trackingIntervalSequenceLength>,
+                               std::vector<size_t>>;
+  using SequenceOccurrenceIndexMap =
+      std::map<std::array<int, trackingIntervalSequenceLength>, size_t>;
+
+  static SequenceMap _getSequenceMap(const std::vector<int> &intervals);
+
+  SequenceOccurrenceIndexMap _getSequenceNextOccurrenceIndices() const;
+
   const std::unique_ptr<ObservationLikelihoodGetter> _likelihoodGetter;
   const std::vector<int> _melody;
   const std::vector<int> _intervals;
@@ -29,15 +40,11 @@ private:
   // The map maps the begin index of the sub-vector in _intervals to the
   // sub-vector itself.
 
-  const std::vector<std::map<size_t,            // _intervals sub-vector index
-                             std::vector<int>>> // _intervals sub-vector
-      _uniqueSequences;
-  const size_t _uniqueSequenceCount;
+  const SequenceMap _sequenceMap;
   // const std::vector<std::map<size_t, std::vector<std::optional<float>>>>
   //     _intervalLikelihoods;
   const std::map<int, std::set<int>> _intervalTransitions;
-  std::map<int, float> _likelihoodPathTips;
-  std::optional<size_t> _nextNoteIndex;
+  size_t _winningSequenceIndex = 0u;
   std::vector<std::map<int, float>> _pastLikelihoods;
 };
 } // namespace saint

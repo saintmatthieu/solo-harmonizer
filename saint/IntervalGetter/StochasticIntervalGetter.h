@@ -21,5 +21,6 @@ private:
   const std::unique_ptr<MelodyTracker> _melodyTracker;
   const std::unique_ptr<PitchMapper> _pitchMapper;
   bool _prevPitchHadValue = false;
+  std::optional<float> _nextNoteonTimeEstimate;
 };
 } // namespace saint

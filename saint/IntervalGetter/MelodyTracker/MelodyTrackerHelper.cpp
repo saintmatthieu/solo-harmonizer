@@ -36,54 +36,6 @@ std::vector<int> MelodyTrackerHelper::getMelody(
   return melody;
 }
 
-std::vector<std::map<size_t, std::vector<int>>>
-MelodyTrackerHelper::getUniqueIntervals(const std::vector<int> &intervals) {
-  std::vector<bool> matched(intervals.size());
-  std::vector<std::map<size_t, std::vector<int>>> uniques;
-  while (
-      !std::all_of(matched.begin(), matched.end(), [](bool m) { return m; })) {
-    std::map<std::vector<int>, int> sequences;
-    std::map<std::vector<int>, size_t> sequenceIndices;
-    const auto order = uniques.size();
-    if (order >= intervals.size()) {
-      break;
-    }
-    for (auto i = 0u; i < intervals.size() - order - 1u; ++i) {
-      const std::vector<int> sequence{intervals.begin() + i,
-                                      intervals.begin() + i + order + 1u};
-      sequences[sequence]++;
-      sequenceIndices[sequence] = i;
-    }
-    std::map<size_t, std::vector<int>> newSet;
-    for (const auto &entry : sequences) {
-      if (entry.second == 1) {
-        const auto &newMatch = entry.first;
-        auto seenAlready = false;
-        for (const auto &entry : uniques) {
-          for (const auto &entry : entry) {
-            const auto &oldMatch = entry.second;
-            if (std::search(newMatch.begin(), newMatch.end(), oldMatch.begin(),
-                            oldMatch.end()) != newMatch.end()) {
-              updateMatched(intervals, newMatch, order, matched);
-              seenAlready = true;
-              break;
-            }
-          }
-        }
-        if (!seenAlready) {
-          newSet.emplace(sequenceIndices.at(newMatch), newMatch);
-        }
-      }
-    }
-    for (const auto &entry : newSet) {
-      const auto &match = entry.second;
-      updateMatched(intervals, match, order, matched);
-    }
-    uniques.emplace_back(std::move(newSet));
-  }
-  return uniques;
-}
-
 std::map<int, std::set<int>>
 MelodyTrackerHelper::getTransitions(const std::vector<int> &sequence) {
   std::map<int, std::set<int>> transitions;
