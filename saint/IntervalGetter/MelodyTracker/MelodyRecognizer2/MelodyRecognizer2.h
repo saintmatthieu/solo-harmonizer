@@ -5,11 +5,11 @@
 #include <vector>
 
 namespace saint {
-class MelodyTracker2 {
+class MelodyRecognizer2 {
 public:
   using Melody =
       std::vector<std::pair<float /*duration*/, int /*note number*/>>;
-  MelodyTracker2(Melody melody);
+  MelodyRecognizer2(Melody melody);
   std::optional<size_t> onNoteOff(const std::vector<float> &noteNumbers);
 
 private:

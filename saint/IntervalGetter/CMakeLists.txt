@@ -31,6 +31,7 @@ target_link_libraries(IntervalGetter
     TestUtils
     Utils
     eigen
+    MelodyRecognizer2
 )
 
 add_executable(IntervalGetterTests
@@ -59,4 +60,4 @@ target_link_libraries(IntervalGetterTests
     gtest_main
 )
 
-add_subdirectory(MelodyTracker2)
+add_subdirectory(MelodyTracker)

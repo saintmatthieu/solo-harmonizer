@@ -1,4 +1,4 @@
-#include "MelodyTracker2.h"
+#include "MelodyRecognizer2.h"
 
 #include <algorithm>
 #include <cassert>
@@ -50,7 +50,7 @@ float getDurationLikelihood(const std::vector<float> &inputDurations,
   return std::expf(-meanSquared);
 }
 
-std::vector<int> getNoteNumbers(const MelodyTracker2::Melody &melody) {
+std::vector<int> getNoteNumbers(const MelodyRecognizer2::Melody &melody) {
   std::vector<int> out(melody.size());
   std::transform(
       melody.begin(), melody.end(), out.begin(),
@@ -58,7 +58,7 @@ std::vector<int> getNoteNumbers(const MelodyTracker2::Melody &melody) {
   return out;
 }
 
-std::vector<float> getDurations(const MelodyTracker2::Melody &melody) {
+std::vector<float> getDurations(const MelodyRecognizer2::Melody &melody) {
   std::vector<float> out(melody.size());
   std::transform(
       melody.begin(), melody.end(), out.begin(),
@@ -70,12 +70,12 @@ constexpr auto numConsideredExperiments = 2u;
 
 } // namespace
 
-MelodyTracker2::MelodyTracker2(Melody melody)
+MelodyRecognizer2::MelodyRecognizer2(Melody melody)
     : _melody(std::move(melody)), _noteNumbers(getNoteNumbers(_melody)),
       _durations(getDurations(_melody)) {}
 
 std::optional<size_t>
-MelodyTracker2::onNoteOff(const std::vector<float> &noteNumbers) {
+MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
   if (_melody.size() < numConsideredExperiments) {
     assert(false);
     return std::nullopt;
