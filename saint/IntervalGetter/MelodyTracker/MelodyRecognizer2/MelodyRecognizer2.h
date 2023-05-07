@@ -1,6 +1,8 @@
 #pragma once
 
+#include <map>
 #include <optional>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -9,13 +11,16 @@ class MelodyRecognizer2 {
 public:
   using Melody =
       std::vector<std::pair<float /*duration*/, int /*note number*/>>;
-  MelodyRecognizer2(Melody melody);
+  MelodyRecognizer2(const Melody &melody);
   std::optional<size_t> onNoteOff(const std::vector<float> &noteNumbers);
 
 private:
-  const Melody _melody;
-  const std::vector<int> _noteNumbers;
-  const std::vector<float> _durations;
+  // Could be a map, i.e., std::map<std::vector<std::pair<float, int>>,
+  // std::set<size_t>>
+  const std::vector<std::pair<std::vector<std::pair<float, int>> /*motive*/,
+                              std::vector<size_t> /*indices*/>>
+      _motiveBeginIndices;
   std::vector<std::vector<float>> _lastExperiments;
+  std::optional<size_t> _lastGuess;
 };
 } // namespace saint
