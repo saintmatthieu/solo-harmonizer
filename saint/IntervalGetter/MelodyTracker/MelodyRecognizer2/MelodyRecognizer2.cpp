@@ -30,8 +30,12 @@ float getIntervalLikelihood(
     }
   }
   const auto variance = getVariance(lessRefNoteNumbers);
-  // For now a Gauss in its most rudimentary form
-  return std::expf(-variance);
+  // Variance here has unit semitone squared. E.g.
+  //    Reference pitch : [60, 60]
+  //    Actual pitch : [63, 65]
+  //    Fit : [59, 61] => variance = 1
+  // We penalize this giving a probability of 1/2.
+  return std::powf(2.f, -variance);
 }
 
 float getDurationLikelihood(const std::vector<float> &inputLogDurations,
@@ -42,8 +46,15 @@ float getDurationLikelihood(const std::vector<float> &inputLogDurations,
   for (auto i = 0u; i < N; ++i) {
     timeRatios[i] = experimentLogDurations[i] - inputLogDurations[i];
   }
+  // Variance here has unit "time octave" squared. E.g.
+  //    Reference duration : [1, 1] (sec) -> log -> [0, 0]
+  //    Actual duration : [2, 8] (sec) -> log -> [1, 3]
+  //    Fit (log) : [-1, 1] => variance = 1.
+  // We penalize this giving a probability of 1/2. It may not seem much, but we
+  // should probably be less severe with duration as with pitch, people don't
+  // necessarily care about muting in time.
   const auto variance = getVariance(timeRatios);
-  return std::expf(-variance);
+  return std::powf(2.f, -variance);
 }
 
 std::vector<int> getNoteNumbers(const Melody &melody) {
@@ -54,12 +65,11 @@ std::vector<int> getNoteNumbers(const Melody &melody) {
   return out;
 }
 
-std::vector<float> getLogDurations(const Melody &melody) {
+std::vector<float> getDurations(const Melody &melody) {
   std::vector<float> out(melody.size());
-  std::transform(melody.begin(), melody.end(), out.begin(),
-                 [](const std::pair<float, int> &entry) {
-                   return std::logf(entry.first);
-                 });
+  std::transform(
+      melody.begin(), melody.end(), out.begin(),
+      [](const std::pair<float, int> &entry) { return entry.first; });
   return out;
 }
 
@@ -76,7 +86,7 @@ getMotiveBeginIndices(const Melody &melody) {
         melody.begin() + i, melody.begin() + i + numConsideredExperiments,
         shifted.begin(),
         [&](const std::pair<float, int> &note) -> std::pair<float, int> {
-          return {note.first / firstDuration, note.second - firstPitch};
+          return {note.first - firstDuration, note.second - firstPitch};
         });
     beginIndices[shifted].push_back(i);
   }
@@ -86,10 +96,33 @@ getMotiveBeginIndices(const Melody &melody) {
                  [](const auto &entry) { return entry; });
   return asVector;
 }
+
+float getReferenceDuration(const Melody &melody) {
+  // A pitch class p is a log2(f/f0) operation. For our purpose it is convenient
+  // to have durations in similar form. As duration reference we choose the
+  // least duration. Ideally this is quantized and we can get nice round values
+  // when applying our log2 formula.
+  return std::log2f(std::min_element(melody.begin(), melody.end(),
+                                     [](const auto &a, const auto &b) {
+                                       return a.first < b.first;
+                                     })
+                        ->first);
+}
+
+Melody convertDurationsToLog(Melody melody, float referenceDuration) {
+  std::transform(
+      melody.begin(), melody.end(), melody.begin(),
+      [referenceDuration](const auto &entry) -> std::pair<float, int> {
+        return {std::log2f(entry.first) - referenceDuration, entry.second};
+      });
+  return melody;
+}
 } // namespace
 
-MelodyRecognizer2::MelodyRecognizer2(const Melody &melody)
-    : _motiveBeginIndices(getMotiveBeginIndices(melody)) {}
+MelodyRecognizer2::MelodyRecognizer2(Melody melody)
+    : _referenceDuration(getReferenceDuration(melody)),
+      _motiveBeginIndices(getMotiveBeginIndices(
+          convertDurationsToLog(std::move(melody), _referenceDuration))) {}
 
 std::optional<size_t>
 MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
@@ -102,15 +135,20 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
   std::vector<float> lastExperimentLogDurations(_lastExperiments.size());
   std::transform(_lastExperiments.begin(), _lastExperiments.end(),
                  lastExperimentLogDurations.begin(),
-                 [](const std::vector<float> &experiment) {
-                   return std::logf(static_cast<float>(experiment.size()));
+                 [this](const std::vector<float> &experiment) {
+                   // We could try to convert observation sample rate time unit
+                   // to that of the reference duration to get nice round
+                   // numbers. Would simplify debugging, but it's correct as it
+                   // is.
+                   return std::log2f(static_cast<float>(experiment.size()) -
+                                     _referenceDuration);
                  });
   std::vector<float> probs(_motiveBeginIndices.size());
   std::transform(_motiveBeginIndices.begin(), _motiveBeginIndices.end(),
                  probs.begin(), [&](const auto &entry) {
                    const auto &motive = entry.first;
                    const auto motiveNoteNumbers = getNoteNumbers(motive);
-                   const auto motiveDurations = getLogDurations(motive);
+                   const auto motiveDurations = getDurations(motive);
                    const auto intervalLlh = getIntervalLikelihood(
                        motiveNoteNumbers, _lastExperiments);
                    const auto durationLlh = getDurationLikelihood(
@@ -118,8 +156,9 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
                    return intervalLlh * durationLlh;
                  });
   const auto maxProbIt = std::max_element(probs.begin(), probs.end());
-  if (*maxProbIt < 0.1f) {
-    // TODO: review this !
+  if (*maxProbIt < 0.25f) {
+    // For perfect timing this means a variance between 1 and 2 semitones (not
+    // sure exactly which value at this time.)
     return std::nullopt;
   }
   const auto mostLikelyMotiveIndex = std::distance(probs.begin(), maxProbIt);
