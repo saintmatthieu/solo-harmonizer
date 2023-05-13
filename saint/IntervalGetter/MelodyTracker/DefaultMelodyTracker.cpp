@@ -9,6 +9,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 
 namespace saint {
 namespace {
@@ -67,7 +68,14 @@ void DefaultMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
 }
 
 std::optional<size_t> DefaultMelodyTracker::onNoteOff() {
-  const auto ret = _melodyRecognizer2->onNoteOff(_observations);
+  auto ret = _melodyRecognizer2->onNoteOff(_observations);
+  static std::ofstream log("C:/Users/saint/downloads/log.txt");
+  log << (ret.has_value() ? std::to_string(*ret) : "nullopt") << std::endl;
+  if (ret.has_value()) {
+    // _melodyRecognizer2 guesses what note was just played, while our client
+    // expects the next note index.
+    ret = *ret + 1u;
+  }
   _observations.clear();
   return ret;
   // assert(!_samples.empty());

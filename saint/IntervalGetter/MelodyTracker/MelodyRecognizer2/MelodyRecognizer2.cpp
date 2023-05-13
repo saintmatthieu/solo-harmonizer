@@ -118,6 +118,10 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
                    return intervalLlh * durationLlh;
                  });
   const auto maxProbIt = std::max_element(probs.begin(), probs.end());
+  if (*maxProbIt < 0.1f) {
+    // TODO: review this !
+    return std::nullopt;
+  }
   const auto mostLikelyMotiveIndex = std::distance(probs.begin(), maxProbIt);
   const auto &candidateIndices =
       (_motiveBeginIndices.begin() + mostLikelyMotiveIndex)->second;
