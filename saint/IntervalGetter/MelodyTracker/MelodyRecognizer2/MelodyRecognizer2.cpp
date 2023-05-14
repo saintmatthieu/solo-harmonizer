@@ -135,26 +135,21 @@ MelodyRecognizer2::MelodyRecognizer2(Melody melody)
 
 std::optional<size_t>
 MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
+
   static std::ofstream log("C:/Users/saint/downloads/log.txt");
 
+  const auto experimentLogDuration =
+      std::log2f(static_cast<float>(noteNumbers.size()) - _referenceDuration);
+
   _lastExperiments.push_back(noteNumbers);
+  _lastExperimentsLogDurations.push_back(experimentLogDuration);
   if (_lastExperiments.size() < numConsideredExperiments) {
     log << "nullopt" << std::endl;
     return std::nullopt;
   } else if (_lastExperiments.size() > numConsideredExperiments) {
     _lastExperiments.erase(_lastExperiments.begin());
+    _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
-  std::vector<float> lastExperimentLogDurations(_lastExperiments.size());
-  std::transform(_lastExperiments.begin(), _lastExperiments.end(),
-                 lastExperimentLogDurations.begin(),
-                 [this](const std::vector<float> &experiment) {
-                   // We could try to convert observation sample rate time unit
-                   // to that of the reference duration to get nice round
-                   // numbers. Would simplify debugging, but it's correct as it
-                   // is.
-                   return std::log2f(static_cast<float>(experiment.size()) -
-                                     _referenceDuration);
-                 });
   struct Stats {
     float durationErrorAvg;
     float pitchClassErrorAvg;
@@ -170,7 +165,7 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
         const auto [pitchClassErrorAvg, intervalLlh] =
             getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
         const auto [durationErrorAvg, durationLlh] =
-            getDurationLikelihood(motiveDurations, lastExperimentLogDurations);
+            getDurationLikelihood(motiveDurations, _lastExperimentsLogDurations);
         return Stats{durationErrorAvg, pitchClassErrorAvg,
                      intervalLlh * durationLlh};
       });
@@ -205,6 +200,8 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
     }
   }
   _lastGuess = candidateIndices[indexOfChosenCandidate];
+
+  // Logging
   const auto pitchTransposition =
       maxProbIt->pitchClassErrorAvg -
       candidateInstances[indexOfChosenCandidate].firstNoteNumber;
@@ -214,6 +211,7 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
   const auto retval = *_lastGuess + numConsideredExperiments - 1u;
   log << "index=" << retval << ", pitchTranspose: " << pitchTransposition
       << ", durationTranspose: " << durationTransposition << std::endl;
+
   return retval;
 }
 } // namespace saint

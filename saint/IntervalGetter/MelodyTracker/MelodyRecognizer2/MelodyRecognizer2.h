@@ -28,6 +28,7 @@ private:
                               std::vector<MotiveInstance>>>
       _motiveInstances;
   std::vector<std::vector<float>> _lastExperiments;
+  std::vector<float> _lastExperimentsLogDurations;
   std::optional<size_t> _lastGuess;
 };
 } // namespace saint
