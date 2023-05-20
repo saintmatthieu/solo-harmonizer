@@ -18,7 +18,8 @@ public:
   };
 
   MelodyRecognizer2(Melody melody);
-  std::optional<size_t> onNoteOff(const std::vector<float> &noteNumbers);
+  std::optional<size_t> beginNewNote(int tickCounter);
+  void addPitchMeasurement(float pc);
 
 private:
   const float _referenceDuration;
@@ -28,7 +29,9 @@ private:
                               std::vector<MotiveInstance>>>
       _motiveInstances;
   std::vector<std::vector<float>> _lastExperiments;
+  std::optional<std::vector<float>> _currentExperiment;
   std::vector<float> _lastExperimentsLogDurations;
   std::optional<size_t> _lastGuess;
+  int _prevNoteonTick = 0;
 };
 } // namespace saint

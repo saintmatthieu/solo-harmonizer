@@ -58,36 +58,12 @@ DefaultMelodyTracker::DefaultMelodyTracker(
       _timingEstimator(std::move(timingEstimator)),
       _melodyRecognizer2(std::move(melodyRecognizer2)) {}
 
-void DefaultMelodyTracker::onHostTimeJump(float newTime) {}
-
-void DefaultMelodyTracker::onNoteOnSample(const std::chrono::milliseconds &now,
-                                          float noteNum) {
-  _samples.emplace_back(now, noteNum);
-  _observations.emplace_back(noteNum);
+std::optional<size_t> DefaultMelodyTracker::beginNewNote(int tick) {
+  return _melodyRecognizer2->beginNewNote(tick);
 }
 
-std::optional<size_t> DefaultMelodyTracker::onNoteOff() {
-  auto ret = _melodyRecognizer2->onNoteOff(_observations);
-  if (ret.has_value()) {
-    // _melodyRecognizer2 guesses what note was just played, while our client
-    // expects the next note index.
-    ret = *ret + 1u;
-  }
-  _observations.clear();
-  return ret;
-  // assert(!_samples.empty());
-  // if (_samples.empty()) {
-  //   return std::nullopt;
-  // }
-  // const auto fittingReady = _melodyRecognizer->onNoteOff(_samples);
-  // const auto noteonSampleTime = _samples[0].first;
-  // _samples.clear();
-  // if (fittingReady) {
-  //   const auto next = _melodyRecognizer->getNextNoteIndex();
-  //   _timingEstimator->addAttack(noteonSampleTime, next - 1u);
-  //   return next;
-  // } else {
-  //   return std::nullopt;
-  // }
+void DefaultMelodyTracker::addPitchMeasurement(float pc) {
+  _melodyRecognizer2->addPitchMeasurement(pc);
 }
+
 } // namespace saint

@@ -133,18 +133,23 @@ MelodyRecognizer2::MelodyRecognizer2(Melody melody)
       _motiveInstances(getMotiveBeginInstances(
           convertDurationsToLog(std::move(melody), _referenceDuration))) {}
 
-std::optional<size_t>
-MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
+std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
 
   static std::ofstream log("C:/Users/saint/downloads/log.txt");
 
-  const auto experimentLogDuration =
-      std::log2f(static_cast<float>(noteNumbers.size()) - _referenceDuration);
+  assert(_currentExperiment.has_value());
+  _lastExperiments.push_back(*_currentExperiment); // todo optimize
+  _currentExperiment.reset();
 
-  _lastExperiments.push_back(noteNumbers);
+  const auto experimentLogDuration = std::log2f(
+      static_cast<float>(tickCounter - _prevNoteonTick) - _referenceDuration);
+  _prevNoteonTick = tickCounter;
+
   _lastExperimentsLogDurations.push_back(experimentLogDuration);
   if (_lastExperiments.size() < numConsideredExperiments) {
     log << "nullopt" << std::endl;
+    // Begin new experiment
+    _lastExperiments.push_back({});
     return std::nullopt;
   } else if (_lastExperiments.size() > numConsideredExperiments) {
     _lastExperiments.erase(_lastExperiments.begin());
@@ -164,8 +169,8 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
         const auto motiveDurations = getDurations(motive);
         const auto [pitchClassErrorAvg, intervalLlh] =
             getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
-        const auto [durationErrorAvg, durationLlh] =
-            getDurationLikelihood(motiveDurations, _lastExperimentsLogDurations);
+        const auto [durationErrorAvg, durationLlh] = getDurationLikelihood(
+            motiveDurations, _lastExperimentsLogDurations);
         return Stats{durationErrorAvg, pitchClassErrorAvg,
                      intervalLlh * durationLlh};
       });
@@ -213,5 +218,12 @@ MelodyRecognizer2::onNoteOff(const std::vector<float> &noteNumbers) {
       << ", durationTranspose: " << durationTransposition << std::endl;
 
   return retval;
+}
+
+void MelodyRecognizer2::addPitchMeasurement(float pc) {
+  if (!_currentExperiment.has_value()){
+    _currentExperiment = {};
+  }
+  _currentExperiment->push_back(pc);
 }
 } // namespace saint
