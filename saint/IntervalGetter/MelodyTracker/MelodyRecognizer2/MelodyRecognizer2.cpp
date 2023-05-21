@@ -157,22 +157,31 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
   }
   struct Stats {
     float combinedLikelihood;
-    float durationErrorAvg;
-    float pitchClassErrorAvg;
+    std::vector<float> durationTranspositions;
+    std::vector<float> pitchTranspositions;
   };
   std::vector<Stats> stats(_motiveInstances.size());
   std::transform(
       _motiveInstances.begin(), _motiveInstances.end(), stats.begin(),
-      [&](const auto &entry) {
-        const auto &motive = entry.first;
+      [&](const std::pair<std::vector<std::pair<float, int>>,
+                          std::vector<MotiveInstance>> &entry) -> Stats {
+        const auto &[motive, candidateInstances] = entry;
         const auto motiveNoteNumbers = getNoteNumbers(motive);
         const auto motiveDurations = getDurations(motive);
         const auto [pitchClassErrorAvg, intervalLlh] =
             getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
         const auto [durationErrorAvg, durationLlh] = getDurationLikelihood(
             motiveDurations, _lastExperimentsLogDurations);
-        return Stats{intervalLlh * durationLlh, durationErrorAvg,
-                     pitchClassErrorAvg};
+        std::vector<float> durationTranspositions(candidateInstances.size());
+        std::vector<float> pitchTranspositions(candidateInstances.size());
+        for (auto i = 0u; i < candidateInstances.size(); ++i) {
+          durationTranspositions[i] =
+              durationErrorAvg - candidateInstances[i].firstDuration;
+          pitchTranspositions[i] =
+              pitchClassErrorAvg - candidateInstances[i].firstNoteNumber;
+        }
+        return {intervalLlh * durationLlh, std::move(durationTranspositions),
+                std::move(pitchTranspositions)};
       });
   const auto maxProbIt = std::max_element(
       stats.begin(), stats.end(), [](const Stats &a, const Stats &b) {
@@ -207,15 +216,11 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
   _lastGuess = candidateIndices[indexOfChosenCandidate];
 
   // Logging
-  const auto pitchTransposition =
-      maxProbIt->pitchClassErrorAvg -
-      candidateInstances[indexOfChosenCandidate].firstNoteNumber;
-  const auto durationTransposition =
-      maxProbIt->durationErrorAvg -
-      candidateInstances[indexOfChosenCandidate].firstDuration;
   const auto retval = *_lastGuess + numConsideredExperiments - 1u;
-  log << "index=" << retval << ", pitchTranspose: " << pitchTransposition
-      << ", durationTranspose: " << durationTransposition
+  log << "index=" << retval << ", pitchTranspose: "
+      << maxProbIt->pitchTranspositions[indexOfChosenCandidate]
+      << ", durationTranspose: "
+      << maxProbIt->durationTranspositions[indexOfChosenCandidate]
       << ", llh: " << maxProbIt->combinedLikelihood << std::endl;
 
   return retval;
