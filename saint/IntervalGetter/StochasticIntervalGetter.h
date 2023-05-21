@@ -22,5 +22,6 @@ private:
   const std::unique_ptr<PitchMapper> _pitchMapper;
   bool _prevPitchHadValue = false;
   std::optional<float> _nextNoteonTimeEstimate;
+  int _tick = 0;
 };
 } // namespace saint

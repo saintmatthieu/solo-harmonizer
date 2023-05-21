@@ -3,7 +3,6 @@
 #include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
 #include "MelodyTracker/MelodyRecognizer2/MelodyRecognizer2.h"
 #include "MelodyTracker/TimingEstimator/DefaultTimingEstimator.h"
-#include "TracingMelodyTracker.h"
 #include "Utils.h"
 
 #include <cassert>
@@ -38,16 +37,10 @@ MelodyRecognizer2::Melody toMelodyRecognizer2Melody(
 
 std::unique_ptr<MelodyTracker> MelodyTracker::createInstance(
     const std::vector<std::pair<float, std::optional<int>>> &melody) {
-  auto tracker = std::make_unique<DefaultMelodyTracker>(
+  return std::make_unique<DefaultMelodyTracker>(
       MelodyRecognizer::createInstance(melody),
       std::make_unique<DefaultTimingEstimator>(getOnsetTimes(melody)),
       std::make_unique<MelodyRecognizer2>(toMelodyRecognizer2Melody(melody)));
-  if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_MELODYTRACKER") &&
-      utils::isDebugBuild()) {
-    return std::make_unique<TracingMelodyTracker>(std::move(tracker));
-  } else {
-    return tracker;
-  }
 }
 
 DefaultMelodyTracker::DefaultMelodyTracker(

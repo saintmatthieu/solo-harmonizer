@@ -4,7 +4,6 @@ add_library(IntervalGetter
   MelodyTracker/TimingEstimator/DefaultTimingEstimator.cpp
   MelodyTracker/DefaultMelodyTracker.cpp
   MelodyTracker/MelodyTrackerHelper.cpp
-  MelodyTracker/TracingMelodyTracker.cpp
   DefaultIntervalGetter.cpp
   DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp

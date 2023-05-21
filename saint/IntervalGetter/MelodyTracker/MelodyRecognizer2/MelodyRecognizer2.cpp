@@ -137,7 +137,9 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
 
   static std::ofstream log("C:/Users/saint/downloads/log.txt");
 
-  assert(_currentExperiment.has_value());
+  if (!_currentExperiment.has_value()) {
+    return std::nullopt;
+  }
   _lastExperiments.push_back(*_currentExperiment); // todo optimize
   _currentExperiment.reset();
 
@@ -148,17 +150,15 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
   _lastExperimentsLogDurations.push_back(experimentLogDuration);
   if (_lastExperiments.size() < numConsideredExperiments) {
     log << "nullopt" << std::endl;
-    // Begin new experiment
-    _lastExperiments.push_back({});
     return std::nullopt;
   } else if (_lastExperiments.size() > numConsideredExperiments) {
     _lastExperiments.erase(_lastExperiments.begin());
     _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
   struct Stats {
+    float combinedLikelihood;
     float durationErrorAvg;
     float pitchClassErrorAvg;
-    float combinedLikelihood;
   };
   std::vector<Stats> stats(_motiveInstances.size());
   std::transform(
@@ -171,8 +171,8 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
             getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
         const auto [durationErrorAvg, durationLlh] = getDurationLikelihood(
             motiveDurations, _lastExperimentsLogDurations);
-        return Stats{durationErrorAvg, pitchClassErrorAvg,
-                     intervalLlh * durationLlh};
+        return Stats{intervalLlh * durationLlh, durationErrorAvg,
+                     pitchClassErrorAvg};
       });
   const auto maxProbIt = std::max_element(
       stats.begin(), stats.end(), [](const Stats &a, const Stats &b) {
@@ -215,14 +215,15 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
       candidateInstances[indexOfChosenCandidate].firstDuration;
   const auto retval = *_lastGuess + numConsideredExperiments - 1u;
   log << "index=" << retval << ", pitchTranspose: " << pitchTransposition
-      << ", durationTranspose: " << durationTransposition << std::endl;
+      << ", durationTranspose: " << durationTransposition
+      << ", llh: " << maxProbIt->combinedLikelihood << std::endl;
 
   return retval;
 }
 
 void MelodyRecognizer2::addPitchMeasurement(float pc) {
-  if (!_currentExperiment.has_value()){
-    _currentExperiment = {};
+  if (!_currentExperiment.has_value()) {
+    _currentExperiment = std::vector<float>{};
   }
   _currentExperiment->push_back(pc);
 }
