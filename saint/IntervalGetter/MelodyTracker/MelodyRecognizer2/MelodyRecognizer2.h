@@ -17,26 +17,34 @@ public:
   void addPitchMeasurement(float pc);
 
 public: // but not meant for external usage
+  struct Stats {
+    float prob;
+    float pitchTranspose;
+    float durationTranspose;
+  };
+
   struct MotiveInstance {
     int firstNoteNumber;
     float firstDuration;
+    mutable Stats currStats;
+    mutable std::optional<Stats> prevStats;
   };
 
-  struct MotiveInfo {
-    float instantaneousProb = 1.f; // i.e., without considering transition probs
-    std::vector<MotiveInstance> instances;
-  };
-
-  using MotiveInvariants = std::vector<
+  using MotiveInvariant =
       std::pair<Melody /*motive*/,
-                std::unordered_map<size_t /*begin index*/, MotiveInstance>>>;
+                std::unordered_map<size_t /*begin index*/, MotiveInstance>>;
+  using MotiveInvariants = std::vector<MotiveInvariant>;
+
+  struct TableRow {
+    const Melody motive;
+    const size_t beginIndex;
+    const std::shared_ptr<int> firstNoteNumber;
+    const std::shared_ptr<int> firstDuration;
+    std::shared_ptr<Stats> currStats;
+    std::shared_ptr<Stats> prevStats;
+  };
 
 private:
-  struct Stats {
-    float combinedLikelihood;
-    std::vector<std::pair<float /*pitch*/, float /*duration*/>> transpositions;
-  };
-
   const float _referenceDuration;
   const MotiveInvariants _motives;
   std::vector<std::vector<float>> _lastExperiments;
@@ -44,6 +52,5 @@ private:
   std::vector<float> _lastExperimentsLogDurations;
   std::optional<size_t> _lastGuess;
   int _prevNoteonTick = 0;
-  std::vector<Stats> _prevStats;
 };
 } // namespace saint

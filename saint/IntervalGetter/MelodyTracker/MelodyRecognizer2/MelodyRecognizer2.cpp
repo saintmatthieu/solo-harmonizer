@@ -9,7 +9,6 @@
 namespace saint {
 
 using Melody = MelodyRecognizer2::Melody;
-using MotiveInfo = MelodyRecognizer2::MotiveInfo;
 using MotiveInstance = MelodyRecognizer2::MotiveInstance;
 using MotiveInvariants = MelodyRecognizer2::MotiveInvariants;
 
@@ -169,32 +168,23 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
     _lastExperiments.erase(_lastExperiments.begin());
     _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
-  std::vector<Stats> stats(_motives.size());
-  std::transform(
-      _motives.begin(), _motives.end(), stats.begin(),
-      [&](const std::pair<Melody, std::unordered_map<size_t, MotiveInstance>>
-              &entry) -> Stats {
-        const auto &[motive, instances] = entry;
-        const auto motiveNoteNumbers = getNoteNumbers(motive);
-        const auto motiveDurations = getDurations(motive);
-        const auto [pitchClassErrorAvg, intervalLlh] =
-            getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
-        const auto [durationErrorAvg, durationLlh] = getDurationLikelihood(
-            motiveDurations, _lastExperimentsLogDurations);
-        std::vector<std::pair<float, float>> transpositions;
-        transpositions.reserve(instances.size());
-        for (const auto& entry : instances) {
-          transpositions.emplace_back(
-              pitchClassErrorAvg - entry.second.firstNoteNumber,
-              durationErrorAvg - entry.second.firstDuration);
-        }
-        return {intervalLlh * durationLlh, std::move(transpositions)};
-      });
 
-  const auto maxProbIt = std::max_element(
-      stats.begin(), stats.end(), [](const Stats &a, const Stats &b) {
-        return a.combinedLikelihood < b.combinedLikelihood;
-      });
+  for (const auto &entry : _motives) {
+    const auto &[motive, instances] = entry;
+    const auto motiveNoteNumbers = getNoteNumbers(motive);
+    const auto motiveDurations = getDurations(motive);
+    const auto [pitchClassErrorAvg, intervalLlh] =
+        getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
+    const auto [durationErrorAvg, durationLlh] =
+        getDurationLikelihood(motiveDurations, _lastExperimentsLogDurations);
+    for (auto &entry : instances) {
+      Stats &stats = entry.second.currStats;
+      stats.pitchTranspose = pitchClassErrorAvg - entry.second.firstNoteNumber;
+      stats.durationTranspose = durationErrorAvg - entry.second.firstDuration;
+      stats.prob = intervalLlh * durationLlh;
+    }
+  }
+
   if (maxProbIt->combinedLikelihood < 0.25f) {
     // For perfect timing this means a variance between 1 and 2 semitones (not
     // sure exactly which value at this time.)
