@@ -9,7 +9,9 @@
 namespace saint {
 
 using Melody = MelodyRecognizer2::Melody;
+using MotiveInfo = MelodyRecognizer2::MotiveInfo;
 using MotiveInstance = MelodyRecognizer2::MotiveInstance;
+using MotiveInvariants = MelodyRecognizer2::MotiveInvariants;
 
 namespace {
 float getAverage(const std::vector<float> &x) {
@@ -84,9 +86,8 @@ std::vector<float> getDurations(const Melody &melody) {
 
 constexpr auto numConsideredExperiments = 2u;
 
-std::vector<std::pair<Melody, std::vector<MotiveInstance>>>
-getMotiveBeginInstances(const Melody &melody) {
-  std::map<Melody, std::vector<MotiveInstance>> motiveInstances;
+MotiveInvariants getMotiveBeginInstances(const Melody &melody) {
+  std::map<Melody, std::unordered_map<size_t, MotiveInstance>> motiveInstances;
   for (auto i = 0u; i < melody.size() - numConsideredExperiments + 1u; ++i) {
     std::vector<std::pair<float, int>> shifted(numConsideredExperiments);
     const auto firstDuration = melody[i].first;
@@ -97,10 +98,9 @@ getMotiveBeginInstances(const Melody &melody) {
         [&](const std::pair<float, int> &note) -> std::pair<float, int> {
           return {note.first - firstDuration, note.second - firstPitch};
         });
-    motiveInstances[shifted].push_back({i, firstPitch, firstDuration});
+    motiveInstances[shifted][i] = {firstPitch, firstDuration};
   }
-  std::vector<std::pair<Melody, std::vector<MotiveInstance>>> asVector(
-      motiveInstances.size());
+  MotiveInvariants asVector(motiveInstances.size());
   std::transform(motiveInstances.begin(), motiveInstances.end(),
                  asVector.begin(), [](const auto &entry) { return entry; });
   return asVector;
@@ -143,7 +143,7 @@ float getDurationTranspositionLikelihood(float a, float b) {
 
 MelodyRecognizer2::MelodyRecognizer2(Melody melody)
     : _referenceDuration(getReferenceDuration(melody)),
-      _motiveInstances(getMotiveBeginInstances(
+      _motives(getMotiveBeginInstances(
           convertDurationsToLog(std::move(melody), _referenceDuration))) {}
 
 std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
@@ -169,28 +169,26 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
     _lastExperiments.erase(_lastExperiments.begin());
     _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
-  std::vector<Stats> stats(_motiveInstances.size());
+  std::vector<Stats> stats(_motives.size());
   std::transform(
-      _motiveInstances.begin(), _motiveInstances.end(), stats.begin(),
-      [&](const std::pair<std::vector<std::pair<float, int>>,
-                          std::vector<MotiveInstance>> &entry) -> Stats {
-        const auto &[motive, candidateInstances] = entry;
+      _motives.begin(), _motives.end(), stats.begin(),
+      [&](const std::pair<Melody, std::unordered_map<size_t, MotiveInstance>>
+              &entry) -> Stats {
+        const auto &[motive, instances] = entry;
         const auto motiveNoteNumbers = getNoteNumbers(motive);
         const auto motiveDurations = getDurations(motive);
         const auto [pitchClassErrorAvg, intervalLlh] =
             getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
         const auto [durationErrorAvg, durationLlh] = getDurationLikelihood(
             motiveDurations, _lastExperimentsLogDurations);
-        std::vector<float> durationTranspositions(candidateInstances.size());
-        std::vector<float> pitchTranspositions(candidateInstances.size());
-        for (auto i = 0u; i < candidateInstances.size(); ++i) {
-          durationTranspositions[i] =
-              durationErrorAvg - candidateInstances[i].firstDuration;
-          pitchTranspositions[i] =
-              pitchClassErrorAvg - candidateInstances[i].firstNoteNumber;
+        std::vector<std::pair<float, float>> transpositions;
+        transpositions.reserve(instances.size());
+        for (const auto& entry : instances) {
+          transpositions.emplace_back(
+              pitchClassErrorAvg - entry.second.firstNoteNumber,
+              durationErrorAvg - entry.second.firstDuration);
         }
-        return {intervalLlh * durationLlh, std::move(durationTranspositions),
-                std::move(pitchTranspositions)};
+        return {intervalLlh * durationLlh, std::move(transpositions)};
       });
 
   const auto maxProbIt = std::max_element(
@@ -205,12 +203,11 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
   }
   const auto mostLikelyMotiveIndex = std::distance(stats.begin(), maxProbIt);
   const auto &candidateInstances =
-      (_motiveInstances.begin() + mostLikelyMotiveIndex)->second;
+      (_motives.begin() + mostLikelyMotiveIndex)->second;
   std::vector<size_t> candidateIndices(candidateInstances.size());
   std::transform(candidateInstances.begin(), candidateInstances.end(),
-                 candidateIndices.begin(), [](const MotiveInstance &instance) {
-                   return instance.beginIndex;
-                 });
+                 candidateIndices.begin(),
+                 [](const auto &entry) { return entry.first; });
   auto indexOfChosenCandidate = 0u;
   if (_lastGuess.has_value()) {
     const auto nextToLastGuessIt = std::upper_bound(
@@ -227,10 +224,10 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
 
   // Logging
   const auto retval = *_lastGuess + numConsideredExperiments - 1u;
-  log << "index=" << retval << ", pitchTranspose: "
-      << maxProbIt->pitchTranspositions[indexOfChosenCandidate]
-      << ", durationTranspose: "
-      << maxProbIt->durationTranspositions[indexOfChosenCandidate]
+  const auto &[pitchTransposition, durationTransposition] =
+      maxProbIt->transpositions[indexOfChosenCandidate];
+  log << "index=" << retval << ", pitchTranspose: " << pitchTransposition
+      << ", durationTranspose: " << durationTransposition
       << ", llh: " << maxProbIt->combinedLikelihood << std::endl;
 
   return retval;

@@ -3,6 +3,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -11,29 +12,33 @@ class MelodyRecognizer2 {
 public:
   using Melody =
       std::vector<std::pair<float /*duration*/, int /*note number*/>>;
-  struct MotiveInstance {
-    size_t beginIndex;
-    int firstNoteNumber;
-    float firstDuration;
-  };
-
   MelodyRecognizer2(Melody melody);
   std::optional<size_t> beginNewNote(int tickCounter);
   void addPitchMeasurement(float pc);
 
+public: // but not meant for external usage
+  struct MotiveInstance {
+    int firstNoteNumber;
+    float firstDuration;
+  };
+
+  struct MotiveInfo {
+    float instantaneousProb = 1.f; // i.e., without considering transition probs
+    std::vector<MotiveInstance> instances;
+  };
+
+  using MotiveInvariants = std::vector<
+      std::pair<Melody /*motive*/,
+                std::unordered_map<size_t /*begin index*/, MotiveInstance>>>;
+
 private:
   struct Stats {
     float combinedLikelihood;
-    std::vector<float> durationTranspositions;
-    std::vector<float> pitchTranspositions;
+    std::vector<std::pair<float /*pitch*/, float /*duration*/>> transpositions;
   };
 
   const float _referenceDuration;
-  // Could be a map, i.e., std::map<std::vector<std::pair<float, int>>,
-  // std::set<size_t>>
-  const std::vector<std::pair<std::vector<std::pair<float, int>> /*motive*/,
-                              std::vector<MotiveInstance>>>
-      _motiveInstances;
+  const MotiveInvariants _motives;
   std::vector<std::vector<float>> _lastExperiments;
   std::optional<std::vector<float>> _currentExperiment;
   std::vector<float> _lastExperimentsLogDurations;
