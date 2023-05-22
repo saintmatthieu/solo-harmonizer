@@ -126,6 +126,19 @@ Melody convertDurationsToLog(Melody melody, float referenceDuration) {
       });
   return melody;
 }
+
+float getPitchTranspositionLikelihood(float a, float b) {
+  // We tolerate intonation errors but no on-the-fly transpositions. For now
+  // accept anything within 1 semitone.
+  // Todo: tune
+  return std::abs(a - b) > 0.5f ? 0.f : 1.f;
+}
+
+float getDurationTranspositionLikelihood(float a, float b) {
+  // From one note to the next, tolerate an acceleration by a factor of 2, but
+  // nothing else for now. Todo: tune
+  return std::abs(a - b) > 0.5f ? 0.f : 1.f;
+}
 } // namespace
 
 MelodyRecognizer2::MelodyRecognizer2(Melody melody)
@@ -138,6 +151,7 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
   static std::ofstream log("C:/Users/saint/downloads/log.txt");
 
   if (!_currentExperiment.has_value()) {
+    log << "nullopt" << std::endl;
     return std::nullopt;
   }
   _lastExperiments.push_back(*_currentExperiment); // todo optimize
@@ -155,11 +169,6 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
     _lastExperiments.erase(_lastExperiments.begin());
     _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
-  struct Stats {
-    float combinedLikelihood;
-    std::vector<float> durationTranspositions;
-    std::vector<float> pitchTranspositions;
-  };
   std::vector<Stats> stats(_motiveInstances.size());
   std::transform(
       _motiveInstances.begin(), _motiveInstances.end(), stats.begin(),
@@ -183,6 +192,7 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
         return {intervalLlh * durationLlh, std::move(durationTranspositions),
                 std::move(pitchTranspositions)};
       });
+
   const auto maxProbIt = std::max_element(
       stats.begin(), stats.end(), [](const Stats &a, const Stats &b) {
         return a.combinedLikelihood < b.combinedLikelihood;

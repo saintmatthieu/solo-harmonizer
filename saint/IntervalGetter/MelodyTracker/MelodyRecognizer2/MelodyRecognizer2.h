@@ -22,6 +22,12 @@ public:
   void addPitchMeasurement(float pc);
 
 private:
+  struct Stats {
+    float combinedLikelihood;
+    std::vector<float> durationTranspositions;
+    std::vector<float> pitchTranspositions;
+  };
+
   const float _referenceDuration;
   // Could be a map, i.e., std::map<std::vector<std::pair<float, int>>,
   // std::set<size_t>>
@@ -33,5 +39,6 @@ private:
   std::vector<float> _lastExperimentsLogDurations;
   std::optional<size_t> _lastGuess;
   int _prevNoteonTick = 0;
+  std::vector<Stats> _prevStats;
 };
 } // namespace saint
