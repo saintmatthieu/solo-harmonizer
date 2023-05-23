@@ -4,13 +4,16 @@
 #include <cassert>
 #include <cmath>
 #include <fstream>
+#include <limits>
 #include <numeric>
+#include <unordered_set>
 
 namespace saint {
 
 using Melody = MelodyRecognizer2::Melody;
 using MotiveInstance = MelodyRecognizer2::MotiveInstance;
 using MotiveInvariants = MelodyRecognizer2::MotiveInvariants;
+using TableRow = MelodyRecognizer2::TableRow;
 
 namespace {
 float getAverage(const std::vector<float> &x) {
@@ -85,6 +88,34 @@ std::vector<float> getDurations(const Melody &melody) {
 
 constexpr auto numConsideredExperiments = 2u;
 
+std::vector<TableRow> makeTable(const Melody &melody) {
+  std::map<Melody, std::unordered_map<size_t, MotiveInstance>> motiveInstances;
+  for (auto i = 0u; i < melody.size() - numConsideredExperiments + 1u; ++i) {
+    Melody shifted;
+    shifted.reserve(numConsideredExperiments);
+    const auto firstDuration = melody[i].first;
+    const auto firstPitch = melody[i].second;
+    std::transform(
+        melody.begin() + i, melody.begin() + i + numConsideredExperiments,
+        std::back_inserter(shifted),
+        [&](const std::pair<float, int> &note) -> std::pair<float, int> {
+          return {note.first - firstDuration, note.second - firstPitch};
+        });
+    motiveInstances[shifted][i] = {firstPitch, firstDuration};
+  }
+  std::vector<TableRow> asTable;
+  for (const auto &entry : motiveInstances) {
+    const auto &[motive, instances] = entry;
+    const auto sharedMotive = std::make_shared<Melody>(motive);
+    for (const auto &entry : instances) {
+      const auto &[beginIndex, instance] = entry;
+      asTable.emplace_back(beginIndex, sharedMotive, instance.firstNoteNumber,
+                           instance.firstDuration);
+    }
+  }
+  return asTable;
+}
+
 MotiveInvariants getMotiveBeginInstances(const Melody &melody) {
   std::map<Melody, std::unordered_map<size_t, MotiveInstance>> motiveInstances;
   for (auto i = 0u; i < melody.size() - numConsideredExperiments + 1u; ++i) {
@@ -130,18 +161,19 @@ float getPitchTranspositionLikelihood(float a, float b) {
   // We tolerate intonation errors but no on-the-fly transpositions. For now
   // accept anything within 1 semitone.
   // Todo: tune
-  return std::abs(a - b) > 0.5f ? 0.f : 1.f;
+  return std::abs(a - b) > 1.f ? -std::numeric_limits<float>::infinity() : 0.f;
 }
 
 float getDurationTranspositionLikelihood(float a, float b) {
   // From one note to the next, tolerate an acceleration by a factor of 2, but
   // nothing else for now. Todo: tune
-  return std::abs(a - b) > 0.5f ? 0.f : 1.f;
+  return std::abs(a - b) > 1.f ? -std::numeric_limits<float>::infinity() : 0.f;
 }
 } // namespace
 
 MelodyRecognizer2::MelodyRecognizer2(Melody melody)
     : _referenceDuration(getReferenceDuration(melody)),
+      _table(makeTable(melody)),
       _motives(getMotiveBeginInstances(
           convertDurationsToLog(std::move(melody), _referenceDuration))) {}
 
@@ -169,58 +201,56 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
     _lastExperimentsLogDurations.erase(_lastExperimentsLogDurations.begin());
   }
 
-  for (const auto &entry : _motives) {
-    const auto &[motive, instances] = entry;
-    const auto motiveNoteNumbers = getNoteNumbers(motive);
-    const auto motiveDurations = getDurations(motive);
-    const auto [pitchClassErrorAvg, intervalLlh] =
-        getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
-    const auto [durationErrorAvg, durationLlh] =
-        getDurationLikelihood(motiveDurations, _lastExperimentsLogDurations);
-    for (auto &entry : instances) {
-      Stats &stats = entry.second.currStats;
-      stats.pitchTranspose = pitchClassErrorAvg - entry.second.firstNoteNumber;
-      stats.durationTranspose = durationErrorAvg - entry.second.firstDuration;
-      stats.prob = intervalLlh * durationLlh;
+  std::unordered_map<std::shared_ptr<Melody>, const TableRow *> referenceRows;
+  for (const auto &row : _table) {
+    if (referenceRows.count(row.motive) == 0) {
+      const auto motiveNoteNumbers = getNoteNumbers(*row.motive);
+      const auto motiveDurations = getDurations(*row.motive);
+      const auto [pitchClassErrorAvg, intervalLlh] =
+          getIntervalLikelihood(motiveNoteNumbers, _lastExperiments);
+      const auto [durationErrorAvg, durationLlh] =
+          getDurationLikelihood(motiveDurations, _lastExperimentsLogDurations);
+      row.currProb =
+          std::make_shared<float>(std::logf(intervalLlh * durationLlh));
+      row.pitchClassErrorAvg = std::make_shared<float>(pitchClassErrorAvg);
+      row.durationErrorAvg = std::make_shared<float>(durationErrorAvg);
+      referenceRows[row.motive] = &row;
+    } else {
+      const TableRow *ref = referenceRows.at(row.motive);
+      row.currProb = ref->currProb;
+      row.pitchClassErrorAvg = ref->pitchClassErrorAvg;
+      row.durationErrorAvg = ref->durationErrorAvg;
     }
+    row.currTranspositions.emplace(*row.pitchClassErrorAvg -
+                                       row.firstNoteNumber,
+                                   *row.durationErrorAvg - row.firstDuration);
   }
 
-  if (maxProbIt->combinedLikelihood < 0.25f) {
-    // For perfect timing this means a variance between 1 and 2 semitones (not
-    // sure exactly which value at this time.)
-    log << "nullopt" << std::endl;
+  if (_table[0].prevProb == nullptr) {
+    updateTablePrevFields();
     return std::nullopt;
   }
-  const auto mostLikelyMotiveIndex = std::distance(stats.begin(), maxProbIt);
-  const auto &candidateInstances =
-      (_motives.begin() + mostLikelyMotiveIndex)->second;
-  std::vector<size_t> candidateIndices(candidateInstances.size());
-  std::transform(candidateInstances.begin(), candidateInstances.end(),
-                 candidateIndices.begin(),
-                 [](const auto &entry) { return entry.first; });
-  auto indexOfChosenCandidate = 0u;
-  if (_lastGuess.has_value()) {
-    const auto nextToLastGuessIt = std::upper_bound(
-        candidateIndices.begin(), candidateIndices.end(), *_lastGuess);
-    if (nextToLastGuessIt != candidateIndices.end()) {
-      indexOfChosenCandidate =
-          std::distance(candidateIndices.begin(), nextToLastGuessIt);
-    } else {
-      indexOfChosenCandidate =
-          std::distance(candidateIndices.begin(), std::prev(nextToLastGuessIt));
-    }
+
+  std::vector<float> probs(_table.size());
+  std::transform(
+      _table.begin(), _table.end(), probs.begin(), [](const TableRow &row) {
+        return *row.currProb + *row.prevProb +
+               getPitchTranspositionLikelihood(row.prevTranspositions->first,
+                                               row.currTranspositions->first) +
+               getDurationTranspositionLikelihood(
+                   row.prevTranspositions->second,
+                   row.currTranspositions->second);
+      });
+  const auto maxIndex = std::distance(
+      probs.begin(), std::max_element(probs.begin(), probs.end()));
+
+  updateTablePrevFields();
+
+  if (probs[maxIndex] < -10.f) {
+    return std::nullopt;
+  } else {
+    return _table[maxIndex].beginIndex + numConsideredExperiments - 1u;
   }
-  _lastGuess = candidateIndices[indexOfChosenCandidate];
-
-  // Logging
-  const auto retval = *_lastGuess + numConsideredExperiments - 1u;
-  const auto &[pitchTransposition, durationTransposition] =
-      maxProbIt->transpositions[indexOfChosenCandidate];
-  log << "index=" << retval << ", pitchTranspose: " << pitchTransposition
-      << ", durationTranspose: " << durationTransposition
-      << ", llh: " << maxProbIt->combinedLikelihood << std::endl;
-
-  return retval;
 }
 
 void MelodyRecognizer2::addPitchMeasurement(float pc) {
@@ -229,4 +259,18 @@ void MelodyRecognizer2::addPitchMeasurement(float pc) {
   }
   _currentExperiment->push_back(pc);
 }
+
+void MelodyRecognizer2::updateTablePrevFields() {
+  for (const auto &row : _table) {
+    row.prevProb = row.currProb;
+    row.prevTranspositions = row.currTranspositions;
+  }
+}
+
+MelodyRecognizer2::TableRow::TableRow(size_t beginIndex,
+                                      std::shared_ptr<Melody> motive,
+                                      int firstNoteNumber, float firstDuration)
+    : beginIndex(beginIndex), motive(std::move(motive)),
+      firstNoteNumber(firstNoteNumber), firstDuration(firstDuration) {}
+
 } // namespace saint

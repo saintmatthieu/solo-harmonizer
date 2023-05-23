@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <unordered_map>
@@ -17,17 +18,26 @@ public:
   void addPitchMeasurement(float pc);
 
 public: // but not meant for external usage
-  struct Stats {
-    float prob;
-    float pitchTranspose;
-    float durationTranspose;
-  };
-
   struct MotiveInstance {
     int firstNoteNumber;
     float firstDuration;
-    mutable Stats currStats;
-    mutable std::optional<Stats> prevStats;
+  };
+
+  struct TableRow {
+    TableRow(size_t beginIndex, std::shared_ptr<Melody> motive,
+             int firstNoteNumber, float firstDuration);
+    const size_t beginIndex;
+    const std::shared_ptr<Melody> motive;
+    const int firstNoteNumber;
+    const float firstDuration;
+    mutable std::shared_ptr<float> pitchClassErrorAvg;
+    mutable std::shared_ptr<float> durationErrorAvg;
+    mutable std::shared_ptr<float> prevProb;
+    mutable std::shared_ptr<float> currProb;
+    mutable std::optional<std::pair<float /*pitch*/, float /*duration*/>>
+        prevTranspositions;
+    mutable std::optional<std::pair<float /*pitch*/, float /*duration*/>>
+        currTranspositions;
   };
 
   using MotiveInvariant =
@@ -35,17 +45,11 @@ public: // but not meant for external usage
                 std::unordered_map<size_t /*begin index*/, MotiveInstance>>;
   using MotiveInvariants = std::vector<MotiveInvariant>;
 
-  struct TableRow {
-    const Melody motive;
-    const size_t beginIndex;
-    const std::shared_ptr<int> firstNoteNumber;
-    const std::shared_ptr<int> firstDuration;
-    std::shared_ptr<Stats> currStats;
-    std::shared_ptr<Stats> prevStats;
-  };
-
 private:
+  void updateTablePrevFields();
+
   const float _referenceDuration;
+  const std::vector<TableRow> _table;
   const MotiveInvariants _motives;
   std::vector<std::vector<float>> _lastExperiments;
   std::optional<std::vector<float>> _currentExperiment;
