@@ -24,12 +24,11 @@ public: // but not meant for external usage
   };
 
   struct TableRow {
-    TableRow(size_t beginIndex, std::shared_ptr<Melody> motive,
-             int firstNoteNumber, float firstDuration);
-    const size_t beginIndex;
-    const std::shared_ptr<Melody> motive;
-    const int firstNoteNumber;
-    const float firstDuration;
+    TableRow(std::shared_ptr<Melody> motive, int firstNoteNumber,
+             float firstDuration);
+    std::shared_ptr<Melody> motive;
+    int firstNoteNumber;
+    float firstDuration;
     mutable std::shared_ptr<float> pitchClassErrorAvg;
     mutable std::shared_ptr<float> durationErrorAvg;
     mutable std::shared_ptr<float> prevProb;

@@ -88,6 +88,20 @@ std::vector<float> getDurations(const Melody &melody) {
 
 constexpr auto numConsideredExperiments = 2u;
 
+template <typename T>
+void reorder(std::vector<T> &v, const std::vector<size_t> &order) {
+  // https://stackoverflow.com/questions/838384/reorder-vector-using-a-vector-of-indices
+  for (int s = 1, d; s < order.size(); ++s) {
+    for (d = order[s]; d < s; d = order[d]) {
+    }
+    if (d == s) {
+      while (d = order[d], d != s) {
+        std::swap(v[s], v[d]);
+      }
+    }
+  }
+}
+
 std::vector<TableRow> makeTable(const Melody &melody) {
   std::map<Melody, std::unordered_map<size_t, MotiveInstance>> motiveInstances;
   for (auto i = 0u; i < melody.size() - numConsideredExperiments + 1u; ++i) {
@@ -104,15 +118,18 @@ std::vector<TableRow> makeTable(const Melody &melody) {
     motiveInstances[shifted][i] = {firstPitch, firstDuration};
   }
   std::vector<TableRow> asTable;
+  std::vector<size_t> beginIndices;
   for (const auto &entry : motiveInstances) {
     const auto &[motive, instances] = entry;
     const auto sharedMotive = std::make_shared<Melody>(motive);
     for (const auto &entry : instances) {
       const auto &[beginIndex, instance] = entry;
-      asTable.emplace_back(beginIndex, sharedMotive, instance.firstNoteNumber,
+      asTable.emplace_back(sharedMotive, instance.firstNoteNumber,
                            instance.firstDuration);
+      beginIndices.emplace_back(beginIndex);
     }
   }
+  reorder(asTable, beginIndices);
   return asTable;
 }
 
@@ -161,13 +178,13 @@ float getPitchTranspositionLikelihood(float a, float b) {
   // We tolerate intonation errors but no on-the-fly transpositions. For now
   // accept anything within 1 semitone.
   // Todo: tune
-  return std::abs(a - b) > 1.f ? -std::numeric_limits<float>::infinity() : 0.f;
+  return std::abs(a - b) > .5f ? -std::numeric_limits<float>::infinity() : 0.f;
 }
 
 float getDurationTranspositionLikelihood(float a, float b) {
   // From one note to the next, tolerate an acceleration by a factor of 2, but
   // nothing else for now. Todo: tune
-  return std::abs(a - b) > 1.f ? -std::numeric_limits<float>::infinity() : 0.f;
+  return std::abs(a - b) > .5f ? -std::numeric_limits<float>::infinity() : 0.f;
 }
 } // namespace
 
@@ -231,25 +248,25 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
     return std::nullopt;
   }
 
-  std::vector<float> probs(_table.size());
-  std::transform(
-      _table.begin(), _table.end(), probs.begin(), [](const TableRow &row) {
-        return *row.currProb + *row.prevProb +
-               getPitchTranspositionLikelihood(row.prevTranspositions->first,
-                                               row.currTranspositions->first) +
-               getDurationTranspositionLikelihood(
-                   row.prevTranspositions->second,
-                   row.currTranspositions->second);
-      });
+  std::vector<float> probs(_table.size() - 1u);
+  for (auto i = 0u; i < probs.size(); ++i) {
+    const auto &a = _table[i];
+    const auto &b = _table[i + 1u];
+    probs[i] = *a.prevProb + *b.currProb +
+               getPitchTranspositionLikelihood(a.prevTranspositions->first,
+                                               b.currTranspositions->first) +
+               getDurationTranspositionLikelihood(a.prevTranspositions->second,
+                                                  b.currTranspositions->second);
+  }
   const auto maxIndex = std::distance(
       probs.begin(), std::max_element(probs.begin(), probs.end()));
 
   updateTablePrevFields();
 
-  if (probs[maxIndex] < -10.f) {
+  if (probs[maxIndex] < -1.f) {
     return std::nullopt;
   } else {
-    return _table[maxIndex].beginIndex + numConsideredExperiments - 1u;
+    return maxIndex + numConsideredExperiments - 1u;
   }
 }
 
@@ -267,10 +284,9 @@ void MelodyRecognizer2::updateTablePrevFields() {
   }
 }
 
-MelodyRecognizer2::TableRow::TableRow(size_t beginIndex,
-                                      std::shared_ptr<Melody> motive,
+MelodyRecognizer2::TableRow::TableRow(std::shared_ptr<Melody> motive,
                                       int firstNoteNumber, float firstDuration)
-    : beginIndex(beginIndex), motive(std::move(motive)),
-      firstNoteNumber(firstNoteNumber), firstDuration(firstDuration) {}
+    : motive(std::move(motive)), firstNoteNumber(firstNoteNumber),
+      firstDuration(firstDuration) {}
 
 } // namespace saint
