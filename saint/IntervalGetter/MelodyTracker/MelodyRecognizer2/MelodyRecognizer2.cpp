@@ -31,11 +31,11 @@ float getVariance(const std::vector<float> &x, float avg) {
 
 std::pair<float /*avg*/, float /*likelihood*/>
 getIntervalLikelihood(const std::vector<int> &noteNumberSequence,
-                      const std::vector<std::vector<float>> &experiments) {
+                      const std::vector<std::shared_ptr<std::vector<float>>> &experiments) {
   assert(experiments.size() == noteNumberSequence.size());
   std::vector<float> lessRefNoteNumbers;
   for (auto e = 0u; e < experiments.size(); ++e) {
-    for (auto observation : experiments[e]) {
+    for (auto observation : *(experiments[e])) {
       lessRefNoteNumbers.push_back(observation - noteNumberSequence[e]);
     }
   }
@@ -198,11 +198,11 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
 
   static std::ofstream log("C:/Users/saint/downloads/log.txt");
 
-  if (!_currentExperiment.has_value()) {
+  if (!_currentExperiment) {
     log << "nullopt" << std::endl;
     return std::nullopt;
   }
-  _lastExperiments.push_back(*_currentExperiment); // todo optimize
+  _lastExperiments.push_back(_currentExperiment); // todo optimize
   _currentExperiment.reset();
 
   const auto experimentLogDuration = std::log2f(
@@ -271,8 +271,8 @@ std::optional<size_t> MelodyRecognizer2::beginNewNote(int tickCounter) {
 }
 
 void MelodyRecognizer2::addPitchMeasurement(float pc) {
-  if (!_currentExperiment.has_value()) {
-    _currentExperiment = std::vector<float>{};
+  if (!_currentExperiment) {
+    _currentExperiment = std::make_shared<std::vector<float>>();
   }
   _currentExperiment->push_back(pc);
 }

@@ -50,8 +50,8 @@ private:
   const float _referenceDuration;
   const std::vector<TableRow> _table;
   const MotiveInvariants _motives;
-  std::vector<std::vector<float>> _lastExperiments;
-  std::optional<std::vector<float>> _currentExperiment;
+  std::vector<std::shared_ptr<std::vector<float>>> _lastExperiments;
+  std::shared_ptr<std::vector<float>> _currentExperiment;
   std::vector<float> _lastExperimentsLogDurations;
   std::optional<size_t> _lastGuess;
   int _prevNoteonTick = 0;
