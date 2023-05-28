@@ -30,7 +30,7 @@ target_link_libraries(IntervalGetter
     TestUtils
     Utils
     eigen
-    MelodyRecognizer2
+    MelodyRecognizer3
 )
 
 add_executable(IntervalGetterTests

@@ -1,7 +1,7 @@
 #include "DefaultMelodyTracker.h"
 #include "MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.h"
 #include "MelodyTracker/MelodyRecognizer/MelodyRecognizer.h"
-#include "MelodyTracker/MelodyRecognizer2/MelodyRecognizer2.h"
+#include "MelodyTracker/MelodyRecognizer3/MelodyRecognizer3.h"
 #include "MelodyTracker/TimingEstimator/DefaultTimingEstimator.h"
 #include "Utils.h"
 
@@ -22,9 +22,9 @@ getOnsetTimes(const std::vector<std::pair<float, std::optional<int>>> &melody) {
   return times;
 }
 
-MelodyRecognizer2::Melody toMelodyRecognizer2Melody(
+MelodyRecognizer3::Melody toMelodyRecognizer3Melody(
     const std::vector<std::pair<float, std::optional<int>>> &melody) {
-  MelodyRecognizer2::Melody out;
+  MelodyRecognizer3::Melody out;
   for (auto i = 1u; i < melody.size(); ++i) {
     if (melody[i - 1u].second.has_value()) {
       const auto duration = melody[i].first - melody[i - 1u].first;
@@ -40,23 +40,23 @@ std::unique_ptr<MelodyTracker> MelodyTracker::createInstance(
   return std::make_unique<DefaultMelodyTracker>(
       MelodyRecognizer::createInstance(melody),
       std::make_unique<DefaultTimingEstimator>(getOnsetTimes(melody)),
-      std::make_unique<MelodyRecognizer2>(toMelodyRecognizer2Melody(melody)));
+      std::make_unique<MelodyRecognizer3>(melody));
 }
 
 DefaultMelodyTracker::DefaultMelodyTracker(
     std::unique_ptr<MelodyRecognizer> melodyFollower,
     std::unique_ptr<TimingEstimator> timingEstimator,
-    std::unique_ptr<MelodyRecognizer2> melodyRecognizer2)
+    std::unique_ptr<MelodyRecognizer3> melodyRecognizer3)
     : _melodyRecognizer(std::move(melodyFollower)),
       _timingEstimator(std::move(timingEstimator)),
-      _melodyRecognizer2(std::move(melodyRecognizer2)) {}
+      _melodyRecognizer3(std::move(melodyRecognizer3)) {}
 
 std::optional<size_t> DefaultMelodyTracker::beginNewNote(int tick) {
-  return _melodyRecognizer2->beginNewNote(tick);
+  return std::nullopt;
 }
 
 void DefaultMelodyTracker::addPitchMeasurement(float pc) {
-  _melodyRecognizer2->addPitchMeasurement(pc);
+  // _melodyRecognizer3->addPitchMeasurement(pc);
 }
 
 } // namespace saint
