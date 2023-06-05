@@ -8,6 +8,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 
 namespace saint {
 namespace {
@@ -51,12 +52,12 @@ DefaultMelodyTracker::DefaultMelodyTracker(
       _timingEstimator(std::move(timingEstimator)),
       _melodyRecognizer3(std::move(melodyRecognizer3)) {}
 
-std::optional<size_t> DefaultMelodyTracker::beginNewNote(int tick) {
-  return std::nullopt;
-}
-
-void DefaultMelodyTracker::addPitchMeasurement(float pc) {
-  // _melodyRecognizer3->addPitchMeasurement(pc);
+std::optional<size_t>
+DefaultMelodyTracker::tick(const std::optional<float> &measuredNoteNumber) {
+  static std::ofstream log("C:/Users/saint/Downloads/log.txt");
+  const auto result = _melodyRecognizer3->tick(measuredNoteNumber);
+  log << (result.has_value() ? std::to_string(*result) : "none") << std::endl;
+  return _melodyRecognizer3->tick(measuredNoteNumber);
 }
 
 } // namespace saint
