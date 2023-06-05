@@ -1,5 +1,6 @@
 #include "MelodyRecognizer3.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -20,19 +21,21 @@ std::vector<std::vector<float>> getTransitionMatrix(const Melody &melody) {
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
   constexpr auto transitionsToNextConditionalLlh = .9f;
-  for (auto i = 0u; i < N; ++i) {
+  for (auto oldState = 0u; oldState < N; ++oldState) {
+    const auto noteDuration =
+        melody[oldState + 1u].first - melody[oldState].first;
     // Likelihood that we stay at the same index.
-    const auto noteDuration = melody[i + 1u].first - melody[i].first;
-    const auto relativeStayLl = noteDuration / totalDuration;
-    for (auto j = 0u; j < N; ++j) {
-      if (i == j) { // Stay in the same state
-        matrix[i][j] = std::logf(relativeStayLl);
-      } else if (j == i + 1u) {
-        matrix[i][j] =
-            std::logf((1.f - relativeStayLl) * transitionsToNextConditionalLlh);
+    const auto relativeStayLlh = noteDuration / totalDuration;
+    for (auto newState = 0u; newState < N; ++newState) {
+      auto &cell = matrix[newState][oldState]; // Yes, the other way round.
+      if (oldState == newState) {              // Stay in the same state
+        cell = std::logf(relativeStayLlh);
+      } else if (newState == oldState + 1u) {
+        cell = std::logf((1.f - relativeStayLlh) *
+                         transitionsToNextConditionalLlh);
       } else {
-        matrix[i][j] = std::logf((1.f - relativeStayLl) *
-                                 (1.f - transitionsToNextConditionalLlh));
+        cell = std::logf((1.f - relativeStayLlh) *
+                         (1.f - transitionsToNextConditionalLlh));
       }
     }
   }
@@ -101,18 +104,19 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
   int maxProbState = noPitchState;
   const auto observationLlhs =
       getObservationLikelihoods(_melody, measuredNoteNumber);
-  for (auto i = 0u; i < _numStates; ++i) {
+  for (auto newState = 0u; newState < _numStates; ++newState) {
     auto maxProb = -std::numeric_limits<float>::max();
     auto maxProbIndex = 0u;
-    for (auto j = 0u; j < _numStates; ++j) {
-      const auto prob =
-          _priors[j] + _transitionMatrix[i][j] + observationLlhs[j];
+    for (auto oldState = 0u; oldState < _numStates; ++oldState) {
+      const auto prob = _priors[oldState] +
+                        _transitionMatrix[newState][oldState] +
+                        observationLlhs[newState];
       if (prob > maxProb) {
         maxProb = prob;
-        maxProbIndex = j;
+        maxProbIndex = oldState;
       }
     }
-    _newPriors[i] = maxProb;
+    _newPriors[newState] = maxProb;
   }
   const auto winnerIndex =
       std::distance(_newPriors.begin(),

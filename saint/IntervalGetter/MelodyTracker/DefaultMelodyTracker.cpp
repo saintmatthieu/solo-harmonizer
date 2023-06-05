@@ -57,7 +57,7 @@ DefaultMelodyTracker::tick(const std::optional<float> &measuredNoteNumber) {
   static std::ofstream log("C:/Users/saint/Downloads/log.txt");
   const auto result = _melodyRecognizer3->tick(measuredNoteNumber);
   log << (result.has_value() ? std::to_string(*result) : "none") << std::endl;
-  return _melodyRecognizer3->tick(measuredNoteNumber);
+  return result;
 }
 
 } // namespace saint
