@@ -10,6 +10,13 @@ using Melody = MelodyRecognizer3::Melody;
 namespace {
 constexpr auto noPitchState = std::numeric_limits<int>::min();
 
+// If useful, this information will be passed to the ctor. But this is still
+// experimentation, so for now just assuming these values from the unit test
+// used to debug this code.
+constexpr auto samplesPerBlock = 512.f;
+constexpr auto samplesPerCrotchet = 22000;
+constexpr auto blocksPerCrotchet = samplesPerCrotchet / samplesPerBlock;
+
 std::vector<std::vector<float>> getTransitionMatrix(const Melody &melody) {
   const auto N = melody.size() - 1u;
   std::vector<std::vector<float>> matrix;
@@ -20,22 +27,22 @@ std::vector<std::vector<float>> getTransitionMatrix(const Melody &melody) {
   const auto totalDuration = melody[N].first - melody[0].first;
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  constexpr auto transitionsToNextConditionalLlh = .9f;
+  const auto transitionsToNextLlh = .9f;
   for (auto oldState = 0u; oldState < N; ++oldState) {
-    const auto noteDuration =
+    const auto numCrotchets =
         melody[oldState + 1u].first - melody[oldState].first;
     // Likelihood that we stay at the same index.
-    const auto relativeStayLlh = noteDuration / totalDuration;
+    const auto numBlocksExpectedInThisState = blocksPerCrotchet * numCrotchets;
+    const auto llhThatItChanges = 1.f / (numBlocksExpectedInThisState + 1.f);
+    const auto llhThatItStays = 1.f - llhThatItChanges;
     for (auto newState = 0u; newState < N; ++newState) {
       auto &cell = matrix[newState][oldState]; // Yes, the other way round.
       if (oldState == newState) {              // Stay in the same state
-        cell = std::logf(relativeStayLlh);
+        cell = std::logf(llhThatItStays);
       } else if (newState == oldState + 1u) {
-        cell = std::logf((1.f - relativeStayLlh) *
-                         transitionsToNextConditionalLlh);
+        cell = std::logf((1.f - llhThatItStays) * transitionsToNextLlh);
       } else {
-        cell = std::logf((1.f - relativeStayLlh) *
-                         (1.f - transitionsToNextConditionalLlh));
+        cell = std::logf((1.f - llhThatItStays) * (1.f - transitionsToNextLlh));
       }
     }
   }
@@ -43,13 +50,17 @@ std::vector<std::vector<float>> getTransitionMatrix(const Melody &melody) {
 }
 
 std::vector<float> getInitialPriors(size_t numStates) {
-  // For now initially just give equal chance to all states. Maybe priviledging
-  // index 0, assuming that users typically begin at the start, could be an
-  // option. But that certainly shouldn't be a constraint.
-  const auto prior = -std::logf(static_cast<size_t>(numStates));
+  // Say there's a relatively higher chance that the user begins at the
+  // beginning.
+  constexpr auto zeroWeight = 2.f;
+  constexpr auto otherWeights = 1.f;
+  const auto weightSum = zeroWeight + (numStates - 1) * otherWeights;
+  const auto firstPrior = std::logf(zeroWeight / weightSum);
+  const auto otherPriors = std::logf(otherWeights / weightSum);
   std::vector<float> priors(numStates);
-  for (auto i = 0u; i < numStates; ++i) {
-    priors[i] = prior;
+  priors[0u] = firstPrior;
+  for (auto i = 1u; i < numStates; ++i) {
+    priors[i] = otherPriors;
   }
   return priors;
 }
@@ -121,7 +132,7 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
   const auto winnerIndex =
       std::distance(_newPriors.begin(),
                     std::max_element(_newPriors.begin(), _newPriors.end()));
-  std::copy(_newPriors.begin(), _newPriors.end(), _priors.begin());
+  _priors = _newPriors;
   return winnerIndex;
 }
 

@@ -17,6 +17,6 @@ std::optional<float> StochasticIntervalGetter::getHarmoInterval(
           : std::nullopt;
   const auto tick = _tick++;
   _prevPitchHadValue = pitch.has_value();
-  return _melodyTracker->tick(pitch);
+  return _melodyTracker->tick(perfNn);
 }
 } // namespace saint

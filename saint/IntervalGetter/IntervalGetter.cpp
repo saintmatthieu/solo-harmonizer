@@ -12,12 +12,15 @@ namespace {
 std::vector<std::pair<float, std::optional<int>>>
 toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {
   std::vector<std::pair<float, std::optional<int>>> timedNoteNumbers;
-  for (const auto &span : spans) {
+  const auto firstNoteIt =
+      std::find_if(spans.begin(), spans.end(), [](const IntervalSpan &span) {
+        return span.playedNote.has_value();
+      });
+  for (auto it = firstNoteIt; it != spans.end(); ++it) {
     timedNoteNumbers.emplace_back(
-        span.beginCrotchet,
-        span.playedNote.has_value()
-            ? std::optional<int>{span.playedNote->noteNumber}
-            : std::nullopt);
+        it->beginCrotchet, it->playedNote.has_value()
+                               ? std::optional<int>{it->playedNote->noteNumber}
+                               : std::nullopt);
   }
   return timedNoteNumbers;
 }
