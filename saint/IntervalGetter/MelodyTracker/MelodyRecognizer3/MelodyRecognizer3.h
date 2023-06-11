@@ -11,9 +11,12 @@ public:
   std::optional<size_t> tick(const std::optional<float> &measuredNoteNumber);
 
 private:
+  float _getTransitionLikelihood(size_t oldState, size_t newState) const;
   const Melody _melody;
-  const std::vector<std::vector<float>> _transitionMatrix;
   std::vector<float> _priors;
   std::vector<float> _newPriors;
+  size_t _stateCount =
+      0u; // num. of consecutive times the `tick` input isn't nullopt.
+  size_t _tickCount = 0u; // for debugging
 };
 } // namespace saint

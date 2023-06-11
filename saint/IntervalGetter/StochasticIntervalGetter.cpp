@@ -1,5 +1,7 @@
 #include "StochasticIntervalGetter.h"
 
+#include <cassert>
+
 namespace saint {
 StochasticIntervalGetter::StochasticIntervalGetter(
     const std::vector<IntervalSpan> &spans,
@@ -17,6 +19,15 @@ std::optional<float> StochasticIntervalGetter::getHarmoInterval(
           : std::nullopt;
   const auto tick = _tick++;
   _prevPitchHadValue = pitch.has_value();
-  return _melodyTracker->tick(perfNn);
+  const auto guessedSpanIndex = _melodyTracker->tick(perfNn);
+  if (!guessedSpanIndex.has_value() || *guessedSpanIndex >= _spans.size()) {
+    assert(*guessedSpanIndex < _spans.size());
+    return std::nullopt;
+  }
+  const auto &playedNote = _spans[*guessedSpanIndex].playedNote;
+  if (!playedNote.has_value() || !playedNote->interval.has_value()) {
+    return std::nullopt;
+  }
+  return *playedNote->interval;
 }
 } // namespace saint
