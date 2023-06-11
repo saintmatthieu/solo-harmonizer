@@ -136,7 +136,11 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
   constexpr auto transitionsToNextLlh = .9f;
-  const auto llhThatItChanges = 1.f / (numBlocksExpectedInOldState + 1.f);
+  const auto llhThatItChanges =
+      1.f / (numBlocksExpectedInOldState + 1.f +
+             1.f // Another one to clip llhThatItChanges to 0.5 ; I don't think
+                 // it should ever get much higher, and certainly not 1.
+            );
   const auto llhThatItStays = 1.f - llhThatItChanges;
   if (oldState == newState) { // Stay in the same state
     return llhThatItStays;
