@@ -12,7 +12,6 @@ public:
 
 private:
   const Melody _melody;
-  const size_t _numStates;
   const std::vector<std::vector<float>> _transitionMatrix;
   std::vector<float> _priors;
   std::vector<float> _newPriors;
