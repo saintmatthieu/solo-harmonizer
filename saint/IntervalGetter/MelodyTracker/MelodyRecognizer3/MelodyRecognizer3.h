@@ -12,7 +12,9 @@ public:
 
 private:
   float _getTransitionLikelihood(size_t oldState, size_t newState) const;
+  std::vector<float> _getObservationLikelihoods(float measuredNoteNumber) const;
   const Melody _melody;
+  const std::vector<size_t> _stateToMelodyIndices;
   std::vector<float> _priors;
   std::vector<float> _newPriors;
   size_t _stateCount =

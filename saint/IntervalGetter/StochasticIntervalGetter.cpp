@@ -21,7 +21,6 @@ std::optional<float> StochasticIntervalGetter::getHarmoInterval(
   _prevPitchHadValue = pitch.has_value();
   const auto guessedSpanIndex = _melodyTracker->tick(perfNn);
   if (!guessedSpanIndex.has_value() || *guessedSpanIndex >= _spans.size()) {
-    assert(*guessedSpanIndex < _spans.size());
     return std::nullopt;
   }
   const auto &playedNote = _spans[*guessedSpanIndex].playedNote;

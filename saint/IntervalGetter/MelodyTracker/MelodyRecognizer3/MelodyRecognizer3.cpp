@@ -35,64 +35,52 @@ std::vector<float> getInitialPriors(size_t numStates) {
   return priors;
 }
 
-float getObservationLikelihood(const std::optional<int> &hypothesisNoteNumber,
-                               const std::optional<float> &measuredNoteNumber) {
-  if (!hypothesisNoteNumber.has_value() && !measuredNoteNumber.has_value()) {
-    return 0.f;
-  } else if (hypothesisNoteNumber.has_value() &&
-             !measuredNoteNumber.has_value()) {
-    // Log likelihood that no pitch is detected although there the hidden state
-    // is a note number. This could be the case if the played note ends earlier
-    // than in the score (e.g. poor sustain guitar or difficulty playing
-    // legato), or, of course, if the player is a bit late playing the note. So
-    // don't be too harsh. Penalize this like a an offset of a quarter tone.
-    return -.25f;
-  } else if (!hypothesisNoteNumber.has_value() &&
-             measuredNoteNumber.has_value()) {
-    // A false positive in the detection or unadvertently played note. Penalize
-    // it like missing the pitch by a semitone.
-    return -1.f;
-  } else {
-    // A PDF does not read as probabilities, but I think we're only interested
-    // in the relative values, so let's just do this. The log of a normal
-    // distribution is is proportional to the square of the error. Again, we're
-    // just interested in how the probabilities compare, so we ignore all
-    // scalars and just use
-    const auto error = *hypothesisNoteNumber - *measuredNoteNumber;
-    return -error * error;
-  }
+float getObservationLikelihood(int hypothesisNoteNumber,
+                               float measuredNoteNumber) {
+  // A PDF does not read as probabilities, but I think we're only interested
+  // in the relative values, so let's just do this. The log of a normal
+  // distribution is is proportional to the square of the error. Again, we're
+  // just interested in how the probabilities compare, so we ignore all
+  // scalars and just use
+  const auto error = hypothesisNoteNumber - measuredNoteNumber;
+  return -error * error;
 }
 
-std::vector<float>
-getObservationLikelihoods(const Melody &melody,
-                          const std::optional<float> &measuredNoteNumber) {
-  std::vector<float> llhs(melody.size());
-  // begin/end state llh
-  llhs[0u] = getObservationLikelihood(std::nullopt, measuredNoteNumber);
-  for (auto i = 1u; i < melody.size(); ++i) {
-    llhs[i] =
-        getObservationLikelihood(melody[i - 1].second, measuredNoteNumber);
+std::vector<size_t> getMelodyNoteIndices(const Melody &melody) {
+  std::vector<size_t> noteIndices;
+  for (auto i = 0u; i < melody.size(); ++i) {
+    const auto &noteNumber = melody[i].second;
+    if (noteNumber.has_value()) {
+      noteIndices.push_back(i);
+    }
   }
-  return llhs;
+  return noteIndices;
 }
 } // namespace
 
 MelodyRecognizer3::MelodyRecognizer3(Melody melody)
-    : _melody(std::move(melody)), _priors(getInitialPriors(_melody.size())),
+    : _melody(std::move(melody)),
+      _stateToMelodyIndices(getMelodyNoteIndices(_melody)),
+      _priors(getInitialPriors(_stateToMelodyIndices.size())),
       _newPriors(_priors.size()) {}
 
 std::optional<size_t>
 MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
   _stateCount = measuredNoteNumber.has_value() ? _stateCount + 1u : 0u;
+  if (!measuredNoteNumber.has_value()) {
+    ++_tickCount;
+    return std::nullopt;
+  }
   std::optional<float> maxProb;
   int maxProbState = noPitchState;
-  const auto observationLlhs =
-      getObservationLikelihoods(_melody, measuredNoteNumber);
-  std::vector<size_t> newPriorAntecedentIndices(_melody.size());
-  for (auto newState = 0u; newState < _melody.size(); ++newState) {
+  const auto observationLlhs = _getObservationLikelihoods(*measuredNoteNumber);
+  std::vector<size_t> newPriorAntecedentIndices(_stateToMelodyIndices.size());
+  for (auto newState = 0u; newState < _stateToMelodyIndices.size();
+       ++newState) {
     auto maxProb = -std::numeric_limits<float>::max();
     auto maxProbIndex = 0u;
-    for (auto oldState = 0u; oldState < _melody.size(); ++oldState) {
+    for (auto oldState = 0u; oldState < _stateToMelodyIndices.size();
+         ++oldState) {
       const auto transitionLikelihood =
           _getTransitionLikelihood(oldState, newState);
       const auto prob = _priors[oldState] + std::logf(transitionLikelihood) +
@@ -115,22 +103,22 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
     static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
     const auto time =
         static_cast<float>(_tickCount) * samplesPerBlock / 44100.f;
-    labels << time << "\t" << time << "\t" << winnerIndex << std::endl;
+    labels << time << "\t" << time << "\t" << _stateToMelodyIndices[winnerIndex]
+           << std::endl;
     prevIndex = winnerIndex;
   }
   ++_tickCount;
-  return winnerIndex;
+  return _stateToMelodyIndices[winnerIndex] +
+         1u; /*this +1 might be due to some integration incorrectness - to
+               review*/
 }
 
 float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
                                                   size_t newState) const {
-  const auto N = _melody.size();
-  if (oldState == 0) {
-    // User is finished or hasn't begun yet.
-    return 1.f / static_cast<float>(N);
-  }
+  const auto N = _stateToMelodyIndices.size();
   const auto numCrotchets =
-      _melody[oldState].first - _melody[oldState - 1u].first;
+      _melody[_stateToMelodyIndices[oldState] + 1u].first -
+      _melody[_stateToMelodyIndices[oldState]].first;
   const auto numBlocksExpectedInOldState = std::max<float>(
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
@@ -149,6 +137,17 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
   } else {
     return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh) / N;
   }
+}
+
+std::vector<float>
+MelodyRecognizer3::_getObservationLikelihoods(float measuredNoteNumber) const {
+  std::vector<float> llhs(_stateToMelodyIndices.size());
+  for (auto i = 0u; i < _stateToMelodyIndices.size(); ++i) {
+    const auto noteIndex = _stateToMelodyIndices[i];
+    llhs[i] = getObservationLikelihood(*_melody[noteIndex].second,
+                                       measuredNoteNumber);
+  }
+  return llhs;
 }
 
 } // namespace saint
