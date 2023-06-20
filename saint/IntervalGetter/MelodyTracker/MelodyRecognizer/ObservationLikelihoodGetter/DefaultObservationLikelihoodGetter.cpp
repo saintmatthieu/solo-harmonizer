@@ -1,7 +1,8 @@
 #include "DefaultObservationLikelihoodGetter.h"
 #include "MelodyTracker/MelodyTrackerHelper.h"
 
-#include "Eigen/Eigen"
+// #include "Eigen/Eigen"
+#include <algorithm>
 #include <chrono>
 #include <numeric>
 
@@ -43,32 +44,33 @@ ObservationLikelihoodGetter::createInstance(
 std::array<float, 2>
 getPitchFitMinMax(const std::vector<std::pair<std::chrono::milliseconds, float>>
                       &observationSamples) {
-  // We fit a line in the observed pitches to accommodate bends.
-  // Then if there is a bend, we don't know if it's from or to the file
-  // interval. We accept both possibilities, and hence take the min/max
-  // combination of the two successive notes, to finally take the max
-  // probability.
-  Eigen::MatrixXf A(observationSamples.size(), 2);
-  Eigen::VectorXf B(observationSamples.size());
-  for (auto i = 0u; i < observationSamples.size(); ++i) {
-    const auto &entry = observationSamples[i];
-    const auto time = static_cast<float>(entry.first.count());
-    const auto nn = entry.second;
-    A(i, 0) = time;
-    A(i, 1) = 1.f;
-    B(i) = nn;
-  }
-  const auto At = A.transpose();
-  const auto x = (At * A).inverse() * At * B;
-  const auto beginTime =
-      static_cast<float>(observationSamples[0].first.count());
-  const auto endTime = static_cast<float>(
-      observationSamples[observationSamples.size() - 1u].first.count());
-  const auto beginNn = x[0] * beginTime + x[1u];
-  const auto endNn = x[0] * endTime + x[1u];
-  const auto min = std::min(beginNn, endNn);
-  const auto max = std::max(beginNn, endNn);
-  return {min, max};
+  // // We fit a line in the observed pitches to accommodate bends.
+  // // Then if there is a bend, we don't know if it's from or to the file
+  // // interval. We accept both possibilities, and hence take the min/max
+  // // combination of the two successive notes, to finally take the max
+  // // probability.
+  // Eigen::MatrixXf A(observationSamples.size(), 2);
+  // Eigen::VectorXf B(observationSamples.size());
+  // for (auto i = 0u; i < observationSamples.size(); ++i) {
+  //   const auto &entry = observationSamples[i];
+  //   const auto time = static_cast<float>(entry.first.count());
+  //   const auto nn = entry.second;
+  //   A(i, 0) = time;
+  //   A(i, 1) = 1.f;
+  //   B(i) = nn;
+  // }
+  // const auto At = A.transpose();
+  // const auto x = (At * A).inverse() * At * B;
+  // const auto beginTime =
+  //     static_cast<float>(observationSamples[0].first.count());
+  // const auto endTime = static_cast<float>(
+  //     observationSamples[observationSamples.size() - 1u].first.count());
+  // const auto beginNn = x[0] * beginTime + x[1u];
+  // const auto endNn = x[0] * endTime + x[1u];
+  // const auto min = std::min(beginNn, endNn);
+  // const auto max = std::max(beginNn, endNn);
+  // return {min, max};
+  return {0.f, 0.f};
 }
 
 std::map<int, float>

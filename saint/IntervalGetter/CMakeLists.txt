@@ -29,7 +29,7 @@ target_link_libraries(IntervalGetter
   PUBLIC
     TestUtils
     Utils
-    eigen
+    # eigen
     MelodyRecognizer3
 )
 
