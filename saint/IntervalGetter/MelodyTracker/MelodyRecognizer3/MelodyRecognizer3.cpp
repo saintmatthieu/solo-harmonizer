@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <string>
 
 namespace saint {
 using Melody = MelodyRecognizer3::Melody;
@@ -56,6 +57,11 @@ std::vector<size_t> getMelodyNoteIndices(const Melody &melody) {
   }
   return noteIndices;
 }
+
+std::string getTime(size_t tickCount) {
+  return std::to_string(static_cast<float>(tickCount) * samplesPerBlock /
+                        44100.f);
+}
 } // namespace
 
 MelodyRecognizer3::MelodyRecognizer3(Melody melody)
@@ -66,9 +72,11 @@ MelodyRecognizer3::MelodyRecognizer3(Melody melody)
 
 std::optional<size_t>
 MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
+  static std::ofstream output("C:/Users/saint/Downloads/output.txt");
   _stateCount = measuredNoteNumber.has_value() ? _stateCount + 1u : 0u;
   if (!measuredNoteNumber.has_value()) {
     ++_tickCount;
+    output << -1 << std::endl;
     return std::nullopt;
   }
   std::optional<float> maxProb;
@@ -93,28 +101,58 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
     _newPriors[newState] = maxProb;
     newPriorAntecedentIndices[newState] = maxProbIndex;
   }
-  const auto winnerIndex =
+  const auto winnerState =
       std::distance(_newPriors.begin(),
                     std::max_element(_newPriors.begin(), _newPriors.end()));
+  const auto winnerOriginState = newPriorAntecedentIndices[winnerState];
+  const auto melodyIndex = _stateToMelodyIndices[winnerState];
   std::transform(_newPriors.begin(), _newPriors.end(), _priors.begin(),
-                 [&](float prob) { return prob - _newPriors[winnerIndex]; });
+                 [&](float prob) { return prob - _newPriors[winnerState]; });
   static auto prevIndex = -1;
-  if (static_cast<int>(winnerIndex) != prevIndex) {
     static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
-    const auto time =
-        static_cast<float>(_tickCount) * samplesPerBlock / 44100.f;
-    labels << time << "\t" << time << "\t" << _stateToMelodyIndices[winnerIndex]
-           << std::endl;
-    prevIndex = winnerIndex;
+  if (static_cast<int>(winnerState) != prevIndex) {
+    const auto time = getTime(_tickCount);
+    labels << time << "\t" << time << "\t" << winnerState << std::endl;
+    prevIndex = winnerState;
   }
+  // if (winnerOriginState != _winnerIndex) {
+  //   const auto time = getTime(_tickCount);
+  //   labels << time << "\t" << time << "\tChange of mind!" << std::endl;
+  // }
+  output << winnerState << std::endl;
+  _winnerIndex = winnerState;
   ++_tickCount;
-  return _stateToMelodyIndices[winnerIndex] +
-         1u; /*this +1 might be due to some integration incorrectness - to
-               review*/
+  return melodyIndex + 1u; /*this +1 might be due to some integration
+                             incorrectness - to review*/
 }
+
+namespace {
+float getLlhdThatItChanges(float numRemainingBlocks) {
+  const auto remainingCrotchets = numRemainingBlocks / blocksPerCrotchet;
+  if (remainingCrotchets < 1.f) {
+    // Slowly ramping up from 0.05 to 0.3
+    return .25f * (1.f - remainingCrotchets) + .05f;
+  } else {
+    return .05f;
+  }
+};
+} // namespace
 
 float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
                                                   size_t newState) const {
+  struct Params {
+    const float llhThatItStays;
+    const float transitionToNextLlh;
+  };
+  static std::unique_ptr<Params> params;
+  if (!params) {
+    std::ifstream ifs("C:/Users/saint/Downloads/params.txt");
+    float llhThatItStays, transitionToNextLlh;
+    ifs >> llhThatItStays >> transitionToNextLlh;
+    std::cout << "llhThatItStays=" << llhThatItStays
+              << ", transitionToNextLlh=" << transitionToNextLlh << std::endl;
+    params.reset(new Params{llhThatItStays, transitionToNextLlh});
+  }
   const auto N = _stateToMelodyIndices.size();
   const auto numCrotchets =
       _melody[_stateToMelodyIndices[oldState] + 1u].first -
@@ -123,19 +161,18 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  constexpr auto transitionsToNextLlh = .9f;
+  // constexpr auto transitionsToNextLlh = .9763f;
+  const auto transitionsToNextLlh = params->transitionToNextLlh;
   const auto llhThatItChanges =
-      1.f / (numBlocksExpectedInOldState + 1.f +
-             1.f // Another one to clip llhThatItChanges to 0.5 ; I don't think
-                 // it should ever get much higher, and certainly not 1.
-            );
+      getLlhdThatItChanges(numBlocksExpectedInOldState);
   const auto llhThatItStays = 1.f - llhThatItChanges;
+  // const auto llhThatItStays = params->llhThatItStays;
   if (oldState == newState) { // Stay in the same state
     return llhThatItStays;
   } else if (newState == oldState + 1u) {
-    return (1.f - llhThatItStays) * transitionsToNextLlh / N;
+    return (1.f - llhThatItStays) * transitionsToNextLlh;
   } else {
-    return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh) / N;
+    return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
   }
 }
 

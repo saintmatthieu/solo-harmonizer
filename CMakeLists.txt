@@ -59,7 +59,7 @@ add_subdirectory(googletest)
 add_subdirectory(JUCE)
 add_subdirectory(spdlog)
 add_subdirectory(pffft)
-add_subdirectory(eigen)
+# add_subdirectory(eigen)
 add_subdirectory(saint)
 
 # Below are all PFFFT test executables we don't want to compile.
