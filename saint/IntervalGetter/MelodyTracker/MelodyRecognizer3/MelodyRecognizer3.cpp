@@ -79,9 +79,15 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
     output << -1 << std::endl;
     return std::nullopt;
   }
+  const auto observationLlhs = _getObservationLikelihoods(*measuredNoteNumber);
+  if (*std::max_element(observationLlhs.begin(), observationLlhs.end()) <
+      -1.f) {
+    ++_tickCount;
+    output << -1 << std::endl;
+    return std::nullopt;
+  }
   std::optional<float> maxProb;
   int maxProbState = noPitchState;
-  const auto observationLlhs = _getObservationLikelihoods(*measuredNoteNumber);
   std::vector<size_t> newPriorAntecedentIndices(_stateToMelodyIndices.size());
   for (auto newState = 0u; newState < _stateToMelodyIndices.size();
        ++newState) {
