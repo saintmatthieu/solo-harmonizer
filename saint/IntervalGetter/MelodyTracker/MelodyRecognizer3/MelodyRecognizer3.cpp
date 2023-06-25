@@ -115,7 +115,8 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
     const auto nn = *_melody[melodyIndex].second;
     labels << time << "\t" << time << "\t" << _tickCount
            << ": guess=" << winnerState << ", NN=" << nn
-           << ", orig=" << winnerOriginState << std::endl;
+           << ", orig=" << winnerOriginState << ", stateCount=" << _stateCount
+           << std::endl;
     prevIndex = winnerState;
   }
   // if (winnerOriginState != _winnerIndex) {
