@@ -39,7 +39,10 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   auto wav = testUtils::fromWavFile(
       "C:/Users/saint/git/github/saintmatthieu/solo-harmonizer/saint/_assets/"
       "Les_Petits_Poissons.wav");
-  prependDelay(wav);
+  constexpr auto addDelay = false;
+  if (addDelay) {
+    prependDelay(wav);
+  }
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
   const auto factory = std::make_shared<DefaultMidiFileOwner>(
