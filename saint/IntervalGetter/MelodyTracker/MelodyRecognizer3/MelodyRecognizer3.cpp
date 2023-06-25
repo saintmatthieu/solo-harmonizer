@@ -179,7 +179,7 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
   // const auto llhThatItStays = params->llhThatItStays;
   constexpr auto llhThatItStays = 0.6633f;
   if (oldState == newState) { // Stay in the same state
-    return llhThatItStays;
+    return _stateCount > 1 ? llhThatItStays : 1.f - llhThatItStays;
   } else if (newState == oldState + 1u) {
     return (1.f - llhThatItStays) * transitionsToNextLlh;
   } else {
