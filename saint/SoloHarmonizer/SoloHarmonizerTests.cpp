@@ -37,7 +37,8 @@ void prependDelay(std::vector<float> &vector) {
 
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   auto wav = testUtils::fromWavFile(
-      fs::absolute("./saint/_assets/Les_Petits_Poissons.wav"));
+      "C:/Users/saint/git/github/saintmatthieu/solo-harmonizer/saint/_assets/"
+      "Les_Petits_Poissons.wav");
   prependDelay(wav);
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };

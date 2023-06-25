@@ -109,10 +109,13 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
   std::transform(_newPriors.begin(), _newPriors.end(), _priors.begin(),
                  [&](float prob) { return prob - _newPriors[winnerState]; });
   static auto prevIndex = -1;
-    static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
+  static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
   if (static_cast<int>(winnerState) != prevIndex) {
     const auto time = getTime(_tickCount);
-    labels << time << "\t" << time << "\t" << winnerState << std::endl;
+    const auto nn = *_melody[melodyIndex].second;
+    labels << time << "\t" << time << "\t" << _tickCount
+           << ": guess=" << winnerState << ", NN=" << nn
+           << ", orig=" << winnerOriginState << std::endl;
     prevIndex = winnerState;
   }
   // if (winnerOriginState != _winnerIndex) {
@@ -161,8 +164,8 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  // constexpr auto transitionsToNextLlh = .9763f;
-  const auto transitionsToNextLlh = params->transitionToNextLlh;
+  constexpr auto transitionsToNextLlh = .9763f;
+  // const auto transitionsToNextLlh = params->transitionToNextLlh;
   const auto llhThatItChanges =
       getLlhdThatItChanges(numBlocksExpectedInOldState);
   const auto llhThatItStays = 1.f - llhThatItChanges;
