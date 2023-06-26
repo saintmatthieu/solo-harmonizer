@@ -38,7 +38,7 @@ std::vector<float> getInitialPriors(size_t numStates) {
 
 float getObservationLikelihood(int hypothesisNoteNumber,
                                float measuredNoteNumber,
-                               float pitchConfidence) {
+                               float /*pitchConfidence*/) {
   // A PDF does not read as probabilities, but I think we're only interested
   // in the relative values, so let's just do this. The log of a normal
   // distribution is is proportional to the square of the error. Again, we're
@@ -49,6 +49,7 @@ float getObservationLikelihood(int hypothesisNoteNumber,
   // If pitchConfidence is high, we can be more confident in the observation.
   // Unfortunately, we have to expf to logf again if we want to take this into
   // account. Might be optimized otherwise, but not now.
+  constexpr auto pitchConfidence = 0.78f;
   return std::logf(pitchConfidence * std::expf(squared) + 1.f -
                    pitchConfidence);
 }
@@ -86,14 +87,25 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber,
     output << -1 << std::endl;
     return std::nullopt;
   }
-  const auto observationLlhs =
-      _getObservationLikelihoods(*measuredNoteNumber, pitchConfidence);
+
+  static std::unique_ptr<Params> params;
+  if (!params) {
+    std::ifstream ifs("C:/Users/saint/Downloads/params.txt");
+    float llhThatItStays, transitionToNextLlh, observationLlhWeight;
+    ifs >> llhThatItStays >> transitionToNextLlh >> observationLlhWeight;
+    params.reset(
+        new Params{llhThatItStays, transitionToNextLlh, observationLlhWeight});
+  }
+
+  const auto observationLlhs = _getObservationLikelihoods(
+      *measuredNoteNumber, params->observationLlhWeight);
   if (*std::max_element(observationLlhs.begin(), observationLlhs.end()) <
       -1.f) {
     ++_tickCount;
     output << -1 << std::endl;
     return std::nullopt;
   }
+
   std::optional<float> maxProb;
   int maxProbState = noPitchState;
   std::vector<size_t> newPriorAntecedentIndices(_stateToMelodyIndices.size());
@@ -104,7 +116,7 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber,
     for (auto oldState = 0u; oldState < _stateToMelodyIndices.size();
          ++oldState) {
       const auto transitionLikelihood =
-          _getTransitionLikelihood(oldState, newState);
+          _getTransitionLikelihood(oldState, newState, *params);
       const auto prob =
           _priors[oldState] + transitionLikelihood + observationLlhs[newState];
       if (prob > maxProb) {
@@ -157,20 +169,9 @@ float getLlhdThatItChanges(float numRemainingBlocks) {
 } // namespace
 
 float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
-                                                  size_t newState) const {
-  struct Params {
-    const float llhThatItStays;
-    const float transitionToNextLlh;
-  };
-  static std::unique_ptr<Params> params;
-  if (!params) {
-    std::ifstream ifs("C:/Users/saint/Downloads/params.txt");
-    float llhThatItStays, transitionToNextLlh;
-    ifs >> llhThatItStays >> transitionToNextLlh;
-    std::cout << "llhThatItStays=" << llhThatItStays
-              << ", transitionToNextLlh=" << transitionToNextLlh << std::endl;
-    params.reset(new Params{llhThatItStays, transitionToNextLlh});
-  }
+                                                  size_t newState,
+                                                  const Params &params) const {
+
   const auto N = _stateToMelodyIndices.size();
   const auto numCrotchets =
       _melody[_stateToMelodyIndices[oldState] + 1u].first -
@@ -179,13 +180,13 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  constexpr auto transitionsToNextLlh = .5817f;
-  // const auto transitionsToNextLlh = params->transitionToNextLlh;
+  constexpr auto transitionsToNextLlh = .7722f;
+  // const auto transitionsToNextLlh = params.transitionToNextLlh;
   // const auto llhThatItChanges =
   //     getLlhdThatItChanges(numBlocksExpectedInOldState);
   // const auto llhThatItStays = 1.f - llhThatItChanges;
-  // const auto llhThatItStays = params->llhThatItStays;
-  constexpr auto llhThatItStays = 0.8267f;
+  // const auto llhThatItStays = params.llhThatItStays;
+  constexpr auto llhThatItStays = 0.85f;
   if (oldState == newState) { // Stay in the same state
     return _stateCount > 1 ? llhThatItStays : .1f;
   } else if (newState == oldState + 1u) {

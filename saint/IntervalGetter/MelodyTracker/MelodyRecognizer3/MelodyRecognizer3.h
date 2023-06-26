@@ -11,8 +11,16 @@ public:
   std::optional<size_t> tick(const std::optional<float> &measuredNoteNumber,
                              float pitchConfidence);
 
+public:
+  struct Params {
+    const float llhThatItStays;
+    const float transitionToNextLlh;
+    const float observationLlhWeight;
+  };
+
 private:
-  float _getTransitionLikelihood(size_t oldState, size_t newState) const;
+  float _getTransitionLikelihood(size_t oldState, size_t newState,
+                                 const Params &) const;
   std::vector<float> _getObservationLikelihoods(float measuredNoteNumber,
                                                 float pitchConfidence) const;
   const Melody _melody;
