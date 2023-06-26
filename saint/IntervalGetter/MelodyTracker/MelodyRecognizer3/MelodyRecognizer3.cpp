@@ -171,15 +171,15 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  constexpr auto transitionsToNextLlh = .9492f;
+  constexpr auto transitionsToNextLlh = .5817f;
   // const auto transitionsToNextLlh = params->transitionToNextLlh;
   // const auto llhThatItChanges =
   //     getLlhdThatItChanges(numBlocksExpectedInOldState);
   // const auto llhThatItStays = 1.f - llhThatItChanges;
   // const auto llhThatItStays = params->llhThatItStays;
-  constexpr auto llhThatItStays = 0.6633f;
+  constexpr auto llhThatItStays = 0.8267f;
   if (oldState == newState) { // Stay in the same state
-    return _stateCount > 1 ? llhThatItStays : 1.f - llhThatItStays;
+    return _stateCount > 1 ? llhThatItStays : .1f;
   } else if (newState == oldState + 1u) {
     return (1.f - llhThatItStays) * transitionsToNextLlh;
   } else {
