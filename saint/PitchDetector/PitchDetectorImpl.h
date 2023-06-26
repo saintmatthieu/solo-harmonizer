@@ -13,9 +13,7 @@
 namespace saint {
 
 // PFFT memory alignment requirement
-template <typename T> struct alignas(16) Aligned {
-  T value;
-};
+template <typename T> struct alignas(16) Aligned { T value; };
 
 class PitchDetectorImpl : public PitchDetector {
 public:
@@ -23,7 +21,7 @@ public:
   PitchDetectorImpl(int sampleRate,
                     const std::optional<float> &leastFrequencyToDetect,
                     std::optional<testUtils::PitchDetectorDebugCb>);
-  std::optional<float> process(const float *, int) override;
+  std::optional<float> process(const float *, int, float *pitchConfidence) override;
 
 private:
   const float _sampleRate;

@@ -135,7 +135,8 @@ PitchDetectorImpl::PitchDetectorImpl(
 }
 
 std::optional<float> PitchDetectorImpl::process(const float *audio,
-                                                int audioSize) {
+                                                int audioSize,
+                                                float *pitchConfidence) {
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
   std::vector<testUtils::PitchDetectorFftAnal> analyses;
@@ -169,8 +170,14 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
     if (max > 0.9) {
       _detectedPitch = _sampleRate / maxIndex;
+      if (pitchConfidence) {
+        *pitchConfidence = (max - .9f) * 10.f;
+      }
     } else {
       _detectedPitch.reset();
+      if (pitchConfidence) {
+        *pitchConfidence = 0.f;
+      }
     }
   }
   if (_debugCb) {

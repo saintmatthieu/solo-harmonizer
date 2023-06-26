@@ -22,7 +22,8 @@ public:
   // When `pitch == nullopt`, the algorithm will allow pitch shift jumps.
   virtual std::optional<float>
   getHarmoInterval(float timeInCrotchets, const std::optional<float> &pitch,
-                   const std::chrono::milliseconds &now, int blockSize = 0) = 0;
+                   float pitchConfidence, const std::chrono::milliseconds &now,
+                   int blockSize = 0) = 0;
 
   virtual ~IntervalGetter() = default;
 };

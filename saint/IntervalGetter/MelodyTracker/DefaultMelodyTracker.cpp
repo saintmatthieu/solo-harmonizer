@@ -53,9 +53,11 @@ DefaultMelodyTracker::DefaultMelodyTracker(
       _melodyRecognizer3(std::move(melodyRecognizer3)) {}
 
 std::optional<size_t>
-DefaultMelodyTracker::tick(const std::optional<float> &measuredNoteNumber) {
+DefaultMelodyTracker::tick(const std::optional<float> &measuredNoteNumber,
+                           float pitchConfidence) {
   static std::ofstream log("C:/Users/saint/Downloads/log.txt");
-  const auto result = _melodyRecognizer3->tick(measuredNoteNumber);
+  const auto result =
+      _melodyRecognizer3->tick(measuredNoteNumber, pitchConfidence);
   log << (result.has_value() ? std::to_string(*result) : "none") << std::endl;
   return result;
 }

@@ -37,14 +37,20 @@ std::vector<float> getInitialPriors(size_t numStates) {
 }
 
 float getObservationLikelihood(int hypothesisNoteNumber,
-                               float measuredNoteNumber) {
+                               float measuredNoteNumber,
+                               float pitchConfidence) {
   // A PDF does not read as probabilities, but I think we're only interested
   // in the relative values, so let's just do this. The log of a normal
   // distribution is is proportional to the square of the error. Again, we're
   // just interested in how the probabilities compare, so we ignore all
   // scalars and just use
   const auto error = hypothesisNoteNumber - measuredNoteNumber;
-  return -error * error;
+  const auto squared = -error * error;
+  // If pitchConfidence is high, we can be more confident in the observation.
+  // Unfortunately, we have to expf to logf again if we want to take this into
+  // account. Might be optimized otherwise, but not now.
+  return std::logf(pitchConfidence * std::expf(squared) + 1.f -
+                   pitchConfidence);
 }
 
 std::vector<size_t> getMelodyNoteIndices(const Melody &melody) {
@@ -71,7 +77,8 @@ MelodyRecognizer3::MelodyRecognizer3(Melody melody)
       _newPriors(_priors.size()) {}
 
 std::optional<size_t>
-MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
+MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber,
+                        float pitchConfidence) {
   static std::ofstream output("C:/Users/saint/Downloads/output.txt");
   _stateCount = measuredNoteNumber.has_value() ? _stateCount + 1u : 0u;
   if (!measuredNoteNumber.has_value()) {
@@ -79,7 +86,8 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
     output << -1 << std::endl;
     return std::nullopt;
   }
-  const auto observationLlhs = _getObservationLikelihoods(*measuredNoteNumber);
+  const auto observationLlhs =
+      _getObservationLikelihoods(*measuredNoteNumber, pitchConfidence);
   if (*std::max_element(observationLlhs.begin(), observationLlhs.end()) <
       -1.f) {
     ++_tickCount;
@@ -97,8 +105,8 @@ MelodyRecognizer3::tick(const std::optional<float> &measuredNoteNumber) {
          ++oldState) {
       const auto transitionLikelihood =
           _getTransitionLikelihood(oldState, newState);
-      const auto prob = _priors[oldState] + std::logf(transitionLikelihood) +
-                        observationLlhs[newState];
+      const auto prob =
+          _priors[oldState] + transitionLikelihood + observationLlhs[newState];
       if (prob > maxProb) {
         maxProb = prob;
         maxProbIndex = oldState;
@@ -188,12 +196,13 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
 }
 
 std::vector<float>
-MelodyRecognizer3::_getObservationLikelihoods(float measuredNoteNumber) const {
+MelodyRecognizer3::_getObservationLikelihoods(float measuredNoteNumber,
+                                              float pitchConfidence) const {
   std::vector<float> llhs(_stateToMelodyIndices.size());
   for (auto i = 0u; i < _stateToMelodyIndices.size(); ++i) {
     const auto noteIndex = _stateToMelodyIndices[i];
     llhs[i] = getObservationLikelihood(*_melody[noteIndex].second,
-                                       measuredNoteNumber);
+                                       measuredNoteNumber, pitchConfidence);
   }
   return llhs;
 }

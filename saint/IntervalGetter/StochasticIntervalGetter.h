@@ -13,6 +13,7 @@ public:
                            const std::map<float, Fraction> &timeSignatures);
   std::optional<float> getHarmoInterval(float timeInCrotchets,
                                         const std::optional<float> &pitch,
+                                        float pitchConfidence,
                                         const std::chrono::milliseconds &now,
                                         int blockSize = 0) override;
 

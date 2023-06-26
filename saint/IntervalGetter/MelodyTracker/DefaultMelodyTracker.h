@@ -18,8 +18,8 @@ public:
                        std::unique_ptr<TimingEstimator>,
                        std::unique_ptr<MelodyRecognizer3>);
 
-  std::optional<size_t>
-  tick(const std::optional<float> &measuredNoteNumber) override;
+  std::optional<size_t> tick(const std::optional<float> &measuredNoteNumber,
+                             float pitchConfidence) override;
 
 private:
   const std::unique_ptr<MelodyRecognizer> _melodyRecognizer;
