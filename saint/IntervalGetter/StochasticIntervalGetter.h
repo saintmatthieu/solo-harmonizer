@@ -11,11 +11,11 @@ public:
   StochasticIntervalGetter(const std::vector<IntervalSpan> &spans,
                            std::unique_ptr<MelodyTracker>,
                            const std::map<float, Fraction> &timeSignatures);
-  std::optional<float> getHarmoInterval(float timeInCrotchets,
-                                        const std::optional<float> &pitch,
-                                        float pitchConfidence,
-                                        const std::chrono::milliseconds &now,
-                                        int blockSize = 0) override;
+  std::optional<float>
+  getHarmoInterval(float timeInCrotchets,
+                   const std::optional<std::function<float(int)>> &getPitchLlh,
+                   const std::chrono::milliseconds &now,
+                   int blockSize = 0) override;
 
 private:
   const std::vector<IntervalSpan> _spans;

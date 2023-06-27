@@ -33,11 +33,13 @@ DefaultIntervalGetter::DefaultIntervalGetter(
       _intervals(getNotes(spans)) {}
 
 std::optional<float> DefaultIntervalGetter::getHarmoInterval(
-    float timeInCrotchets, const std::optional<float> &pitch, float pitchConfidence,
+    float timeInCrotchets,
+    const std::optional<std::function<float(int)>> &getPitchLlh,
     const std::chrono::milliseconds &, int blockSize) {
-  const auto interval = _getHarmoInterval(timeInCrotchets, pitch, pitchConfidence);
+  const auto interval = _getHarmoInterval(timeInCrotchets, getPitchLlh);
   if (_debugCb) {
-    testUtils::IntervalGetterDebugCbArgs args{_crotchets, pitch, interval};
+    testUtils::IntervalGetterDebugCbArgs args{_crotchets, std::nullopt,
+                                              interval};
     args.newIndex = _currentIndex;
     args.blockSize = blockSize;
     (*_debugCb)(args);
@@ -46,11 +48,12 @@ std::optional<float> DefaultIntervalGetter::getHarmoInterval(
 }
 
 std::optional<float> DefaultIntervalGetter::_getHarmoInterval(
-    float timeInCrotchets, const std::optional<float> &pitch, float pitchConfidence) {
-  if (_prevWasPitched && pitch.has_value()) {
+    float timeInCrotchets,
+    const std::optional<std::function<float(int)>> &getPitchLlh) {
+  if (_prevWasPitched && getPitchLlh.has_value()) {
     return _getInterval();
   }
-  _prevWasPitched = pitch.has_value();
+  _prevWasPitched = getPitchLlh.has_value();
   const auto newIndex = getClosestLimitIndex(_crotchets, timeInCrotchets);
   if (!newIndex.has_value()) {
     return std::nullopt;

@@ -21,7 +21,7 @@ public:
   PitchDetectorImpl(int sampleRate,
                     const std::optional<float> &leastFrequencyToDetect,
                     std::optional<testUtils::PitchDetectorDebugCb>);
-  std::optional<float> process(const float *, int, float *pitchConfidence) override;
+  std::optional<std::function<float(int)>> process(const float *, int) override;
 
 private:
   const float _sampleRate;

@@ -15,15 +15,16 @@ public:
   DefaultIntervalGetter(const std::vector<IntervalSpan> &timeSegments,
                         std::optional<testUtils::IntervalGetterDebugCb>);
   std::optional<float>
-  getHarmoInterval(float timeInCrotchets, const std::optional<float> &pitch,
-                   float pitchConfidence, const std::chrono::milliseconds &now = 0ms,
+  getHarmoInterval(float timeInCrotchets,
+                   const std::optional<std::function<float(int)>> &getPitchLlh,
+                   const std::chrono::milliseconds &now = 0ms,
                    int blockSize = 0) override;
 
 private:
   std::optional<float> _getInterval() const;
-  std::optional<float> _getHarmoInterval(float timeInCrotchets,
-                                         const std::optional<float> &pitch,
-                                         float pitchConfidence);
+  std::optional<float> _getHarmoInterval(
+      float timeInCrotchets,
+      const std::optional<std::function<float(int)>> &getPitchLlh);
   const std::optional<testUtils::IntervalGetterDebugCb> _debugCb;
   const std::vector<float> _crotchets;
   const std::vector<std::optional<PlayedNote>> _intervals;

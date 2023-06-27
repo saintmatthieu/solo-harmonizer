@@ -1,7 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
+
 
 namespace saint {
 class PitchDetector {
@@ -10,8 +12,8 @@ public:
   createInstance(int sampleRate,
                  const std::optional<float> &leastFrequencyToDetect);
   static constexpr auto maxBlockSize = 8192;
-  virtual std::optional<float> process(const float *, int,
-                                       float *pitchConfidence = nullptr) = 0;
+  virtual std::optional<std::function<float(int)>> process(const float *,
+                                                           int) = 0;
   virtual ~PitchDetector() = default;
 };
 } // namespace saint

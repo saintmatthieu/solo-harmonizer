@@ -134,12 +134,12 @@ PitchDetectorImpl::PitchDetectorImpl(
   _ringBuffers[0].writeBuff(zeros.data(), zeros.size());
 }
 
-std::optional<float> PitchDetectorImpl::process(const float *audio,
-                                                int audioSize,
-                                                float *pitchConfidence) {
+std::optional<std::function<float(int)>>
+PitchDetectorImpl::process(const float *audio, int audioSize) {
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
   std::vector<testUtils::PitchDetectorFftAnal> analyses;
+  std::optional<std::function<float(int)>> llhEstimator;
   while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     std::vector<float> time(_fftSize);
     _ringBuffers[_ringBufferIndex].readBuff(time.data(), _window.size());
@@ -170,19 +170,21 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
     if (max > 0.9) {
       _detectedPitch = _sampleRate / maxIndex;
-      if (pitchConfidence) {
-        *pitchConfidence = (max - .9f) * 10.f;
-      }
+      llhEstimator = [xcor = time, windowXCor = _windowXcor,
+                      sampleRate = _sampleRate](int noteNumber) -> float {
+        const auto freq = 440.f * std::pow(2.f, (noteNumber - 69) / 12.f);
+        const auto delayInSamples =
+            static_cast<size_t>(sampleRate / freq + 0.5);
+        return xcor[delayInSamples] / windowXCor[delayInSamples];
+      };
     } else {
+      llhEstimator.reset();
       _detectedPitch.reset();
-      if (pitchConfidence) {
-        *pitchConfidence = 0.f;
-      }
     }
   }
   if (_debugCb) {
     (*_debugCb)({analyses, _detectedPitch, audioSize});
   }
-  return _detectedPitch;
+  return llhEstimator;
 }
 } // namespace saint

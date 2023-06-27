@@ -52,14 +52,9 @@ DefaultMelodyTracker::DefaultMelodyTracker(
       _timingEstimator(std::move(timingEstimator)),
       _melodyRecognizer3(std::move(melodyRecognizer3)) {}
 
-std::optional<size_t>
-DefaultMelodyTracker::tick(const std::optional<float> &measuredNoteNumber,
-                           float pitchConfidence) {
-  static std::ofstream log("C:/Users/saint/Downloads/log.txt");
-  const auto result =
-      _melodyRecognizer3->tick(measuredNoteNumber, pitchConfidence);
-  log << (result.has_value() ? std::to_string(*result) : "none") << std::endl;
-  return result;
+std::optional<size_t> DefaultMelodyTracker::tick(
+    const std::optional<std::function<float(int)>> &nnLlhEstimator) {
+  return _melodyRecognizer3->tick(nnLlhEstimator);
 }
 
 } // namespace saint

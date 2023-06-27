@@ -11,7 +11,7 @@ public:
   static std::unique_ptr<MelodyTracker> createInstance(
       const std::vector<std::pair<float, std::optional<int>>> &melody);
   virtual std::optional<size_t>
-  tick(const std::optional<float> &measuredNoteNumber, float pitchConfidence) = 0;
+  tick(const std::optional<std::function<float(int)>> &nnLlhEstimator) = 0;
   virtual ~MelodyTracker() = default;
 };
 } // namespace saint

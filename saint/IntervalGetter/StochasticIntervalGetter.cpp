@@ -11,16 +11,12 @@ StochasticIntervalGetter::StochasticIntervalGetter(
       _pitchMapper(PitchMapper::createInstance(_spans, timeSignatures)) {}
 
 std::optional<float> StochasticIntervalGetter::getHarmoInterval(
-    float timeInCrotchets, const std::optional<float> &pitch,
-    float pitchConfidence, const std::chrono::milliseconds &now,
-    int blockSize) {
-  const auto perfNn =
-      pitch.has_value()
-          ? std::optional<float>{12.f * std::log2f(*pitch / 440.f) + 69.f}
-          : std::nullopt;
+    float timeInCrotchets,
+    const std::optional<std::function<float(int)>> &getPitchLlh,
+    const std::chrono::milliseconds &now, int blockSize) {
   const auto tick = _tick++;
-  _prevPitchHadValue = pitch.has_value();
-  const auto guessedSpanIndex = _melodyTracker->tick(perfNn, pitchConfidence);
+  _prevPitchHadValue = getPitchLlh.has_value();
+  const auto guessedSpanIndex = _melodyTracker->tick(getPitchLlh);
   if (!guessedSpanIndex.has_value() || *guessedSpanIndex >= _spans.size()) {
     return std::nullopt;
   }
