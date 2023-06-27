@@ -192,7 +192,10 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
   } else if (newState == oldState + 1u) {
     return (1.f - llhThatItStays) * transitionsToNextLlh;
   } else {
-    return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
+    return _stateCount > 1
+               ? 0.f // jumping from one state to another than the next is only
+                     // allowed after a small pause ; makes sense, right?
+               : (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
   }
 }
 
