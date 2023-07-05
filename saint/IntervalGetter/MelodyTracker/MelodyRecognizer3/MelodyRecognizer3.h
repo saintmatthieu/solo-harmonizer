@@ -33,5 +33,6 @@ private:
       0u; // num. of consecutive times the `tick` input isn't nullopt.
   size_t _tickCount = 0u; // for debugging
   size_t _winnerIndex = -1;
+  bool _prevReturnHadValue = false;
 };
 } // namespace saint

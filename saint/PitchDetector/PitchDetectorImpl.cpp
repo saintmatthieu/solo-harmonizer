@@ -175,7 +175,10 @@ PitchDetectorImpl::process(const float *audio, int audioSize) {
         const auto freq = 440.f * std::pow(2.f, (noteNumber - 69) / 12.f);
         const auto delayInSamples =
             static_cast<size_t>(sampleRate / freq + 0.5);
-        return xcor[delayInSamples] / windowXCor[delayInSamples];
+        const auto normalizedXcorr =
+            xcor[delayInSamples] / windowXCor[delayInSamples];
+        const auto scaledXcorr = (1.f + normalizedXcorr) / 2.f; // from 0 to 1
+        return scaledXcorr * scaledXcorr;
       };
     } else {
       llhEstimator.reset();

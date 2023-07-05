@@ -13,6 +13,10 @@ using Melody = MelodyRecognizer3::Melody;
 namespace {
 constexpr auto noPitchState = std::numeric_limits<int>::min();
 
+constexpr auto bestLlhThatItStays = 1.f;
+constexpr auto bestTransitionToNextLlh = 1.f;
+constexpr auto bestObservationLlhWeight = 1.f;
+
 // If useful, this information will be passed to the ctor. But this is still
 // experimentation, so for now just assuming these values from the unit test
 // used to debug this code.
@@ -39,14 +43,14 @@ std::vector<float> getInitialPriors(size_t numStates) {
 float getObservationLikelihood(
     int hypothesisNoteNumber,
     const std::function<float(int)> &getPitchLikelihood,
-    float /*pitchConfidence*/) {
-  // If pitchConfidence is high, we can be more confident in the observation.
+    float /* observationLlhWeight */) {
+  // If observationLlhWeight is high, we are more confident in the observation.
   // Unfortunately, we have to expf to logf again if we want to take this into
   // account. Might be optimized otherwise, but not now.
-  constexpr auto pitchConfidence = 0.78f;
-  return std::logf(pitchConfidence *
-                       std::expf(getPitchLikelihood(hypothesisNoteNumber)) +
-                   1.f - pitchConfidence);
+  constexpr auto observationLlhWeight = 0.007f;
+  return std::logf(observationLlhWeight *
+                       getPitchLikelihood(hypothesisNoteNumber) +
+                   1.f - observationLlhWeight);
 }
 
 std::vector<size_t> getMelodyNoteIndices(const Melody &melody) {
@@ -64,6 +68,15 @@ std::string getTime(size_t tickCount) {
   return std::to_string(static_cast<float>(tickCount) * samplesPerBlock /
                         44100.f);
 }
+
+void printNullopt(std::ofstream &labels, size_t tickCount,
+                  bool prevReturnHadValue) {
+  if (prevReturnHadValue) {
+    const auto time = getTime(tickCount);
+    labels << time << "\t" << time << "\t" << tickCount << ": null return"
+           << std::endl;
+  }
+}
 } // namespace
 
 MelodyRecognizer3::MelodyRecognizer3(Melody melody)
@@ -75,10 +88,13 @@ MelodyRecognizer3::MelodyRecognizer3(Melody melody)
 std::optional<size_t> MelodyRecognizer3::tick(
     const std::optional<std::function<float(float)>> &getPitchLikelihood) {
   static std::ofstream output("C:/Users/saint/Downloads/output.txt");
+  static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
   _stateCount = getPitchLikelihood.has_value() ? _stateCount + 1u : 0u;
   if (!getPitchLikelihood.has_value()) {
     ++_tickCount;
     output << -1 << std::endl;
+    printNullopt(labels, _tickCount, _prevReturnHadValue);
+    _prevReturnHadValue = false;
     return std::nullopt;
   }
 
@@ -87,18 +103,14 @@ std::optional<size_t> MelodyRecognizer3::tick(
     std::ifstream ifs("C:/Users/saint/Downloads/params.txt");
     float llhThatItStays, transitionToNextLlh, observationLlhWeight;
     ifs >> llhThatItStays >> transitionToNextLlh >> observationLlhWeight;
+    std::cout << llhThatItStays << ", " << transitionToNextLlh << ", "
+              << observationLlhWeight << std::endl;
     params.reset(
         new Params{llhThatItStays, transitionToNextLlh, observationLlhWeight});
   }
 
   const auto observationLlhs = _getObservationLikelihoods(
       *getPitchLikelihood, params->observationLlhWeight);
-  if (*std::max_element(observationLlhs.begin(), observationLlhs.end()) <
-      -1.f) {
-    ++_tickCount;
-    output << -1 << std::endl;
-    return std::nullopt;
-  }
 
   std::optional<float> maxProb;
   int maxProbState = noPitchState;
@@ -129,8 +141,7 @@ std::optional<size_t> MelodyRecognizer3::tick(
   std::transform(_newPriors.begin(), _newPriors.end(), _priors.begin(),
                  [&](float prob) { return prob - _newPriors[winnerState]; });
   static auto prevIndex = -1;
-  static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
-  if (static_cast<int>(winnerState) != prevIndex) {
+  if (static_cast<int>(winnerState) != prevIndex || !_prevReturnHadValue) {
     const auto time = getTime(_tickCount);
     const auto nn = *_melody[melodyIndex].second;
     labels << time << "\t" << time << "\t" << _tickCount
@@ -146,6 +157,7 @@ std::optional<size_t> MelodyRecognizer3::tick(
   output << winnerState << std::endl;
   _winnerIndex = winnerState;
   ++_tickCount;
+  _prevReturnHadValue = true;
   return melodyIndex + 1u; /*this +1 might be due to some integration
                              incorrectness - to review*/
 }
@@ -174,13 +186,13 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
       0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  constexpr auto transitionsToNextLlh = .7722f;
+  constexpr auto transitionsToNextLlh = .99f;
   // const auto transitionsToNextLlh = params.transitionToNextLlh;
   // const auto llhThatItChanges =
   //     getLlhdThatItChanges(numBlocksExpectedInOldState);
   // const auto llhThatItStays = 1.f - llhThatItChanges;
   // const auto llhThatItStays = params.llhThatItStays;
-  constexpr auto llhThatItStays = 0.85f;
+  constexpr auto llhThatItStays = 0.88f;
   if (oldState == newState) { // Stay in the same state
     return _stateCount > 1 ? llhThatItStays : .1f;
   } else if (newState == oldState + 1u) {
@@ -195,12 +207,12 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
 
 std::vector<float> MelodyRecognizer3::_getObservationLikelihoods(
     const std::function<float(int)> &getPitchLikelihood,
-    float pitchConfidence) const {
+    float observationLlhWeight) const {
   std::vector<float> llhs(_stateToMelodyIndices.size());
   for (auto i = 0u; i < _stateToMelodyIndices.size(); ++i) {
     const auto noteIndex = _stateToMelodyIndices[i];
-    llhs[i] = getObservationLikelihood(*_melody[noteIndex].second,
-                                       getPitchLikelihood, pitchConfidence);
+    llhs[i] = getObservationLikelihood(
+        *_melody[noteIndex].second, getPitchLikelihood, observationLlhWeight);
   }
   return llhs;
 }
