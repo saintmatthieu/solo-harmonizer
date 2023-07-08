@@ -1,9 +1,4 @@
 add_library(IntervalGetter
-  MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizer.cpp
-  MelodyTracker/MelodyRecognizer/ObservationLikelihoodGetter/DefaultObservationLikelihoodGetter.cpp
-  MelodyTracker/TimingEstimator/DefaultTimingEstimator.cpp
-  MelodyTracker/DefaultMelodyTracker.cpp
-  MelodyTracker/MelodyTrackerHelper.cpp
   DefaultIntervalGetter.cpp
   DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp
@@ -34,9 +29,6 @@ target_link_libraries(IntervalGetter
 )
 
 add_executable(IntervalGetterTests
-  MelodyTracker/MelodyRecognizer/DefaultMelodyRecognizerTests.cpp
-  MelodyTracker/MelodyRecognizer/ObservationLikelihoodGetter/DefaultObservationLikelihoodGetter.cpp
-  MelodyTracker/DefaultMelodyTrackerTests.cpp
   DefaultIntervalGetterTests.cpp
   DefaultPitchMapperHelperTests.cpp
   IntervalHelperTests.cpp
@@ -59,4 +51,4 @@ target_link_libraries(IntervalGetterTests
     gtest_main
 )
 
-add_subdirectory(MelodyTracker)
+add_subdirectory(MelodyRecognizer3)

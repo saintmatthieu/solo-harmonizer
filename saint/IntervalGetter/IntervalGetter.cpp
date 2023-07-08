@@ -1,6 +1,7 @@
 #include "IntervalGetter.h"
 #include "DefaultIntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
+#include "MelodyRecognizer3/MelodyRecognizer3.h"
 #include "MelodyTracker/MelodyTracker.h"
 #include "StochasticIntervalGetter.h"
 #include "Utils.h"
@@ -34,7 +35,7 @@ IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
                                const std::optional<float> &crotchetsPerSecond) {
   if (useStochasticIntervalGetter) {
     return std::make_shared<StochasticIntervalGetter>(
-        spans, MelodyTracker::createInstance(toTimedNoteNumbers(spans)),
+        spans, std::make_unique<MelodyRecognizer3>(toTimedNoteNumbers(spans)),
         timeSignatures);
   }
   if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
