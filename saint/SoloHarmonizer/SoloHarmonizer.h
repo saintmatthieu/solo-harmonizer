@@ -22,7 +22,6 @@ public:
 
 private:
   void onCrotchetsPerSecondAvailable(float) override;
-  void _updateTestCbsIfReady();
 
   const std::shared_ptr<MidiFileOwner> _midiFileOwner;
   const std::string _loggerName;

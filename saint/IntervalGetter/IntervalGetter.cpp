@@ -2,7 +2,6 @@
 #include "DefaultIntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
 #include "MelodyRecognizer3/MelodyRecognizer3.h"
-#include "MelodyTracker/MelodyTracker.h"
 #include "StochasticIntervalGetter.h"
 #include "Utils.h"
 

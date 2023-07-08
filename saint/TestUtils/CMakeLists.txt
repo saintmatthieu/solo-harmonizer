@@ -6,7 +6,6 @@ target_sources(TestUtils
   PUBLIC
     testUtils.cpp
     IntervalGetterDebugCb.cpp
-    PerformanceTimeWarperDebugCb.cpp
     PitchDetectorDebugCb.cpp
     WavFileReader.cpp
     WavFileWriter.cpp

@@ -1,7 +1,6 @@
 #include "SoloHarmonizer.h"
 #include "IntervalGetter.h"
 #include "MidiFileOwner.h"
-#include "PerformanceTimeWarperDebugCb.h"
 #include "SoloHarmonizerHelper.h"
 
 #include "spdlog/common.h"
@@ -28,7 +27,6 @@ SoloHarmonizer::SoloHarmonizer(std::shared_ptr<MidiFileOwner> midiFileOwner,
 
 SoloHarmonizer::~SoloHarmonizer() {
   _logger->info("dtor {0}", _loggerName);
-  testUtils::resetPerformanceTimeWarperDebugCb();
   // Not necessary, but sure ...
   _midiFileOwner->removeStateChangeListener(this);
 }
@@ -39,7 +37,6 @@ void SoloHarmonizer::prepareToPlay(int sampleRate, int samplesPerBlock) {
   _pitchDetector = PitchDetector::createInstance(
       sampleRate, _midiFileOwner->getLowestPlayedTrackHarmonizedFrequency());
   _samplesPerBlock = samplesPerBlock;
-  _updateTestCbsIfReady();
   _logger->info("prepareToPlay sampleRate={0} samplesPerBlock={1}", sampleRate,
                 samplesPerBlock);
 }
@@ -90,13 +87,5 @@ void SoloHarmonizer::processBlock(const std::chrono::milliseconds &now,
 
 void SoloHarmonizer::onCrotchetsPerSecondAvailable(float crotchetsPerSecond) {
   _crotchetsPerSecond = crotchetsPerSecond;
-  _updateTestCbsIfReady();
-}
-
-void SoloHarmonizer::_updateTestCbsIfReady() {
-  if (_crotchetsPerSecond > 0.f && _samplesPerBlock > 0) {
-    testUtils::setPerformanceTimeWarperDebugCbParams(_samplesPerBlock,
-                                                     _crotchetsPerSecond);
-  }
 }
 } // namespace saint

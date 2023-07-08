@@ -1,6 +1,5 @@
 add_library(IntervalGetter
   DefaultIntervalGetter.cpp
-  DefaultPerformanceTimeWarper.cpp
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
   KeyRecognizer.cpp
