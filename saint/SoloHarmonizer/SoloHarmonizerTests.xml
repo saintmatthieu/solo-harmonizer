@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SoloHarmonizerTest>
+  <array name="samples">
+    <item>Les_Petits_Poissons</item>
+  </array>
+  <coefs>
+    <array name="llhThatItChanges">
+      <item>0.88</item>
+    </array>
+    <array name="transitionToNextLlh">
+      <item>0.99</item>
+    </array>
+    <array name="observationLlhWeight">
+      <item>0.007</item>
+    </array>
+  </coefs>
+</SoloHarmonizerTest>

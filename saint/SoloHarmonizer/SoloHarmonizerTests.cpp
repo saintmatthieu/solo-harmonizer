@@ -11,6 +11,10 @@
 #include <gtest/gtest.h>
 #include <unordered_map>
 
+#include <juce_core/juce_core.h> // XML
+
+using namespace std::literals::string_literals;
+
 namespace saint {
 
 namespace fs = std::filesystem;
@@ -35,10 +39,11 @@ void prependDelay(std::vector<float> &vector) {
   }
 }
 
-TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
-  auto wav = testUtils::fromWavFile(
-      "C:/Users/saint/git/github/saintmatthieu/solo-harmonizer/saint/_assets/"
-      "Les_Petits_Poissons.wav");
+void runTest(const std::string &testName) {
+  const auto wavFileName = "C:/Users/saint/git/github/saintmatthieu/"
+                           "solo-harmonizer/saint/_assets/"s +
+                           testName + ".wav";
+  auto wav = testUtils::fromWavFile(wavFileName);
   constexpr auto addDelay = false;
   if (addDelay) {
     prependDelay(wav);
@@ -48,7 +53,8 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   const auto factory = std::make_shared<DefaultMidiFileOwner>(
       onCrotchetsPerSecondAvailable, onPlayheadCommand);
   factory->setSampleRate(sampleRate);
-  factory->setMidiFile("C:/Users/saint/git/github/saintmatthieu/solo-harmonizer/saint/_assets/Les_Petits_Poissons.mid");
+  factory->setMidiFile("C:/Users/saint/git/github/saintmatthieu/"
+                       "solo-harmonizer/saint/_assets/Les_Petits_Poissons.mid");
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);
   ProcessCallbackDrivenPlayhead playhead{
@@ -65,5 +71,14 @@ TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   testUtils::toWavFile(
       wav.data(), wav.size(),
       fs::path{basePath}.append("Les_Petits_Poissons_harmonized.wav"));
+}
+
+TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
+  const auto xml = juce::XmlDocument::parse(
+      juce::File{"C:/Users/saint/Downloads/SoloHarmonizerTests.xml"});
+  const auto samplesXml = xml->getChildByAttribute("name", "samples");
+  for (auto sample : samplesXml->getChildIterator()) {
+    runTest(sample->getFirstChildElement()->getText().toStdString());
+  }
 }
 } // namespace saint
