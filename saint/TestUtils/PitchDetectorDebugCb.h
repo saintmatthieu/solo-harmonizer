@@ -23,6 +23,6 @@ struct PitchDetectorDebugCbArgs {
 using PitchDetectorDebugCb =
     std::function<void(const PitchDetectorDebugCbArgs &)>;
 
-PitchDetectorDebugCb getPitchDetectorDebugCb();
+PitchDetectorDebugCb getPitchDetectorDebugCb(int sampleRate);
 } // namespace testUtils
 } // namespace saint

@@ -15,7 +15,7 @@ namespace fs = std::filesystem;
 
 TEST(ProcessCallbackDrivenPlayhead, stuff) {
   auto writer = testUtils::WavFileWriter(
-      fs::path{testUtils::getOutDir() + "metronome.wav"});
+      fs::path{testUtils::getOutDir() + "metronome.wav"}, samplesPerSecond);
   ProcessCallbackDrivenPlayhead sut{samplesPerSecond, crotchetsPerSample};
   std::vector<float> metronome(2 * samplesPerSecond);
   sut.mixMetronome(metronome.data(), 2 * samplesPerSecond);

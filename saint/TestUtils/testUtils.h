@@ -9,17 +9,17 @@
 
 namespace saint {
 namespace testUtils {
-std::vector<float>
-fromWavFile(std::optional<std::filesystem::path> path = std::nullopt);
+std::vector<float> fromWavFile(std::optional<std::filesystem::path> path,
+                               int &sampleRate);
 
 std::unique_ptr<juce::AudioFormatReader>
 getJuceWavFileReader(const std::filesystem::path &pathOpt);
 
 std::unique_ptr<juce::AudioFormatWriter>
-getJuceWavFileWriter(const std::filesystem::path &);
+getJuceWavFileWriter(const std::filesystem::path &, int sampleRate);
 
 void toWavFile(const float *audio, size_t N,
-               std::optional<std::filesystem::path> pathOpt = std::nullopt);
+               std::optional<std::filesystem::path> pathOpt, int sampleRate);
 
 std::string getInputFilePath();
 std::string getOutDir();

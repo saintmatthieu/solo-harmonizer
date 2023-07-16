@@ -12,21 +12,23 @@ namespace testUtils {
 namespace fs = std::filesystem;
 
 std::unique_ptr<juce::AudioFormatWriter>
-getJuceWavFileWriter(const fs::path &path) {
+getJuceWavFileWriter(const fs::path &path, int sampleRate) {
   juce::WavAudioFormat format;
   std::unique_ptr<juce::AudioFormatWriter> writer;
   if (fs::exists(path)) {
     fs::remove(path);
   }
   writer.reset(format.createWriterFor(
-      new juce::FileOutputStream(juce::File(path.string())), 44100.0, 1, 16, {},
-      0));
+      new juce::FileOutputStream(juce::File(path.string())),
+      static_cast<double>(sampleRate), 1, 16, {}, 0));
   return writer;
 }
 
-void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt) {
+void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt,
+               int sampleRate) {
   const auto writer = getJuceWavFileWriter(
-      pathOpt ? *pathOpt : fs::path{"C:/Users/saint/Downloads/test.wav"});
+      pathOpt ? *pathOpt : fs::path{"C:/Users/saint/Downloads/test.wav"},
+      sampleRate);
   writer->writeFromFloatArrays(&audio, 1, (int)N);
 }
 
@@ -53,12 +55,14 @@ getJuceWavFileReader(const fs::path &path) {
   return reader;
 }
 
-std::vector<float> fromWavFile(std::optional<fs::path> pathOpt) {
+std::vector<float> fromWavFile(std::optional<fs::path> pathOpt,
+                               int &sampleRate) {
   const auto reader =
       getJuceWavFileReader(pathOpt ? *pathOpt : fs::path{getInputFilePath()});
   std::vector<float> audio((size_t)reader->lengthInSamples);
   const auto pData = audio.data();
   reader->read(&pData, 1, 0, (int)reader->lengthInSamples);
+  sampleRate = reader->sampleRate;
   return audio;
 }
 

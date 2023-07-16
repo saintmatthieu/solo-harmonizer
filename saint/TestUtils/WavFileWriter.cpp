@@ -6,8 +6,8 @@ namespace saint {
 namespace testUtils {
 namespace fs = std::filesystem;
 
-WavFileWriter::WavFileWriter(const fs::path &path)
-    : _juceWriter(getJuceWavFileWriter(path)) {}
+WavFileWriter::WavFileWriter(const fs::path &path, int sampleRate)
+    : _juceWriter(getJuceWavFileWriter(path, sampleRate)) {}
 
 bool WavFileWriter::write(const float *audio, int size) {
   std::vector<const float *> channels(1);

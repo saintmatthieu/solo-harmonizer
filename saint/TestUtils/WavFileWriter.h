@@ -9,7 +9,7 @@ namespace saint {
 namespace testUtils {
 class WavFileWriter {
 public:
-  WavFileWriter(const std::filesystem::path &path);
+  WavFileWriter(const std::filesystem::path &path, int sampleRate);
   bool write(const float *, int);
   bool write(const std::vector<float> &);
   bool write(float value, int xTimes);

@@ -16,6 +16,7 @@ struct IntervalGetterDebugCbArgs {
 using IntervalGetterDebugCb =
     std::function<void(const IntervalGetterDebugCbArgs &)>;
 
-IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample);
+IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample,
+                                               int sampleRate);
 } // namespace testUtils
 } // namespace saint

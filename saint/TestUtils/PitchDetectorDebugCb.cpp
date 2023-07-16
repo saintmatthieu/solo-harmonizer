@@ -19,23 +19,27 @@ struct MetricWriters {
   std::array<OlapMetricWriters, 2> olapWriters;
 };
 
-OlapMetricWriters makeOlapMetricWriters(int analysisIndex) {
-  auto autoCor = std::make_unique<WavFileWriter>(fs::path{
-      getOutDir() + "pd_autoCor_" + std::to_string(analysisIndex) + ".wav"});
-  auto autoCorMax = std::make_unique<WavFileWriter>(fs::path{
-      getOutDir() + "pd_autoCorMax_" + std::to_string(analysisIndex) + ".wav"});
+OlapMetricWriters makeOlapMetricWriters(int analysisIndex, int sampleRate) {
+  auto autoCor = std::make_unique<WavFileWriter>(
+      fs::path{getOutDir() + "pd_autoCor_" + std::to_string(analysisIndex) +
+               ".wav"},
+      sampleRate);
+  auto autoCorMax = std::make_unique<WavFileWriter>(
+      fs::path{getOutDir() + "pd_autoCorMax_" + std::to_string(analysisIndex) +
+               ".wav"},
+      sampleRate);
   return {std::move(autoCor), std::move(autoCorMax)};
 }
 } // namespace
 
-PitchDetectorDebugCb getPitchDetectorDebugCb() {
+PitchDetectorDebugCb getPitchDetectorDebugCb(int sampleRate) {
   auto metricWriters = std::make_shared<MetricWriters>();
   metricWriters->combinedMax = std::make_unique<WavFileWriter>(
-      fs::path{getOutDir() + "pd_autoCorMaxMin.wav"});
+      fs::path{getOutDir() + "pd_autoCorMaxMin.wav"}, sampleRate);
   metricWriters->detectedPitch = std::make_unique<WavFileWriter>(
-      fs::path{getOutDir() + "pd_detectedPitch.wav"});
-  metricWriters->olapWriters = {makeOlapMetricWriters(0),
-                                makeOlapMetricWriters(1)};
+      fs::path{getOutDir() + "pd_detectedPitch.wav"}, sampleRate);
+  metricWriters->olapWriters = {makeOlapMetricWriters(0, sampleRate),
+                                makeOlapMetricWriters(1, sampleRate)};
   return [first = true,
           metricWriters](const PitchDetectorDebugCbArgs &args) mutable {
     for (const auto &anal : args.anal) {

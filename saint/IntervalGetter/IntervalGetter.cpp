@@ -43,7 +43,8 @@ IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
     assert(crotchetsPerSecond.has_value());
     const auto crotchetsPerSample = *crotchetsPerSecond / *samplesPerSecond;
     return std::make_shared<DefaultIntervalGetter>(
-        spans, testUtils::getIntervalGetterDebugCb(crotchetsPerSample));
+        spans, testUtils::getIntervalGetterDebugCb(crotchetsPerSample,
+                                                   *samplesPerSecond));
   } else {
     return std::make_shared<DefaultIntervalGetter>(spans, std::nullopt);
   }

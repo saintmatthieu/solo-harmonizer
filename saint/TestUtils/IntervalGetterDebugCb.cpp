@@ -6,15 +6,16 @@
 namespace saint {
 namespace testUtils {
 // I might be breaking this test code right now ...
-IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample) {
-  const auto inputPitchWriter =
-      std::make_shared<WavFileWriter>(getOutDir() + "ig_inputPitch.wav");
-  const auto newIndexWriter =
-      std::make_shared<WavFileWriter>(getOutDir() + "ig_newIndex.wav");
-  const auto tickIntervalWriter =
-      std::make_shared<WavFileWriter>(getOutDir() + "ig_tickIntervals.wav");
-  const auto returnedIntervalWriter =
-      std::make_shared<WavFileWriter>(getOutDir() + "ig_returnedInterval.wav");
+IntervalGetterDebugCb getIntervalGetterDebugCb(float crotchetsPerSample,
+                                               int sampleRate) {
+  const auto inputPitchWriter = std::make_shared<WavFileWriter>(
+      getOutDir() + "ig_inputPitch.wav", sampleRate);
+  const auto newIndexWriter = std::make_shared<WavFileWriter>(
+      getOutDir() + "ig_newIndex.wav", sampleRate);
+  const auto tickIntervalWriter = std::make_shared<WavFileWriter>(
+      getOutDir() + "ig_tickIntervals.wav", sampleRate);
+  const auto returnedIntervalWriter = std::make_shared<WavFileWriter>(
+      getOutDir() + "ig_returnedInterval.wav", sampleRate);
   return [crotchetsPerSample, inputPitchWriter, newIndexWriter,
           tickIntervalWriter, returnedIntervalWriter, intervalIndex = 0,
           first = true,

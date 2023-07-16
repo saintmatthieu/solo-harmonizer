@@ -18,7 +18,7 @@ std::unique_ptr<PitchDetector> PitchDetector::createInstance(
   if (debug && utils::isDebugBuild()) {
     return std::make_unique<PitchDetectorImpl>(
         sampleRate, leastFrequencyToDetect,
-        testUtils::getPitchDetectorDebugCb());
+        testUtils::getPitchDetectorDebugCb(sampleRate));
   } else {
     return std::make_unique<PitchDetectorImpl>(
         sampleRate, leastFrequencyToDetect, std::nullopt);

@@ -20,13 +20,12 @@ namespace saint {
 namespace fs = std::filesystem;
 
 constexpr auto blockSize = 512;
-constexpr auto sampleRate = 44100;
 const fs::path basePath{"C:/Users/saint/Downloads"};
 
-void prependDelay(std::vector<float> &vector) {
+void prependDelay(std::vector<float> &vector, int sampleRate) {
   constexpr auto delayMs =
       -100; // Tempo is 4 quavers per second, i.e. 250ms. 100ms is a bit less
-  constexpr auto delaySamples = delayMs * sampleRate / 1000;
+  const auto delaySamples = delayMs * sampleRate / 1000;
   if (delaySamples >= 0) {
     const auto prevSize = vector.size();
     vector.resize(vector.size() + delaySamples);
@@ -40,21 +39,22 @@ void prependDelay(std::vector<float> &vector) {
 }
 
 void runTest(const std::string &testName) {
-  const auto wavFileName = "C:/Users/saint/git/github/saintmatthieu/"
-                           "solo-harmonizer/saint/_assets/"s +
-                           testName + ".wav";
-  auto wav = testUtils::fromWavFile(wavFileName);
+  const auto stem = "C:/Users/saint/git/github/saintmatthieu/"
+                    "solo-harmonizer/saint/_assets/"s +
+                    testName;
+  const auto wavFileName = stem + ".wav";
+  auto sampleRate = 0;
+  auto wav = testUtils::fromWavFile(wavFileName, sampleRate);
   constexpr auto addDelay = false;
   if (addDelay) {
-    prependDelay(wav);
+    prependDelay(wav, sampleRate);
   }
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
   const auto factory = std::make_shared<DefaultMidiFileOwner>(
       onCrotchetsPerSecondAvailable, onPlayheadCommand);
   factory->setSampleRate(sampleRate);
-  factory->setMidiFile("C:/Users/saint/git/github/saintmatthieu/"
-                       "solo-harmonizer/saint/_assets/Les_Petits_Poissons.mid");
+  factory->setMidiFile(stem + ".mid");
   factory->setPlayedTrack(1);
   factory->setHarmonyTrack(2);
   ProcessCallbackDrivenPlayhead playhead{
@@ -70,7 +70,8 @@ void runTest(const std::string &testName) {
   }
   testUtils::toWavFile(
       wav.data(), wav.size(),
-      fs::path{basePath}.append("Les_Petits_Poissons_harmonized.wav"));
+      fs::path{basePath}.append("Les_Petits_Poissons_harmonized.wav"),
+      sampleRate);
 }
 
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
