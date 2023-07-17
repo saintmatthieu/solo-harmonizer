@@ -17,7 +17,8 @@ public:
 
   void setSemitoneShift(float value);
   void prepareToPlay(int sampleRate, int samplesPerBlock);
-  void processBlock(const std::chrono::milliseconds &now, float *, int size);
+  void processBlock(const std::chrono::milliseconds &now, float *, int size,
+                    std::optional<size_t> &melodyRecognizerDebugOut);
   void releaseResources();
 
 private:

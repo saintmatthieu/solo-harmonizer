@@ -14,10 +14,12 @@ StochasticIntervalGetter::StochasticIntervalGetter(
 std::optional<float> StochasticIntervalGetter::getHarmoInterval(
     float timeInCrotchets,
     const std::optional<std::function<float(int)>> &getPitchLlh,
-    const std::chrono::milliseconds &now, int blockSize) {
+    const std::chrono::milliseconds &now,
+    std::optional<size_t> &melodyRecognizerDebugOut, int blockSize) {
   const auto tick = _tick++;
   _prevPitchHadValue = getPitchLlh.has_value();
-  const auto guessedSpanIndex = _melodyRecognizer->tick(getPitchLlh);
+  const auto guessedSpanIndex =
+      _melodyRecognizer->tick(getPitchLlh, melodyRecognizerDebugOut);
   if (!guessedSpanIndex.has_value() || *guessedSpanIndex >= _spans.size()) {
     return std::nullopt;
   }

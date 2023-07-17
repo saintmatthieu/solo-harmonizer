@@ -10,7 +10,8 @@ public:
   using Melody = std::vector<std::pair<float, std::optional<int>>>;
   MelodyRecognizer3(Melody melody);
   std::optional<size_t>
-  tick(const std::optional<std::function<float(float)>> &getPitchLikelihood);
+  tick(const std::optional<std::function<float(float)>> &getPitchLikelihood,
+       std::optional<size_t> &guessedState);
 
 public:
   struct Params {

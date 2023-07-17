@@ -9,6 +9,8 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <regex>
+#include <string>
 #include <unordered_map>
 
 #include <juce_core/juce_core.h> // XML
@@ -38,10 +40,33 @@ void prependDelay(std::vector<float> &vector, int sampleRate) {
   }
 }
 
+std::vector<float> getNewIndexStartTimes(const fs::path &filePath) {
+  std::ifstream file{filePath};
+  std::vector<float> startTimes;
+  while (!file.eof()) {
+    std::string line;
+    std::getline(file, line);
+    const std::regex expr{"[0-9]+(\\.[0-9]+)?"};
+    std::smatch match;
+    std::regex_search(line, match, expr);
+    try {
+      startTimes.push_back(std::stof(match[0]));
+    } catch (...) {
+      return startTimes;
+    }
+  }
+  return startTimes;
+}
+
 void runTest(const std::string &testName) {
-  const auto stem = "C:/Users/saint/git/github/saintmatthieu/"
-                    "solo-harmonizer/saint/_assets/"s +
-                    testName;
+  const auto root = "C:/Users/saint/git/github/saintmatthieu/"
+                    "solo-harmonizer/"s;
+  const auto stem = root + "saint/_assets/"s + testName;
+
+  const auto groundTruthFile = stem + "-index-ground-truths.txt";
+  const auto startTimes = getNewIndexStartTimes(groundTruthFile);
+  auto startTimeIt = startTimes.begin();
+
   const auto wavFileName = stem + ".wav";
   auto sampleRate = 0;
   auto wav = testUtils::fromWavFile(wavFileName, sampleRate);
@@ -62,16 +87,38 @@ void runTest(const std::string &testName) {
                       *factory->getCrotchetsPerSecond(), sampleRate)};
   SoloHarmonizer sut{factory, playhead};
   sut.prepareToPlay(sampleRate, blockSize);
+  size_t numGuesses = 0;
+  size_t numWrongGuesses = 0;
   for (auto offset = 0; offset + blockSize < static_cast<int>(wav.size());
        offset += blockSize) {
     const std::chrono::milliseconds now(1000 * offset / sampleRate);
-    sut.processBlock(now, wav.data() + offset, blockSize);
+    std::optional<size_t> melodyRecognizerDebugOut;
+    sut.processBlock(now, wav.data() + offset, blockSize,
+                     melodyRecognizerDebugOut);
+    if (melodyRecognizerDebugOut.has_value()) {
+      const auto time =
+          static_cast<float>(offset) / static_cast<float>(sampleRate);
+      auto nextStartTimeIt = std::next(startTimeIt);
+      while (nextStartTimeIt != startTimes.end() && *nextStartTimeIt <= time) {
+        ++nextStartTimeIt;
+      }
+      startTimeIt = std::prev(nextStartTimeIt);
+      const auto truth = std::distance(startTimes.begin(), startTimeIt);
+      ++numGuesses;
+      if (truth != *melodyRecognizerDebugOut) {
+        ++numWrongGuesses;
+      }
+    }
     playhead.incrementSampleCount(blockSize);
   }
-  testUtils::toWavFile(
-      wav.data(), wav.size(),
-      fs::path{basePath}.append("Les_Petits_Poissons_harmonized.wav"),
-      sampleRate);
+  const auto errorPct = static_cast<float>(numWrongGuesses) * 100.f /
+                        static_cast<float>(numGuesses);
+  constexpr auto writeWav = false;
+  if (writeWav) {
+    testUtils::toWavFile(wav.data(), wav.size(),
+                         fs::path{basePath}.append(testName + ".wav"),
+                         sampleRate);
+  }
 }
 
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {

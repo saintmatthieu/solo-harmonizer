@@ -17,7 +17,8 @@ public:
   std::optional<float>
   getHarmoInterval(float timeInCrotchets,
                    const std::optional<std::function<float(int)>> &getPitchLlh,
-                   const std::chrono::milliseconds &now = 0ms,
+                   const std::chrono::milliseconds &now,
+                   std::optional<size_t> &melodyReconizerOutput,
                    int blockSize = 0) override;
 
 private:

@@ -35,7 +35,8 @@ DefaultIntervalGetter::DefaultIntervalGetter(
 std::optional<float> DefaultIntervalGetter::getHarmoInterval(
     float timeInCrotchets,
     const std::optional<std::function<float(int)>> &getPitchLlh,
-    const std::chrono::milliseconds &, int blockSize) {
+    const std::chrono::milliseconds &,
+    std::optional<size_t> &melodyReconizerOutput, int blockSize) {
   const auto interval = _getHarmoInterval(timeInCrotchets, getPitchLlh);
   if (_debugCb) {
     testUtils::IntervalGetterDebugCbArgs args{_crotchets, std::nullopt,

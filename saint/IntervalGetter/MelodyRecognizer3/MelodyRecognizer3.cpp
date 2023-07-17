@@ -86,7 +86,8 @@ MelodyRecognizer3::MelodyRecognizer3(Melody melody)
       _newPriors(_priors.size()) {}
 
 std::optional<size_t> MelodyRecognizer3::tick(
-    const std::optional<std::function<float(float)>> &getPitchLikelihood) {
+    const std::optional<std::function<float(float)>> &getPitchLikelihood,
+    std::optional<size_t> &guessedState) {
   static std::ofstream output("C:/Users/saint/Downloads/output.txt");
   static std::ofstream labels("C:/Users/saint/Downloads/labels.txt");
   _stateCount = getPitchLikelihood.has_value() ? _stateCount + 1u : 0u;
@@ -158,6 +159,7 @@ std::optional<size_t> MelodyRecognizer3::tick(
   _winnerIndex = winnerState;
   ++_tickCount;
   _prevReturnHadValue = true;
+  guessedState = winnerState;
   return melodyIndex + 1u; /*this +1 might be due to some integration
                              incorrectness - to review*/
 }

@@ -24,7 +24,9 @@ public:
   virtual std::optional<float>
   getHarmoInterval(float timeInCrotchets,
                    const std::optional<std::function<float(int)>> &getPitchLlh,
-                   const std::chrono::milliseconds &now, int blockSize = 0) = 0;
+                   const std::chrono::milliseconds &now,
+                   std::optional<size_t> &melodyRecognizerDebugOut,
+                   int blockSize = 0) = 0;
 
   virtual ~IntervalGetter() = default;
 };
