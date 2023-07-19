@@ -1,5 +1,8 @@
-#include "IntervalGetter.h"
+#include "DefaultIntervalGetterFactory.h"
 #include "DefaultIntervalGetter.h"
+
+#include "DefaultIntervalGetter.h"
+#include "IntervalGetter.h"
 #include "IntervalGetterDebugCb.h"
 #include "MelodyRecognizer3/MelodyRecognizer3.h"
 #include "StochasticIntervalGetter.h"
@@ -26,15 +29,21 @@ toTimedNoteNumbers(const std::vector<IntervalSpan> &spans) {
 }
 } // namespace
 
+DefaultIntervalGetterFactory::DefaultIntervalGetterFactory(
+    std::optional<float> observationLikelihoodWeight)
+    : _observationLikelihoodWeight(std::move(observationLikelihoodWeight)) {}
+
 constexpr auto useStochasticIntervalGetter = true;
-std::shared_ptr<IntervalGetter>
-IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
-                               const std::map<float, Fraction> &timeSignatures,
-                               const std::optional<int> &samplesPerSecond,
-                               const std::optional<float> &crotchetsPerSecond) {
+std::shared_ptr<IntervalGetter> DefaultIntervalGetterFactory::createInstance(
+    const std::vector<IntervalSpan> &spans,
+    const std::map<float, Fraction> &timeSignatures,
+    const std::optional<int> &samplesPerSecond,
+    const std::optional<float> &crotchetsPerSecond) const {
   if (useStochasticIntervalGetter) {
     return std::make_shared<StochasticIntervalGetter>(
-        spans, std::make_unique<MelodyRecognizer3>(toTimedNoteNumbers(spans)),
+        spans,
+        std::make_unique<MelodyRecognizer3>(toTimedNoteNumbers(spans),
+                                            _observationLikelihoodWeight),
         timeSignatures);
   }
   if (utils::getEnvironmentVariableAsBool("SAINT_DEBUG_INTERVALGETTER") &&
@@ -49,4 +58,5 @@ IntervalGetter::createInstance(const std::vector<IntervalSpan> &spans,
     return std::make_shared<DefaultIntervalGetter>(spans, std::nullopt);
   }
 }
+
 } // namespace saint

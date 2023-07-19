@@ -17,9 +17,11 @@ namespace saint {
 
 DefaultMidiFileOwner::DefaultMidiFileOwner(
     OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable,
-    OnPlayheadCommand onPlayheadCommand)
+    OnPlayheadCommand onPlayheadCommand,
+    std::unique_ptr<IntervalGetterFactory> intervalGetterFactory)
     : _onCrotchetsPerSecondAvailable(onCrotchetsPerSecondAvailable),
-      _onPlayheadCommand(onPlayheadCommand) {}
+      _onPlayheadCommand(onPlayheadCommand),
+      _intervalGetterFactory(std::move(intervalGetterFactory)) {}
 
 void DefaultMidiFileOwner::setSampleRate(int sampleRate) {
   _samplesPerSecond = sampleRate;
@@ -301,9 +303,9 @@ void DefaultMidiFileOwner::_createIntervalGetterIfAllParametersSet() {
       listener->onIntervalSpansAvailable(intervalGetterInput);
     }
     const auto timeSignatures = getTimeSignatureMap(*_juceMidiFile);
-    _intervalGetter =
-        IntervalGetter::createInstance(intervalGetterInput, timeSignatures,
-                                       _samplesPerSecond, _crotchetsPerSecond);
+    _intervalGetter = _intervalGetterFactory->createInstance(
+        intervalGetterInput, timeSignatures, _samplesPerSecond,
+        _crotchetsPerSecond);
   }
 }
 

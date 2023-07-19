@@ -1,12 +1,14 @@
 add_library(IntervalGetter
   DefaultIntervalGetter.cpp
+  DefaultIntervalGetterFactory.cpp
+  DefaultIntervalGetterFactory.h
   DefaultPitchMapper.cpp
   DefaultPitchMapperHelper.cpp
   KeyRecognizer.cpp
   KeyRecognizerHelper.cpp
   KrumhanslSchmucklerAlgorithm.cpp
   StochasticIntervalGetter.cpp
-  IntervalGetter.cpp
+  IntervalGetterFactory.h
   IntervalHelper.cpp
 )
 

@@ -12,12 +12,6 @@
 namespace saint {
 class IntervalGetter {
 public:
-  static std::shared_ptr<IntervalGetter>
-  createInstance(const std::vector<IntervalSpan> &,
-                 const std::map<float, Fraction> &timeSignatures,
-                 const std::optional<int> &samplesPerSecond,
-                 const std::optional<float> &crotchetsPerSecond);
-
   // The caller should only pass a nullopt pitch whenever there is no pitch to
   // be had, or a pitch jump was detected.
   // When `pitch == nullopt`, the algorithm will allow pitch shift jumps.

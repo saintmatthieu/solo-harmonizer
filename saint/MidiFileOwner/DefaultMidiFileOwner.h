@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CommonTypes.h"
+#include "IntervalGetterFactory.h"
 #include "MidiFileOwner.h"
 
 #include <juce_audio_basics/juce_audio_basics.h>
@@ -16,7 +17,8 @@ using OnPlayheadCommand = std::function<bool(PlayheadCommand)>;
 
 class DefaultMidiFileOwner : public MidiFileOwner {
 public:
-  DefaultMidiFileOwner(OnCrotchetsPerSecondAvailable, OnPlayheadCommand);
+  DefaultMidiFileOwner(OnCrotchetsPerSecondAvailable, OnPlayheadCommand,
+                       std::unique_ptr<IntervalGetterFactory>);
 
   // MidiFileOwner
   void setSampleRate(int) override;
@@ -54,6 +56,7 @@ private:
   void _createIntervalGetterIfAllParametersSet();
   const OnCrotchetsPerSecondAvailable _onCrotchetsPerSecondAvailable;
   const OnPlayheadCommand _onPlayheadCommand;
+  const std::unique_ptr<IntervalGetterFactory> _intervalGetterFactory;
   std::optional<std::vector<IntervalSpan>> _intervalGetterInput;
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;

@@ -43,11 +43,10 @@ std::vector<float> getInitialPriors(size_t numStates) {
 float getObservationLikelihood(
     int hypothesisNoteNumber,
     const std::function<float(int)> &getPitchLikelihood,
-    float /* observationLlhWeight */) {
+    float observationLlhWeight) {
   // If observationLlhWeight is high, we are more confident in the observation.
   // Unfortunately, we have to expf to logf again if we want to take this into
   // account. Might be optimized otherwise, but not now.
-  constexpr auto observationLlhWeight = 0.007f;
   return std::logf(observationLlhWeight *
                        getPitchLikelihood(hypothesisNoteNumber) +
                    1.f - observationLlhWeight);
@@ -79,8 +78,11 @@ void printNullopt(std::ofstream &labels, size_t tickCount,
 }
 } // namespace
 
-MelodyRecognizer3::MelodyRecognizer3(Melody melody)
+MelodyRecognizer3::MelodyRecognizer3(
+    Melody melody, std::optional<float> observationLikelihoodWeight)
     : _melody(std::move(melody)),
+      _observationLikelihoodWeight(
+          observationLikelihoodWeight.value_or(0.007f)),
       _stateToMelodyIndices(getMelodyNoteIndices(_melody)),
       _priors(getInitialPriors(_stateToMelodyIndices.size())),
       _newPriors(_priors.size()) {}
@@ -110,8 +112,7 @@ std::optional<size_t> MelodyRecognizer3::tick(
         new Params{llhThatItStays, transitionToNextLlh, observationLlhWeight});
   }
 
-  const auto observationLlhs = _getObservationLikelihoods(
-      *getPitchLikelihood, params->observationLlhWeight);
+  const auto observationLlhs = _getObservationLikelihoods(*getPitchLikelihood);
 
   std::optional<float> maxProb;
   int maxProbState = noPitchState;
@@ -200,21 +201,23 @@ float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
   } else if (newState == oldState + 1u) {
     return (1.f - llhThatItStays) * transitionsToNextLlh;
   } else {
-    return _stateCount > 1
-               ? 0.f // jumping from one state to another than the next is only
-                     // allowed after a small pause ; makes sense, right?
-               : (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
+    // return _stateCount > 1
+    //            ? 0.f // jumping from one state to another than the next is
+    //            only
+    //                  // allowed after a small pause ; makes sense, right?
+    //            : (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
+    return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
   }
 }
 
 std::vector<float> MelodyRecognizer3::_getObservationLikelihoods(
-    const std::function<float(int)> &getPitchLikelihood,
-    float observationLlhWeight) const {
+    const std::function<float(int)> &getPitchLikelihood) const {
   std::vector<float> llhs(_stateToMelodyIndices.size());
   for (auto i = 0u; i < _stateToMelodyIndices.size(); ++i) {
     const auto noteIndex = _stateToMelodyIndices[i];
-    llhs[i] = getObservationLikelihood(
-        *_melody[noteIndex].second, getPitchLikelihood, observationLlhWeight);
+    llhs[i] =
+        getObservationLikelihood(*_melody[noteIndex].second, getPitchLikelihood,
+                                 _observationLikelihoodWeight);
   }
   return llhs;
 }

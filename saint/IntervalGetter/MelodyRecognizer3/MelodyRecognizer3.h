@@ -8,7 +8,8 @@ namespace saint {
 class MelodyRecognizer3 {
 public:
   using Melody = std::vector<std::pair<float, std::optional<int>>>;
-  MelodyRecognizer3(Melody melody);
+  MelodyRecognizer3(Melody melody,
+                    std::optional<float> observationLikelihoodWeight);
   std::optional<size_t>
   tick(const std::optional<std::function<float(float)>> &getPitchLikelihood,
        std::optional<size_t> &guessedState);
@@ -24,9 +25,9 @@ private:
   float _getTransitionLikelihood(size_t oldState, size_t newState,
                                  const Params &) const;
   std::vector<float> _getObservationLikelihoods(
-      const std::function<float(int)> &getPitchLikelihood,
-      float pitchConfidence) const;
+      const std::function<float(int)> &getPitchLikelihood) const;
   const Melody _melody;
+  const float _observationLikelihoodWeight;
   const std::vector<size_t> _stateToMelodyIndices;
   std::vector<float> _priors;
   std::vector<float> _newPriors;

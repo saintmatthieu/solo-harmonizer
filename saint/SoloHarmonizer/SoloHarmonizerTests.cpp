@@ -1,3 +1,4 @@
+#include "DefaultIntervalGetterFactory.h"
 #include "DefaultMidiFileOwner.h"
 #include "Playheads/ProcessCallbackDrivenPlayhead.h"
 #include "SoloHarmonizer.h"
@@ -58,7 +59,11 @@ std::vector<float> getNewIndexStartTimes(const fs::path &filePath) {
   return startTimes;
 }
 
-void runTest(const std::string &testName) {
+struct TestConfig {
+  std::optional<float> melodyRecognizerObservationLikelihoodWeight;
+};
+
+auto runTest(const std::string &testName, TestConfig config) {
   const auto root = "C:/Users/saint/git/github/saintmatthieu/"
                     "solo-harmonizer/"s;
   const auto stem = root + "saint/_assets/"s + testName;
@@ -77,7 +82,9 @@ void runTest(const std::string &testName) {
   OnCrotchetsPerSecondAvailable onCrotchetsPerSecondAvailable = [](float) {};
   OnPlayheadCommand onPlayheadCommand = [](PlayheadCommand) { return false; };
   const auto factory = std::make_shared<DefaultMidiFileOwner>(
-      onCrotchetsPerSecondAvailable, onPlayheadCommand);
+      onCrotchetsPerSecondAvailable, onPlayheadCommand,
+      std::make_unique<DefaultIntervalGetterFactory>(
+          config.melodyRecognizerObservationLikelihoodWeight));
   factory->setSampleRate(sampleRate);
   factory->setMidiFile(stem + ".mid");
   factory->setPlayedTrack(1);
@@ -113,20 +120,35 @@ void runTest(const std::string &testName) {
   }
   const auto errorPct = static_cast<float>(numWrongGuesses) * 100.f /
                         static_cast<float>(numGuesses);
+  constexpr auto refErrorPct = 5.16795874f;
+  ASSERT_GE(refErrorPct, errorPct);
   constexpr auto writeWav = false;
   if (writeWav) {
     testUtils::toWavFile(wav.data(), wav.size(),
                          fs::path{basePath}.append(testName + ".wav"),
                          sampleRate);
   }
+  ASSERT_TRUE(true);
 }
 
 TEST(SoloHarmonizerTest, Les_Petits_Poissons) {
   const auto xml = juce::XmlDocument::parse(
       juce::File{"C:/Users/saint/Downloads/SoloHarmonizerTests.xml"});
   const auto samplesXml = xml->getChildByAttribute("name", "samples");
+  const auto coefsXml = xml->getChildByName("coefs");
+  const auto weightXml =
+      coefsXml->getChildByAttribute("name", "observationLlhWeight");
+  std::vector<float> observationLlhWeights;
+  for (auto weight : weightXml->getChildIterator()) {
+    observationLlhWeights.push_back(
+        weight->getFirstChildElement()->getText().getFloatValue());
+  }
   for (auto sample : samplesXml->getChildIterator()) {
-    runTest(sample->getFirstChildElement()->getText().toStdString());
+    const auto testCase =
+        sample->getFirstChildElement()->getText().toStdString();
+    for (auto weight : observationLlhWeights) {
+      runTest(testCase, TestConfig{weight});
+    }
   }
 }
 } // namespace saint
