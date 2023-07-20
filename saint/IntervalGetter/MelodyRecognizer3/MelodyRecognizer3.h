@@ -22,13 +22,12 @@ public:
   };
 
 private:
-  float _getTransitionLikelihood(size_t oldState, size_t newState,
-                                 const Params &) const;
   std::vector<float> _getObservationLikelihoods(
       const std::function<float(int)> &getPitchLikelihood) const;
   const Melody _melody;
   const float _observationLikelihoodWeight;
   const std::vector<size_t> _stateToMelodyIndices;
+  const std::vector<std::vector<float>> _transitionMatrix;
   std::vector<float> _priors;
   std::vector<float> _newPriors;
   size_t _stateCount =

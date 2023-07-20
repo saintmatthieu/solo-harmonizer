@@ -121,7 +121,7 @@ auto runTest(const std::string &testName, TestConfig config) {
   const auto errorPct = static_cast<float>(numWrongGuesses) * 100.f /
                         static_cast<float>(numGuesses);
   constexpr auto refErrorPct = 5.16795874f;
-  ASSERT_GE(refErrorPct, errorPct);
+  EXPECT_GE(refErrorPct, errorPct);
   constexpr auto writeWav = false;
   if (writeWav) {
     testUtils::toWavFile(wav.data(), wav.size(),

@@ -76,6 +76,44 @@ void printNullopt(std::ofstream &labels, size_t tickCount,
            << std::endl;
   }
 }
+
+std::vector<std::vector<float>>
+getTransitionMatrix(const Melody &melody,
+                    const std::vector<size_t> &stateToMelodyNoteIndices) {
+  const auto N = stateToMelodyNoteIndices.size();
+  std::vector<std::vector<float>> matrix;
+  matrix.reserve(N);
+  for (auto i = 0u; i < N; ++i) {
+    matrix.emplace_back(std::vector<float>(N));
+  }
+  const auto totalDuration = melody[melody.size() - 1u].first - melody[0].first;
+  // If there is a transition from one index to the other, the likelihood that
+  // it is from an index i to i+1.
+  const auto transitionsToNextLlh = .99f;
+  for (auto oldState = 0u; oldState < N; ++oldState) {
+    const auto i = stateToMelodyNoteIndices[oldState];
+    const auto j = oldState < N - 1 ? stateToMelodyNoteIndices[oldState + 1]
+                                    // because `melody` ends with nullopt
+                                    : i + 1;
+    const auto numCrotchets = melody[j].first - melody[i].first;
+    // Likelihood that we stay at the same index.
+    const auto numBlocksExpectedInOldState = blocksPerCrotchet * numCrotchets;
+    // const auto llhThatItChanges = 1.f / (numBlocksExpectedInOldState + 1.f);
+    const auto llhThatItChanges = 0.12f;
+    const auto llhThatItStays = 1.f - llhThatItChanges;
+    for (auto newState = 0u; newState < N; ++newState) {
+      auto &cell = matrix[oldState][newState];
+      if (oldState == newState) { // Stay in the same state
+        cell = llhThatItStays;
+      } else if (newState == oldState + 1u) {
+        cell = (1.f - llhThatItStays) * transitionsToNextLlh;
+      } else {
+        cell = (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
+      }
+    }
+  }
+  return matrix;
+}
 } // namespace
 
 MelodyRecognizer3::MelodyRecognizer3(
@@ -84,6 +122,7 @@ MelodyRecognizer3::MelodyRecognizer3(
       _observationLikelihoodWeight(
           observationLikelihoodWeight.value_or(0.007f)),
       _stateToMelodyIndices(getMelodyNoteIndices(_melody)),
+      _transitionMatrix(getTransitionMatrix(_melody, _stateToMelodyIndices)),
       _priors(getInitialPriors(_stateToMelodyIndices.size())),
       _newPriors(_priors.size()) {}
 
@@ -106,8 +145,6 @@ std::optional<size_t> MelodyRecognizer3::tick(
     std::ifstream ifs("C:/Users/saint/Downloads/params.txt");
     float llhThatItStays, transitionToNextLlh, observationLlhWeight;
     ifs >> llhThatItStays >> transitionToNextLlh >> observationLlhWeight;
-    std::cout << llhThatItStays << ", " << transitionToNextLlh << ", "
-              << observationLlhWeight << std::endl;
     params.reset(
         new Params{llhThatItStays, transitionToNextLlh, observationLlhWeight});
   }
@@ -124,7 +161,11 @@ std::optional<size_t> MelodyRecognizer3::tick(
     for (auto oldState = 0u; oldState < _stateToMelodyIndices.size();
          ++oldState) {
       const auto transitionLikelihood =
-          _getTransitionLikelihood(oldState, newState, *params);
+          // The transition matrix isn't pre-computed in log form to more easily
+          // verify that its colums sum up to 1 while debugging. (Still not sure
+          // this is a must for the use we're making of it, though.)
+          // std::logf(_transitionMatrix[oldState][newState]);
+          _transitionMatrix[oldState][newState];
       const auto prob =
           _priors[oldState] + transitionLikelihood + observationLlhs[newState];
       if (prob > maxProb) {
@@ -163,51 +204,6 @@ std::optional<size_t> MelodyRecognizer3::tick(
   guessedState = winnerState;
   return melodyIndex + 1u; /*this +1 might be due to some integration
                              incorrectness - to review*/
-}
-
-namespace {
-float getLlhdThatItChanges(float numRemainingBlocks) {
-  const auto remainingCrotchets = numRemainingBlocks / blocksPerCrotchet;
-  if (remainingCrotchets < 1.f) {
-    // Slowly ramping up from 0.05 to 0.3
-    return .25f * (1.f - remainingCrotchets) + .05f;
-  } else {
-    return .05f;
-  }
-};
-} // namespace
-
-float MelodyRecognizer3::_getTransitionLikelihood(size_t oldState,
-                                                  size_t newState,
-                                                  const Params &params) const {
-
-  const auto N = _stateToMelodyIndices.size();
-  const auto numCrotchets =
-      _melody[_stateToMelodyIndices[oldState] + 1u].first -
-      _melody[_stateToMelodyIndices[oldState]].first;
-  const auto numBlocksExpectedInOldState = std::max<float>(
-      0.f, blocksPerCrotchet * numCrotchets - static_cast<float>(_stateCount));
-  // If there is a transition from one index to the other, the likelihood that
-  // it is from an index i to i+1.
-  constexpr auto transitionsToNextLlh = .99f;
-  // const auto transitionsToNextLlh = params.transitionToNextLlh;
-  // const auto llhThatItChanges =
-  //     getLlhdThatItChanges(numBlocksExpectedInOldState);
-  // const auto llhThatItStays = 1.f - llhThatItChanges;
-  // const auto llhThatItStays = params.llhThatItStays;
-  constexpr auto llhThatItStays = 0.88f;
-  if (oldState == newState) { // Stay in the same state
-    return _stateCount > 1 ? llhThatItStays : .1f;
-  } else if (newState == oldState + 1u) {
-    return (1.f - llhThatItStays) * transitionsToNextLlh;
-  } else {
-    // return _stateCount > 1
-    //            ? 0.f // jumping from one state to another than the next is
-    //            only
-    //                  // allowed after a small pause ; makes sense, right?
-    //            : (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
-    return (1.f - llhThatItStays) * (1.f - transitionsToNextLlh);
-  }
 }
 
 std::vector<float> MelodyRecognizer3::_getObservationLikelihoods(
