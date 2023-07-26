@@ -164,8 +164,7 @@ std::optional<size_t> MelodyRecognizer3::tick(
           // The transition matrix isn't pre-computed in log form to more easily
           // verify that its colums sum up to 1 while debugging. (Still not sure
           // this is a must for the use we're making of it, though.)
-          // std::logf(_transitionMatrix[oldState][newState]);
-          _transitionMatrix[oldState][newState];
+          std::logf(_transitionMatrix[oldState][newState]);
       const auto prob =
           _priors[oldState] + transitionLikelihood + observationLlhs[newState];
       if (prob > maxProb) {
