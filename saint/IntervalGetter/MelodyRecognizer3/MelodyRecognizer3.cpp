@@ -89,7 +89,7 @@ getTransitionMatrix(const Melody &melody,
   const auto totalDuration = melody[melody.size() - 1u].first - melody[0].first;
   // If there is a transition from one index to the other, the likelihood that
   // it is from an index i to i+1.
-  const auto transitionsToNextLlh = .99f;
+  const auto transitionsToNextLlh = .95f;
   for (auto oldState = 0u; oldState < N; ++oldState) {
     const auto i = stateToMelodyNoteIndices[oldState];
     const auto j = oldState < N - 1 ? stateToMelodyNoteIndices[oldState + 1]
@@ -98,12 +98,11 @@ getTransitionMatrix(const Melody &melody,
     const auto numCrotchets = melody[j].first - melody[i].first;
     // Likelihood that we stay at the same index.
     const auto numBlocksExpectedInOldState = blocksPerCrotchet * numCrotchets;
-    // const auto llhThatItChanges = 1.f / (numBlocksExpectedInOldState + 1.f);
-    const auto llhThatItChanges = 0.12f;
+    const auto llhThatItChanges = 1.f / (numBlocksExpectedInOldState + 1.f);
     const auto llhThatItStays = 1.f - llhThatItChanges;
     for (auto newState = 0u; newState < N; ++newState) {
       auto &cell = matrix[oldState][newState];
-      if (oldState == newState) { // Stay in the same state
+      if (oldState == newState) {
         cell = llhThatItStays;
       } else if (newState == oldState + 1u) {
         cell = (1.f - llhThatItStays) * transitionsToNextLlh;
