@@ -50,6 +50,8 @@ set(JuceLibDeps_IntervalGetter
     ${JuceLibDeps_TestUtils}
 )
 
+set(PFFFT_DISABLE_LINK_WITH_M ON CACHE BOOL "" FORCE)
+
 add_subdirectory(_thirdParty/DavidCNAntonia)
 add_subdirectory(rubberband-wrapper)
 add_subdirectory(googletest)
