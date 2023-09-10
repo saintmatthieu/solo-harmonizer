@@ -34,8 +34,8 @@ std::optional<juce::MidiFile> getJuceMidiFile(const std::string &filename) {
   return midiFile;
 }
 
-std::vector<std::string> getTrackNames(const juce::MidiFile &midiFile) {
-  std::vector<std::string> tracks;
+std::map<int, std::string> getTrackNames(const juce::MidiFile &midiFile) {
+  std::map<int, std::string> tracks;
   for (auto i = 0; i < midiFile.getNumTracks(); ++i) {
     const auto track = midiFile.getTrack(i);
     if (std::all_of(track->begin(), track->end(), [](auto it) {
@@ -59,7 +59,7 @@ std::vector<std::string> getTrackNames(const juce::MidiFile &midiFile) {
                 msg.getProgramChangeNumber());
           });
     }
-    tracks.push_back({trackName.has_value() ? *trackName : ""});
+    tracks[i] = {trackName.has_value() ? *trackName : ""};
   }
   return tracks;
 }
@@ -106,6 +106,8 @@ std::vector<MidiNoteMsg> getMidiNoteMessages(const juce::MidiFile &file,
     msgs.push_back({crotchet, msg.isNoteOn(), msg.getNoteNumber()});
     lastMsg = &msgs.back();
   }
+  if (msgs.empty())
+    return {};
   std::sort(msgs.begin(), msgs.end(),
             [](const MidiNoteMsg &a, const MidiNoteMsg &b) {
               return a.isNoteOn && !b.isNoteOn;

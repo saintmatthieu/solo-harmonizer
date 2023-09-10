@@ -1,9 +1,9 @@
 #pragma once
 
 #include "CommonTypes.h"
-#include "JuceMidiFileUtils.h"
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@
 namespace saint {
 std::optional<juce::MidiFile> getJuceMidiFile(const std::string &filename);
 
-std::vector<std::string> getTrackNames(const juce::MidiFile &midiFile);
+std::map<int, std::string> getTrackNames(const juce::MidiFile &midiFile);
 
 float extractCrotchetsPerSecond(const juce::MidiFile &midiFile);
 

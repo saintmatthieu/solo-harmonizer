@@ -172,11 +172,13 @@ void SoloHarmonizerEditor::_updateWidgets() {
                                   : juce::Colours::olivedrab.withAlpha(0.5f));
   for (auto &box : _comboBoxes) {
     box.clear();
-    for (auto i = 0u; i < trackNames.size(); ++i) {
-      const auto name = trackNames[i].empty()
-                            ? std::string{"Track "} + std::to_string(i + 1)
-                            : std::to_string(i + 1) + " : " + trackNames[i];
-      box.addItem(name, (int)i + 1);
+    for (const auto &entry : trackNames) {
+      const auto &[trackNumber, trackName] = entry;
+      const auto name =
+          trackName.empty()
+              ? std::string{"Track "} + std::to_string(trackNumber)
+              : std::to_string(trackNumber) + " : " + trackName;
+      box.addItem(name, trackNumber);
     }
     box.setVisible(!trackNames.empty());
   }

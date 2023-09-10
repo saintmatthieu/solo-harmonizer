@@ -24,7 +24,7 @@ public:
   void removeStateChangeListener(Listener *) override;
   void setMidiFile(std::filesystem::path) override;
   std::optional<std::filesystem::path> getMidiFile() const override;
-  std::vector<std::string> getMidiFileTrackNames() const override;
+  std::map<int, std::string> getMidiFileTrackNames() const override;
   void setPlayedTrack(int) override;
   std::optional<int> getPlayedTrack() const override;
   void setHarmonyTrack(int) override;
@@ -57,7 +57,7 @@ private:
   std::optional<std::vector<IntervalSpan>> _intervalGetterInput;
   std::optional<juce::MidiFile> _juceMidiFile;
   std::optional<std::filesystem::path> _midiFilePath;
-  std::vector<std::string> _trackNames;
+  std::map<int, std::string> _trackNames;
   std::optional<int> _samplesPerSecond;
   std::optional<int> _playedTrack;
   std::optional<int> _harmonyTrack;

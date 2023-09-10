@@ -43,7 +43,7 @@ std::optional<std::filesystem::path> DefaultMidiFileOwner::getMidiFile() const {
   return _midiFilePath;
 }
 
-std::vector<std::string> DefaultMidiFileOwner::getMidiFileTrackNames() const {
+std::map<int, std::string> DefaultMidiFileOwner::getMidiFileTrackNames() const {
   return _trackNames;
 }
 
@@ -237,7 +237,7 @@ void DefaultMidiFileOwner::_setMidiFile(
   _juceMidiFile = getJuceMidiFile(path.string());
   _midiFilePath = std::move(path);
   _trackNames = _juceMidiFile ? getTrackNames(*_juceMidiFile)
-                              : std::vector<std::string>{};
+                              : std::map<int, std::string>{};
   _crotchetsPerSecond = _juceMidiFile
                             ? extractCrotchetsPerSecond(*_juceMidiFile)
                             : std::optional<float>{};
