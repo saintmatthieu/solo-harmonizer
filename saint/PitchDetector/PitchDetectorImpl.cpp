@@ -93,6 +93,7 @@ void applyWindow(const std::vector<float> &window, std::vector<float> &input) {
 void getXCorr(pffft::Fft<float> &fft, std::vector<float> &time,
               const std::vector<float> &lpWindow,
               FormantShifterLoggerInterface &logger,
+              pffft::Fft<float> *cepstrumFft = nullptr,
               Aligned<std::vector<float>> *cepstrum = nullptr) {
   Aligned<std::vector<std::complex<float>>> freq;
   freq.value.resize(fft.getSpectrumSize());
@@ -101,21 +102,39 @@ void getXCorr(pffft::Fft<float> &fft, std::vector<float> &time,
   fft.forward(timeData, freqData);
 
   if (cepstrum) {
-    Aligned<std::vector<std::complex<float>>> logMag;
-    logMag.value.resize(fft.getSpectrumSize());
-    cepstrum->value.resize(fft.getLength());
-    std::transform(
-        freqData, freqData + fft.getSpectrumSize(), logMag.value.begin(),
-        [](const std::complex<float> &X) {
-          const auto power = X.real() * X.real() + X.imag() * X.imag();
-          return std::complex<float>{FastLog2(power) * log2ToDb, 0.f};
-        });
-    logger.Log(
-        logMag.value.data(), logMag.value.size(), "logMagSpectrum",
-        [fftSize = fft.getSpectrumSize()](const std::complex<float> &spec) {
-          return spec.real() / fftSize;
-        });
-    fft.inverse(logMag.value.data(), cepstrum->value.data());
+    Aligned<std::vector<float>> logMag;
+    // The information we're interested is doesn't exceed 3kHz. Assuming 44.1k,
+    // it means we can divide the fft size by about 16. But we will mirror it to
+    // enhance the periodicity, so only by 8.
+    const auto copiedBins = fft.getLength() / 16 + 1;
+    const auto cepstrumSize = (copiedBins - 1) * 2;
+
+    logMag.value.resize(cepstrumSize);
+
+    std::transform(freqData, freqData + copiedBins, logMag.value.begin(),
+                   [](const std::complex<float> &X) {
+                     const auto power =
+                         X.real() * X.real() + X.imag() * X.imag();
+                     return FastLog2(power);
+                   });
+
+    // Make periodic
+    std::reverse_copy(logMag.value.begin() + 1,
+                      logMag.value.begin() + copiedBins - 1,
+                      logMag.value.begin() + copiedBins);
+
+    logger.Log(logMag.value.data(), logMag.value.size(), "logMagSpectrum");
+    Aligned<std::vector<std::complex<float>>>
+        complexCepstrum; // not optimal in terms of memory, directly using pffft
+                         // would spare use having to write to a temp complex
+                         // vector
+    complexCepstrum.value.resize(cepstrumSize);
+    cepstrumFft->forward(logMag.value.data(), complexCepstrum.value.data());
+    cepstrum->value.resize(cepstrumSize);
+    std::transform(complexCepstrum.value.begin(), complexCepstrum.value.end(),
+                   cepstrum->value.begin(),
+                   [](const std::complex<float> &c) { return c.real(); });
+
     logger.Log(cepstrum->value.data(), cepstrum->value.size(), "cepstrum");
   }
 
@@ -157,6 +176,8 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
   getXCorr(fftEngine, xcorr, lpWindow, logger);
   return xcorr;
 }
+
+constexpr auto getCepstrumSize(int fftSize) { return fftSize / 8; }
 } // namespace
 
 PitchDetectorImpl::PitchDetectorImpl(
@@ -168,7 +189,8 @@ PitchDetectorImpl::PitchDetectorImpl(
       _window(getAnalysisWindow(
           getWindowSizeSamples(sampleRate, leastFrequencyToDetect))),
       _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
-      _fwdFft(_fftSize), _lpWindow(getLpWindow(sampleRate, _fftSize)),
+      _fwdFft(_fftSize), _cepstrumFft(getCepstrumSize(_fftSize)),
+      _lpWindow(getLpWindow(sampleRate, _fftSize)),
       _lastSearchIndex(
           std::min(_fftSize / 2, static_cast<int>(sampleRate / 70))),
       _windowXcor(getWindowXCorr(_fwdFft, _window, _lpWindow)) {
@@ -187,6 +209,7 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
   _logger->NewSamplesComing(audioSize);
   _logger->Log(44100, "sampleRate");
   _logger->Log(_fftSize, "fftSize");
+  _logger->Log(_cepstrumFft.getLength(), "cepstrumFftSize");
 
   while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     std::vector<float> time(_fftSize);
@@ -196,7 +219,7 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
     applyWindow(_window, time);
     Aligned<std::vector<float>> cepstrum;
     _logger->Log(time.data(), time.size(), "windowedAudio");
-    getXCorr(_fwdFft, time, _lpWindow, *_logger, &cepstrum);
+    getXCorr(_fwdFft, time, _lpWindow, *_logger, &_cepstrumFft, &cepstrum);
     _logger->ProcessFinished(nullptr, 0);
 
     auto &max = _maxima[_ringBufferIndex] = 0;

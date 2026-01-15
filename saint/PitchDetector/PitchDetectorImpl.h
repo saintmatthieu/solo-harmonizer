@@ -35,6 +35,7 @@ private:
   const std::vector<float> _window;
   const int _fftSize;
   pffft::Fft<float> _fwdFft;
+  pffft::Fft<float> _cepstrumFft;
   std::array<jnk0le::Ringbuffer<float, maxBlockSize>, 2> _ringBuffers;
   std::array<float, 2> _maxima;
   int _ringBufferIndex = 0;
