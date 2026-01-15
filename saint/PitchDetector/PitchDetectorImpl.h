@@ -10,6 +10,8 @@
 #include <functional>
 #include <optional>
 
+class FormantShifterLoggerInterface;
+
 namespace saint {
 
 // PFFT memory alignment requirement
@@ -22,12 +24,14 @@ public:
   // Don't even try instantiating me if the block size exceeds this.
   PitchDetectorImpl(int sampleRate,
                     const std::optional<float> &leastFrequencyToDetect,
-                    std::optional<testUtils::PitchDetectorDebugCb>);
+                    std::optional<testUtils::PitchDetectorDebugCb>,
+                    std::unique_ptr<FormantShifterLoggerInterface> logger);
   std::optional<float> process(const float *, int) override;
 
 private:
   const float _sampleRate;
   const std::optional<testUtils::PitchDetectorDebugCb> _debugCb;
+  const std::unique_ptr<FormantShifterLoggerInterface> _logger;
   const std::vector<float> _window;
   const int _fftSize;
   pffft::Fft<float> _fwdFft;

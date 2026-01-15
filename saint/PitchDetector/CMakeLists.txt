@@ -5,6 +5,8 @@ target_compile_options(PitchDetector PRIVATE ${SAINT_ANNOYING_WARNINGS})
 target_sources(PitchDetector
   PUBLIC
     PitchDetectorImpl.cpp
+    DummyFormantShifterLogger.cpp
+    FormantShifterLogger.cpp
 )
 
 target_link_libraries(PitchDetector

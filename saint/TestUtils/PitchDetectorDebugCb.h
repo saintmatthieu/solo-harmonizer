@@ -18,6 +18,7 @@ struct PitchDetectorDebugCbArgs {
   std::vector<PitchDetectorFftAnal> anal;
   std::optional<float> detectedPitch;
   int blockSize;
+  // std::vector<float> cepstrum;
 };
 
 using PitchDetectorDebugCb =

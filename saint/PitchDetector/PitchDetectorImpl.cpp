@@ -1,7 +1,10 @@
 #include "PitchDetectorImpl.h"
+#include "DummyFormantShifterLogger.h"
+#include "FormantShifterLogger.h"
 #include "PitchDetectorDebugCb.h"
 #include "Utils.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -18,16 +21,33 @@ std::unique_ptr<PitchDetector> PitchDetector::createInstance(
   if (debug && utils::isDebugBuild()) {
     return std::make_unique<PitchDetectorImpl>(
         sampleRate, leastFrequencyToDetect,
-        testUtils::getPitchDetectorDebugCb());
+        testUtils::getPitchDetectorDebugCb(),
+        std::make_unique<FormantShifterLogger>(sampleRate, 0.2 * sampleRate));
   } else {
     return std::make_unique<PitchDetectorImpl>(
-        sampleRate, leastFrequencyToDetect, std::nullopt);
+        sampleRate, leastFrequencyToDetect, std::nullopt,
+        std::make_unique<DummyFormantShifterLogger>());
   }
 }
 
 namespace {
 constexpr auto twoPi = 6.283185307179586f;
 constexpr auto cutoffFreq = 1500;
+
+constexpr float FastLog2(float x) {
+  static_assert(sizeof(float) == sizeof(int32_t));
+  union {
+    float val;
+    int32_t x;
+  } u = {x};
+  auto log_2 = (float)(((u.x >> 23) & 255) - 128);
+  u.x &= ~(255 << 23);
+  u.x += 127 << 23;
+  log_2 += ((-0.3358287811f) * u.val + 2.0f) * u.val - 0.65871759316667f;
+  return log_2;
+}
+
+constexpr float log2ToDb = 20 / 3.321928094887362f;
 
 int getFftOrder(int windowSize) {
   return static_cast<int>(ceilf(log2f((float)windowSize)));
@@ -71,12 +91,34 @@ void applyWindow(const std::vector<float> &window, std::vector<float> &input) {
 }
 
 void getXCorr(pffft::Fft<float> &fft, std::vector<float> &time,
-              const std::vector<float> &lpWindow) {
+              const std::vector<float> &lpWindow,
+              FormantShifterLoggerInterface &logger,
+              Aligned<std::vector<float>> *cepstrum = nullptr) {
   Aligned<std::vector<std::complex<float>>> freq;
   freq.value.resize(fft.getSpectrumSize());
   auto freqData = freq.value.data();
   auto timeData = time.data();
   fft.forward(timeData, freqData);
+
+  if (cepstrum) {
+    Aligned<std::vector<std::complex<float>>> logMag;
+    logMag.value.resize(fft.getSpectrumSize());
+    cepstrum->value.resize(fft.getLength());
+    std::transform(
+        freqData, freqData + fft.getSpectrumSize(), logMag.value.begin(),
+        [](const std::complex<float> &X) {
+          const auto power = X.real() * X.real() + X.imag() * X.imag();
+          return std::complex<float>{FastLog2(power) * log2ToDb, 0.f};
+        });
+    logger.Log(
+        logMag.value.data(), logMag.value.size(), "logMagSpectrum",
+        [fftSize = fft.getSpectrumSize()](const std::complex<float> &spec) {
+          return spec.real() / fftSize;
+        });
+    fft.inverse(logMag.value.data(), cepstrum->value.data());
+    logger.Log(cepstrum->value.data(), cepstrum->value.size(), "cepstrum");
+  }
+
   for (auto i = 0; i < lpWindow.size(); ++i) {
     auto &X = freqData[i];
     X *= lpWindow[i] * std::complex<float>{X.real(), -X.imag()};
@@ -111,15 +153,18 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
   xcorr.resize((fftEngine.getLength()));
   std::copy(window.begin(), window.end(), xcorr.begin());
   std::fill(xcorr.begin() + window.size(), xcorr.end(), 0.f);
-  getXCorr(fftEngine, xcorr, lpWindow);
+  DummyFormantShifterLogger logger;
+  getXCorr(fftEngine, xcorr, lpWindow, logger);
   return xcorr;
 }
 } // namespace
 
 PitchDetectorImpl::PitchDetectorImpl(
     int sampleRate, const std::optional<float> &leastFrequencyToDetect,
-    std::optional<testUtils::PitchDetectorDebugCb> debugCb)
+    std::optional<testUtils::PitchDetectorDebugCb> debugCb,
+    std::unique_ptr<FormantShifterLoggerInterface> logger)
     : _sampleRate(sampleRate), _debugCb(std::move(debugCb)),
+      _logger(std::move(logger)),
       _window(getAnalysisWindow(
           getWindowSizeSamples(sampleRate, leastFrequencyToDetect))),
       _fftSize(getFftSizeSamples(static_cast<int>(_window.size()))),
@@ -139,12 +184,21 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
   _ringBuffers[0].writeBuff(audio, audioSize);
   _ringBuffers[1].writeBuff(audio, audioSize);
   std::vector<testUtils::PitchDetectorFftAnal> analyses;
+  _logger->NewSamplesComing(audioSize);
+  _logger->Log(44100, "sampleRate");
+  _logger->Log(_fftSize, "fftSize");
+
   while (_ringBuffers[_ringBufferIndex].readAvailable() >= _window.size()) {
     std::vector<float> time(_fftSize);
     _ringBuffers[_ringBufferIndex].readBuff(time.data(), _window.size());
     std::fill(time.begin() + _window.size(), time.begin() + _fftSize, 0.f);
+    _logger->Log(time.data(), time.size(), "inputAudio");
     applyWindow(_window, time);
-    getXCorr(_fwdFft, time, _lpWindow);
+    Aligned<std::vector<float>> cepstrum;
+    _logger->Log(time.data(), time.size(), "windowedAudio");
+    getXCorr(_fwdFft, time, _lpWindow, *_logger, &cepstrum);
+    _logger->ProcessFinished(nullptr, 0);
+
     auto &max = _maxima[_ringBufferIndex] = 0;
     auto maxIndex = 0;
     auto wentNegative = false;
