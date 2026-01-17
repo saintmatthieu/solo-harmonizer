@@ -66,7 +66,7 @@ int getWindowSizeSamples(int sampleRate,
   // method. A spectral-domain method might need less than this, since
   // autocorrelation requires there to be at least two periods within the
   // window, against 1 for a spectrum reading.
-  const auto windowSizeMs = 1000 * 3.5 / freq;
+  const auto windowSizeMs = 1000 * 5 / freq;
   return static_cast<int>(windowSizeMs * sampleRate / 1000);
 }
 
@@ -174,9 +174,15 @@ std::vector<float> getWindowXCorr(pffft::Fft<float> &fftEngine,
   return xcorr;
 }
 
-constexpr auto getCepstrumSize(int fftSize) { return fftSize / 8; }
+constexpr auto decimationFactor = 8;
 
-constexpr auto getCopiedSize(int fftSize) { return fftSize / 16 + 1; }
+constexpr auto getCepstrumSize(int fftSize) {
+  return fftSize / decimationFactor;
+}
+
+constexpr auto getCopiedSize(int fftSize) {
+  return fftSize / decimationFactor / 2 + 1;
+}
 
 std::vector<float> getHalfWindow(int fftSize) {
   std::vector<float> window = getAnalysisWindow(getCepstrumSize(fftSize));
@@ -214,6 +220,7 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
   _ringBuffers[1].writeBuff(audio, audioSize);
   std::vector<testUtils::PitchDetectorFftAnal> analyses;
   _logger->NewSamplesComing(audioSize);
+  static auto count = 0;
   _logger->Log(44100, "sampleRate");
   _logger->Log(_fftSize, "fftSize");
   _logger->Log(_cepstrumFft.getLength(), "cepstrumFftSize");
@@ -230,6 +237,22 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
              &cepstrum);
     _logger->ProcessFinished(nullptr, 0);
 
+    // We're using this for a tuner, so look between 60Hz and 500Hz.
+    constexpr auto maxPeriod = 1 / 60.f;
+    constexpr auto minPeriod = 1 / 500.f;
+    const auto cepstrumSamplePeriod =
+        decimationFactor / static_cast<float>(_sampleRate);
+    const auto firstCepstrumSample =
+        static_cast<int>(minPeriod / cepstrumSamplePeriod);
+    const auto lastCepstrumSample = std::min<int>(
+        maxPeriod / cepstrumSamplePeriod, cepstrum.value.size() / 2);
+    const auto it =
+        std::max_element(cepstrum.value.begin() + firstCepstrumSample,
+                         cepstrum.value.begin() + lastCepstrumSample);
+    const auto maxCepstrumIndex = std::distance(cepstrum.value.begin(), it);
+    const auto cepstrumEstimateHz =
+        1 / (maxCepstrumIndex * cepstrumSamplePeriod);
+
     auto &max = _maxima[_ringBufferIndex] = 0;
     auto maxIndex = 0;
     auto wentNegative = false;
@@ -241,6 +264,13 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
       }
     }
     max /= _windowXcor[maxIndex];
+    if (max > 0.9) {
+      // _detectedPitch = _sampleRate / maxIndex;
+      _detectedPitch = cepstrumEstimateHz;
+    } else {
+      _detectedPitch.reset();
+    }
+
     if (_debugCb) {
       testUtils::PitchDetectorFftAnal analysis;
       analysis.xcor = time;
@@ -249,14 +279,11 @@ std::optional<float> PitchDetectorImpl::process(const float *audio,
       analysis.peakIndex = maxIndex;
       analysis.scaledMax = max;
       analysis.maxMin = std::min(_maxima[0], _maxima[1]);
+      analysis.pitchKhz = cepstrumEstimateHz / 1000.f;
+      analysis.hasPitch = _detectedPitch.has_value();
       analyses.push_back(analysis);
     }
     _ringBufferIndex = (_ringBufferIndex + 1) % _ringBuffers.size();
-    if (max > 0.9) {
-      _detectedPitch = _sampleRate / maxIndex;
-    } else {
-      _detectedPitch.reset();
-    }
   }
   if (_debugCb) {
     (*_debugCb)({analyses, _detectedPitch, audioSize});

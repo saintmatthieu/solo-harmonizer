@@ -24,14 +24,16 @@ getJuceWavFileWriter(const fs::path &path) {
   return writer;
 }
 
+static const std::string rootDir = "C:/Users/saint/Downloads/pitch/";
+
 void toWavFile(const float *audio, size_t N, std::optional<fs::path> pathOpt) {
   const auto writer = getJuceWavFileWriter(
-      pathOpt ? *pathOpt : fs::path{"C:/Users/saint/Downloads/test.wav"});
+      pathOpt ? *pathOpt : fs::path{rootDir + "test.wav"});
   writer->writeFromFloatArrays(&audio, 1, (int)N);
 }
 
 std::string getInputFilePath() {
-  const fs::path wavFileDir{"C:/Users/saint/Downloads/"};
+  const fs::path wavFileDir{rootDir};
   const auto defaultPath = fs::path{wavFileDir}.append("cosine.wav");
 #ifdef _WIN32
   const auto path =
@@ -42,7 +44,8 @@ std::string getInputFilePath() {
   return path.string();
 }
 
-std::string getOutDir() { return "C:/Users/saint/Downloads/"; }
+std::string getRootDir() { return rootDir; }
+std::string getOutDir() { return rootDir + "out/"; }
 
 std::unique_ptr<juce::AudioFormatReader>
 getJuceWavFileReader(const fs::path &path) {

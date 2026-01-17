@@ -1,6 +1,6 @@
-#include "PitchDetectorImpl.h"
-#include "FormantShifterLogger.h"
 #include "DummyFormantShifterLogger.h"
+#include "FormantShifterLogger.h"
+#include "PitchDetectorImpl.h"
 
 #include "pffft.hpp"
 #include "testUtils.h"
@@ -25,36 +25,52 @@ std::vector<float> makeNyquistWave(int numSamples) {
 } // namespace
 
 // TEST(PitchDetectorImpl, firstPfftBinIsDcAndNyquist) {
-//   PitchDetectorImpl sut(44100, std::nullopt, std::nullopt, std::make_unique<DummyFormantShifterLogger>());
-//   constexpr auto blockSize = 512;
-//   const auto audio = makeNyquistWave(blockSize);
-//   pffft::Fft<float> fftEngine(blockSize);
-//   std::vector<pffft::Fft<float>::Complex> fft(blockSize / 2);
-//   fftEngine.forward(audio.data(), fft.data());
+//   PitchDetectorImpl sut(44100, std::nullopt, std::nullopt,
+//   std::make_unique<DummyFormantShifterLogger>()); constexpr auto blockSize =
+//   512; const auto audio = makeNyquistWave(blockSize); pffft::Fft<float>
+//   fftEngine(blockSize); std::vector<pffft::Fft<float>::Complex> fft(blockSize
+//   / 2); fftEngine.forward(audio.data(), fft.data());
 //   EXPECT_FLOAT_EQ(fft.data()[0].real(), 0);
 //   EXPECT_FLOAT_EQ(fft.data()[0].imag(), blockSize);
 // }
 
 TEST(PitchDetectorImpl, stuff) {
-  const auto debugCb = testUtils::getPitchDetectorDebugCb();
-  constexpr auto blockSize = 512;
-  // const auto src = testUtils::getJuceWavFileReader(
-  //     "C:/Users/saint/Downloads/TOP-80-GREATEST-GUITAR-INTROS.wav");
-  const auto src = testUtils::getJuceWavFileReader(
-      "C:/Users/saint/Downloads/pitch/e2.wav");
-  auto logger = std::make_unique<FormantShifterLogger>(44100, 0.8 * 44100);
-  PitchDetectorImpl sut(44100, 20.f, std::move(debugCb), std::move(logger));
-  std::ofstream resultFile("C:/Users/saint/Downloads/pitch/result.txt");
-  for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
-    std::vector<float> buffer(blockSize);
-    std::vector<float *> channels(1);
-    channels[0] = buffer.data();
-    if (!src->read(channels.data(), 1, n, blockSize)) {
-      ASSERT_TRUE(false);
+  const fs::path testFileDir = testUtils::getRootDir() + "testFiles/";
+  std::vector<fs::path> testFiles;
+  // found all wav files in testFileDir
+  for (const auto &entry : fs::directory_iterator(testFileDir)) {
+    if (entry.path().extension() == ".wav") {
+      testFiles.push_back(entry.path());
     }
-    // std::fill(buffer.begin(), buffer.end(), 1.f);
-     const auto result = sut.process(buffer.data(), blockSize);
-     resultFile << (result.has_value() ? *result : 0.f) << "\n";
+  }
+
+  for (const auto &testFile : testFiles) {
+    // const auto debugCb = testUtils::getPitchDetectorDebugCb();
+    const auto filenameStem = testFile.stem().string();
+    constexpr auto blockSize = 512;
+    constexpr auto sampleRate = 44100;
+    const auto src = testUtils::getJuceWavFileReader(testFile);
+    assert(src->sampleRate ==
+           sampleRate); // some 44.1kHz assumptions are
+                        // currently in the implementation ...
+    constexpr auto logTimeInSeconds = 2.474;
+    auto logger = std::make_unique<FormantShifterLogger>(
+        sampleRate, logTimeInSeconds * sampleRate);
+    constexpr auto E2Frequency = 82.41f;
+    constexpr auto A1Frequency = 55.0f;
+    PitchDetectorImpl sut(sampleRate, A1Frequency, {}, std::move(logger));
+    std::ofstream resultFile(testUtils::getOutDir() + filenameStem + ".txt");
+    for (auto n = 0; n + blockSize < src->lengthInSamples; n += blockSize) {
+      std::vector<float> buffer(blockSize);
+      std::vector<float *> channels(1);
+      channels[0] = buffer.data();
+      if (!src->read(channels.data(), 1, n, blockSize)) {
+        ASSERT_TRUE(false);
+      }
+      // std::fill(buffer.begin(), buffer.end(), 1.f);
+      const auto result = sut.process(buffer.data(), blockSize);
+      resultFile << (result.has_value() ? *result : 0.f) << "\n";
+    }
   }
 }
 

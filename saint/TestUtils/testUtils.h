@@ -22,6 +22,7 @@ void toWavFile(const float *audio, size_t N,
                std::optional<std::filesystem::path> pathOpt = std::nullopt);
 
 std::string getInputFilePath();
+std::string getRootDir();
 std::string getOutDir();
 
 std::vector<float> makeCosine(size_t T, size_t N);

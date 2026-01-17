@@ -12,6 +12,8 @@ struct PitchDetectorFftAnal {
   int peakIndex;
   float scaledMax;
   float maxMin;
+  float pitchKhz;
+  bool hasPitch;
 };
 
 struct PitchDetectorDebugCbArgs {

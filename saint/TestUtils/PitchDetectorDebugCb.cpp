@@ -55,7 +55,7 @@ PitchDetectorDebugCb getPitchDetectorDebugCb() {
       metricWriters->combinedMax->write(anal.maxMin, size / 2);
     }
     const auto detectedPitch =
-        args.detectedPitch.has_value() ? *args.detectedPitch : 0.f;
+        args.detectedPitch.has_value() ? *args.detectedPitch / 1000 : 0.f;
     metricWriters->detectedPitch->write(detectedPitch, args.blockSize);
   };
 }
